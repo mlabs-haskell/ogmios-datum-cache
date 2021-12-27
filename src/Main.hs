@@ -4,6 +4,7 @@ module Main
     ( main
     ) where
 
+import Control.Exception (throwIO, Exception)
 import           Control.Concurrent  (forkIO, threadDelay)
 import           Control.Monad       (forever, unless)
 import           Control.Monad.Trans (liftIO)
@@ -97,19 +98,22 @@ data ResultTip = ResultTip
 
 type FindIntersectResult = Json.Value
 
+data FindIntersectException = FindIntersectException Text
+  deriving stock (Eq, Show)
+  deriving anyclass (Exception)
+
 receiveLoop :: WS.Connection -> IO ()
 receiveLoop conn = forever $ do
   jsonMsg <- WS.receiveData conn
   print jsonMsg
 
-  let msg = Json.decode @OgmiosFindIntersectResponse jsonMsg
+  -- TODO: throwM
+  msg <- maybe (throwIO $ FindIntersectException "Can't decode response") pure $ Json.decode @OgmiosFindIntersectResponse jsonMsg
   print msg
 
 app :: WS.ClientApp ()
 app conn = do
     putStrLn "Connected!"
-
-    -- Fork a thread that writes WS data to stdout
     forkIO $ receiveLoop conn
 
     WS.sendTextData conn findIntersect1
