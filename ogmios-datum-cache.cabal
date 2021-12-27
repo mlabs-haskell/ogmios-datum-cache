@@ -85,3 +85,4 @@ executable ogmios-datum-cache
     , warp
     , websockets
     , network
+    , unordered-containers

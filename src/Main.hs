@@ -14,11 +14,12 @@ import qualified Data.Text           as T
 import qualified Data.Text.IO        as T
 import qualified Network.WebSockets  as WS
 import qualified Data.Aeson as Json
-import Data.Aeson (ToJSON, FromJSON)
+import Data.Aeson (ToJSON, FromJSON, withObject, (.:))
 import Data.Map (Map)
 import GHC.Generics (Generic)
 import qualified Data.Map as Map
 import qualified Data.ByteString.Lazy as BSL
+import qualified Data.HashMap.Strict as HM
 
 type OgmiosMirror = Int
 
@@ -26,7 +27,7 @@ data CursorPoint = CursorPoint
   { slot :: Integer
   , hash :: Text
   } deriving stock (Eq, Show, Generic)
-    deriving anyclass ToJSON
+    deriving anyclass (ToJSON, FromJSON)
 
 data CursorPoints = CursorPoints
   { points :: [CursorPoint]
@@ -96,20 +97,113 @@ data ResultTip = ResultTip
   } deriving stock (Eq, Show, Generic)
     deriving anyclass (FromJSON)
 
-type FindIntersectResult = Json.Value
+data FindIntersectResult =
+  IntersectionFound { point :: CursorPoint
+                    , tip :: ResultTip
+                    }
+  | IntersectionNotFound { tip :: ResultTip}
+  deriving stock (Eq, Show, Generic)
+
+instance FromJSON FindIntersectResult where
+  parseJSON = withObject "FindIntersectResult" $ \o -> do
+    case HM.toList o of
+      [("IntersectionFound", intersectionObj)] ->
+        withObject "IntersectionFound" (\obj -> do
+          point <- obj .: "point"
+          tip <- obj .: "tip"
+          pure $ IntersectionFound point tip) intersectionObj
+
+      [("IntersectionNotFound", intersectionObj)] ->
+        withObject "IntersectionNotFound" (\obj -> do
+          tip <- obj .: "tip"
+          pure $ IntersectionNotFound tip) intersectionObj
+
+      _ -> fail "Unexpected object key"
+
+type OgmiosRequestNextResponse = OgmiosResponse RequestNextResult OgmiosMirror
+
+data RequestNextResult =
+  RollBackward { point :: CursorPoint
+               , tip :: ResultTip
+               }
+ | RollForward { block :: Block
+               , tip :: ResultTip }
+
+ deriving stock (Eq, Show, Generic)
+
+data Block =
+  OtherBlock
+  | MkAlonzoBlock AlonzoBlock
+  deriving stock (Eq, Show, Generic)
+
+data AlonzoBlockHeader = AlonzoBlockHeader
+  { signature :: Text
+  , nonce :: AlonzoBlockHeaderNonce
+  , leadervalue ::  AlonzoBlockHeaderLeaderValue
+  }
+
+
+data AlonzoBlock = AlonzoBlock
+  { body :: [Transaction]
+  , header :: AlonzoBlockHeader
+  }
+  deriving stock (Eq, Show, Generic)
+  deriving anyclass FromJSON
+
+instance FromJSON RequestNextResult where
+  parseJSON = withObject "RequestNextResult" $ \o -> do
+    case HM.toList o of
+      [("RollBackward", rollObj)] ->
+        withObject "RollBackward" (\obj -> do
+          point <- obj .: "point"
+          tip <- obj .: "tip"
+          pure $ RollBackward point tip) rollObj
+
+      [("RollForward", rollObj)] ->
+        withObject "RollForward" (\obj -> do
+          tip <- obj .: "tip"
+          blockObj <- obj .: "block"
+          case HM.toList blockObj of
+            [("alonzo" :: Text, blockValue)] -> do
+              block <- Json.parseJSON @AlonzoBlock blockValue
+              pure $ RollForward (MkAlonzoBlock block) tip
+            [(_, blockObj)] ->
+              pure $ RollForward OtherBlock tip) rollObj
+
+      _ -> fail "Unexpected object key"
+
 
 data FindIntersectException = FindIntersectException Text
   deriving stock (Eq, Show)
   deriving anyclass (Exception)
 
 receiveLoop :: WS.Connection -> IO ()
-receiveLoop conn = forever $ do
+receiveLoop conn = do
   jsonMsg <- WS.receiveData conn
   print jsonMsg
 
   -- TODO: throwM
   msg <- maybe (throwIO $ FindIntersectException "Can't decode response") pure $ Json.decode @OgmiosFindIntersectResponse jsonMsg
   print msg
+  case _result msg of
+    IntersectionNotFound _ -> do
+      error "Intersection not found"
+    IntersectionFound _ _ -> do
+      forkIO $ receiveBlocksLoop conn
+      requestRemainingBlocks conn
+
+requestRemainingBlocks :: WS.Connection -> IO ()
+requestRemainingBlocks conn = forever $ do
+  WS.sendTextData conn (Json.encode $ mkRequestNextRequest 0)
+  threadDelay 1000000
+
+receiveBlocksLoop :: WS.Connection -> IO ()
+receiveBlocksLoop conn = forever $ do
+  jsonMsg <- WS.receiveData conn
+  T.putStrLn jsonMsg
+  threadDelay 1000000
+
+  -- msg <- Json.decode @OgmiosRequestNextResponse
 
 app :: WS.ClientApp ()
 app conn = do
@@ -117,7 +211,7 @@ app conn = do
     forkIO $ receiveLoop conn
 
     WS.sendTextData conn findIntersect1
-    threadDelay 1000000
+    threadDelay 10000000
     WS.sendClose conn ("Bye!" :: Text)
 
 main :: IO ()
