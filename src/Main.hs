@@ -136,15 +136,32 @@ data Block =
   | MkAlonzoBlock AlonzoBlock
   deriving stock (Eq, Show, Generic)
 
-data AlonzoBlockHeader = AlonzoBlockHeader
-  { signature :: Text
-  , nonce :: AlonzoBlockHeaderNonce
-  , leadervalue ::  AlonzoBlockHeaderLeaderValue
+data AlonzoTransaction = AlonzoTransaction
+  { datums :: Map Text Text
   }
+  deriving stock (Eq, Show, Generic)
 
+instance FromJSON AlonzoTransaction where
+  parseJSON = withObject "AlonzoTransaction" $ \o -> do
+    witness <- o .: "witness"
+    datums <- witness .: "datums"
+    pure $ AlonzoTransaction datums
+
+-- data AlonzoBlockHeader = AlonzoBlockHeader
+--   { signature :: Text
+--   , nonce :: AlonzoBlockHeaderNonce
+--   , leadervalue ::  AlonzoBlockHeaderLeaderValue
+--   , ..
+--   }
+
+data AlonzoBlockHeader = AlonzoBlockHeader
+  deriving stock (Eq, Show, Generic)
+
+instance FromJSON AlonzoBlockHeader where
+  parseJSON = const $ pure AlonzoBlockHeader
 
 data AlonzoBlock = AlonzoBlock
-  { body :: [Transaction]
+  { body :: [AlonzoTransaction]
   , header :: AlonzoBlockHeader
   }
   deriving stock (Eq, Show, Generic)
@@ -177,6 +194,10 @@ data FindIntersectException = FindIntersectException Text
   deriving stock (Eq, Show)
   deriving anyclass (Exception)
 
+data RequestNextException = RequestNextException Text
+  deriving stock (Eq, Show)
+  deriving anyclass (Exception)
+
 receiveLoop :: WS.Connection -> IO ()
 receiveLoop conn = do
   jsonMsg <- WS.receiveData conn
@@ -200,10 +221,13 @@ requestRemainingBlocks conn = forever $ do
 receiveBlocksLoop :: WS.Connection -> IO ()
 receiveBlocksLoop conn = forever $ do
   jsonMsg <- WS.receiveData conn
-  T.putStrLn jsonMsg
-  threadDelay 1000000
+  -- T.putStrLn jsonMsg
 
-  -- msg <- Json.decode @OgmiosRequestNextResponse
+  msg <- maybe (throwIO $ RequestNextException "Can't decode response") pure $ Json.decode @OgmiosRequestNextResponse jsonMsg
+
+  print msg
+
+  threadDelay 1000000
 
 app :: WS.ClientApp ()
 app conn = do
