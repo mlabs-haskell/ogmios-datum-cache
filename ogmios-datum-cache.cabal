@@ -86,3 +86,6 @@ executable ogmios-datum-cache
     , websockets
     , network
     , unordered-containers
+    , hasql
+    , base64
+    -- , hasql-th

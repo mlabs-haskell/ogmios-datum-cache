@@ -6,7 +6,7 @@ module Main
 
 import Control.Exception (throwIO, Exception)
 import           Control.Concurrent  (forkIO, threadDelay)
-import           Control.Monad       (forever, unless)
+import           Control.Monad       (forever, unless, forM_)
 import           Control.Monad.Trans (liftIO)
 import           Network.Socket      (withSocketsDo)
 import           Data.Text           (Text)
@@ -20,6 +20,21 @@ import GHC.Generics (Generic)
 import qualified Data.Map as Map
 import qualified Data.ByteString.Lazy as BSL
 import qualified Data.HashMap.Strict as HM
+
+import qualified Hasql.Connection as Connection
+import qualified Hasql.Connection as Hasql
+import qualified Hasql.Session as Session
+import Hasql.Session (Session)
+import Hasql.Statement (Statement(..))
+import qualified Hasql.Decoders as Decoders
+import qualified Hasql.Encoders as Encoders
+import Data.Int (Int64)
+import Data.Functor.Contravariant ((>$<))
+import Data.ByteString (ByteString)
+
+import qualified Data.Text.Encoding as Text
+
+import Data.Text.Encoding.Base64 (decodeBase64)
 
 type OgmiosMirror = Int
 
@@ -198,8 +213,9 @@ data RequestNextException = RequestNextException Text
   deriving stock (Eq, Show)
   deriving anyclass (Exception)
 
-receiveLoop :: WS.Connection -> IO ()
-receiveLoop conn = do
+-- TODO: ReaderT Env
+receiveLoop :: WS.Connection -> Hasql.Connection -> IO ()
+receiveLoop conn pgConn = do
   jsonMsg <- WS.receiveData conn
   print jsonMsg
 
@@ -210,7 +226,7 @@ receiveLoop conn = do
     IntersectionNotFound _ -> do
       error "Intersection not found"
     IntersectionFound _ _ -> do
-      forkIO $ receiveBlocksLoop conn
+      forkIO $ receiveBlocksLoop conn pgConn
       requestRemainingBlocks conn
 
 requestRemainingBlocks :: WS.Connection -> IO ()
@@ -218,25 +234,70 @@ requestRemainingBlocks conn = forever $ do
   WS.sendTextData conn (Json.encode $ mkRequestNextRequest 0)
   threadDelay 1000000
 
-receiveBlocksLoop :: WS.Connection -> IO ()
-receiveBlocksLoop conn = forever $ do
+receiveBlocksLoop :: WS.Connection -> Hasql.Connection -> IO ()
+receiveBlocksLoop conn pgConn = forever $ do
   jsonMsg <- WS.receiveData conn
   -- T.putStrLn jsonMsg
 
   msg <- maybe (throwIO $ RequestNextException "Can't decode response") pure $ Json.decode @OgmiosRequestNextResponse jsonMsg
 
-  print msg
+  -- print msg
+  case _result msg of
+    RollBackward _point _tip -> do
+      pure ()
+    RollForward OtherBlock _tip -> do
+      pure ()
+    RollForward (MkAlonzoBlock block) _tip -> do
+      -- TODO: multirow insert
+      -- https://github.com/nikita-volkov/hasql/issues/25#issuecomment-286053459
+      forM_ (body block) $ \tx -> do
+        -- print $ datums tx
+        forM_ (Map.toList $ datums tx) $ \(datumHash, datumValueBase64) -> do
+          -- print (datumHash, datumValueBase64)
+          case Text.encodeUtf8 <$> decodeBase64 datumValueBase64 of
+            Left _ -> do
+              T.putStrLn $ "Error decoding value for " <> datumHash
+            Right datumValue -> do
+              T.putStrLn $ "Inserting datum with sha256 hash: " <> datumHash
+              res <- Session.run (datumInsertSession datumHash datumValue) pgConn
+              -- TODO: err handling
+              print res
 
   threadDelay 1000000
 
-app :: WS.ClientApp ()
-app conn = do
+app :: Hasql.Connection -> WS.Connection -> IO ()
+app pgConn conn = do
     putStrLn "Connected!"
-    forkIO $ receiveLoop conn
+    forkIO $ receiveLoop conn pgConn
 
     WS.sendTextData conn findIntersect1
     threadDelay 10000000
     WS.sendClose conn ("Bye!" :: Text)
 
 main :: IO ()
-main = withSocketsDo $ WS.runClient "127.0.0.1" 1337 "" app
+main = do
+  -- CREATE TABLE datums (hash text, value bytea);
+  -- CREATE UNIQUE INDEX CONCURRENTLY IF NOT EXISTS datums_hash_index ON datums (hash);
+  Right pgConn <- Connection.acquire connSettings
+  res <- Session.run (datumInsertSession "abc" "def") pgConn
+  print res
+
+  withSocketsDo $ WS.runClient "127.0.0.1" 1337 "" (app pgConn)
+  where
+    connSettings = Connection.settings "localhost" 5432 "aske" "" "ogmios-datum-cache"
+
+datumInsertSession :: Text -> ByteString -> Session ()
+datumInsertSession datumHash datumValue = do
+  Session.statement (datumHash, datumValue) datumInsertStatement
+
+datumInsertStatement :: Statement (Text, ByteString) ()
+datumInsertStatement = Statement sql enc dec True
+  where
+    sql =
+      "INSERT INTO datums VALUES ($1, $2) ON CONFLICT DO NOTHING"
+    enc =
+      (fst >$< Encoders.param (Encoders.nonNullable Encoders.text)) <>
+      (snd >$< Encoders.param (Encoders.nonNullable Encoders.bytea))
+
+    dec =
+      Decoders.noResult
