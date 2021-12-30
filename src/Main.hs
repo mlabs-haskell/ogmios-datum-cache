@@ -283,15 +283,6 @@ wsApp pgConn conn = do
     threadDelay 10000000
     WS.sendClose conn ("Bye!" :: Text)
 
-data PlutusData =
-  Constr Integer [PlutusData]
-  | Map [(PlutusData, PlutusData)]
-  | List [PlutusData]
-  | I Integer
-  | B ByteString
-  deriving stock (Eq, Show, Generic)
-  deriving anyclass (Serialise)
-
 main :: IO ()
 main = do
   -- CREATE TABLE datums (hash text, value bytea);
@@ -306,7 +297,7 @@ main = do
   -- let Right sampleValue = Text.encodeUtf8 <$> decodeBase64 "oWR0aGlzomJpc2VDQk9SIWN5YXn1"
   -- print sampleValue
 
-  -- print $ deserialise @PlutusData (BSL.fromStrict $ value datumRes)
+  print $ deserialise @PlutusData.Data (BSL.fromStrict $ value datumRes)
   -- let r = Cbor.deserialiseFromBytes (CborJson.decodeValue True) (BSL.fromStrict $ sampleValue)
   -- print r
 
