@@ -239,7 +239,7 @@ receiveLoop conn pgConn = do
 requestRemainingBlocks :: WS.Connection -> IO ()
 requestRemainingBlocks conn = forever $ do
   WS.sendTextData conn (Json.encode $ mkRequestNextRequest 0)
-  threadDelay 1000000
+  threadDelay 100000
 
 receiveBlocksLoop :: WS.Connection -> Hasql.Connection -> IO ()
 receiveBlocksLoop conn pgConn = forever $ do
@@ -260,9 +260,9 @@ receiveBlocksLoop conn pgConn = forever $ do
       forM_ (body block) $ \tx -> do
         -- print $ datums tx
         forM_ (Map.toList $ datums tx) $ \(datumHash, datumValueBase64) -> do
-          -- print (datumHash, datumValueBase64)
-          print $ datumValueBase64
-          print $ decodeBase64 datumValueBase64
+          print (datumHash, datumValueBase64)
+          -- print $ datumValueBase64
+          -- print $ decodeBase64 datumValueBase64
           case Text.encodeUtf8 <$> decodeBase64 datumValueBase64 of
             Left _ -> do
               T.putStrLn $ "Error decoding value for " <> datumHash
@@ -272,7 +272,7 @@ receiveBlocksLoop conn pgConn = forever $ do
               -- TODO: err handling
               print res
 
-  threadDelay 1000000
+  threadDelay 100000
 
 wsApp :: Hasql.Connection -> WS.Connection -> IO ()
 wsApp pgConn conn = do
@@ -281,6 +281,7 @@ wsApp pgConn conn = do
 
     WS.sendTextData conn findIntersect1
     threadDelay 10000000
+    -- threadDelay 10000000000
     WS.sendClose conn ("Bye!" :: Text)
 
 main :: IO ()
@@ -291,7 +292,9 @@ main = do
   res <- Session.run (datumInsertSession "abc" "def") pgConn
   print res
 
-  Right datumRes <- Session.run (getDatumSession "e827cc9fab9038391dabbe6b79440d7a14c4a38de5a69b2e130acbb46b5ae6ed") pgConn
+  -- Right datumRes <- Session.run (getDatumSession "e827cc9fab9038391dabbe6b79440d7a14c4a38de5a69b2e130acbb46b5ae6ed") pgConn
+
+  Right datumRes <- Session.run (getDatumSession "5cd334edbfb9a0be6b4c17745d54acd80472108adb38da0d23c8cc4c130664ba") pgConn
   print datumRes
 
   -- let Right sampleValue = Text.encodeUtf8 <$> decodeBase64 "oWR0aGlzomJpc2VDQk9SIWN5YXn1"
