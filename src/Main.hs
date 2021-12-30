@@ -36,6 +36,9 @@ import qualified Data.Text.Encoding as Text
 
 import Data.Text.Encoding.Base64 (decodeBase64)
 
+import qualified Codec.CBOR.Read as Cbor
+import qualified Codec.CBOR.JSON as CborJson
+
 type OgmiosMirror = Int
 
 data CursorPoint = CursorPoint
@@ -254,6 +257,8 @@ receiveBlocksLoop conn pgConn = forever $ do
         -- print $ datums tx
         forM_ (Map.toList $ datums tx) $ \(datumHash, datumValueBase64) -> do
           -- print (datumHash, datumValueBase64)
+          -- print $ datumValueBase64
+          -- print $ decodeBase64 datumValueBase64
           case Text.encodeUtf8 <$> decodeBase64 datumValueBase64 of
             Left _ -> do
               T.putStrLn $ "Error decoding value for " <> datumHash
@@ -265,8 +270,8 @@ receiveBlocksLoop conn pgConn = forever $ do
 
   threadDelay 1000000
 
-app :: Hasql.Connection -> WS.Connection -> IO ()
-app pgConn conn = do
+wsApp :: Hasql.Connection -> WS.Connection -> IO ()
+wsApp pgConn conn = do
     putStrLn "Connected!"
     forkIO $ receiveLoop conn pgConn
 
@@ -282,9 +287,40 @@ main = do
   res <- Session.run (datumInsertSession "abc" "def") pgConn
   print res
 
-  withSocketsDo $ WS.runClient "127.0.0.1" 1337 "" (app pgConn)
+  Right datumRes <- Session.run (getDatumSession "e827cc9fab9038391dabbe6b79440d7a14c4a38de5a69b2e130acbb46b5ae6ed") pgConn
+  print datumRes
+
+  let r = Cbor.deserialiseFromBytes (CborJson.decodeValue True) (BSL.fromStrict $ value datumRes)
+  print r
+
+  let Right (_, cborJson) = Cbor.deserialiseFromBytes (CborJson.decodeValue True) (BSL.fromStrict $ value datumRes)
+  print $ Json.encode cborJson
+
+  withSocketsDo $ WS.runClient "127.0.0.1" 1337 "" (wsApp pgConn)
   where
     connSettings = Connection.settings "localhost" 5432 "aske" "" "ogmios-datum-cache"
+
+data Datum = Datum
+  { hash :: Text
+  , value :: ByteString
+  }
+  deriving stock (Eq, Show)
+
+getDatumSession :: Text -> Session Datum
+getDatumSession datumHash =
+  Session.statement datumHash getDatumStatement
+
+getDatumStatement :: Statement Text Datum
+getDatumStatement = Statement sql enc dec True
+  where
+    sql =
+      "SELECT hash, value FROM datums WHERE hash = $1"
+    enc =
+      Encoders.param (Encoders.nonNullable Encoders.text)
+    dec = Decoders.singleRow $
+      Datum <$>
+      Decoders.column (Decoders.nonNullable Decoders.text) <*>
+      Decoders.column (Decoders.nonNullable Decoders.bytea)
 
 datumInsertSession :: Text -> ByteString -> Session ()
 datumInsertSession datumHash datumValue = do

@@ -89,3 +89,5 @@ executable ogmios-datum-cache
     , hasql
     , base64
     -- , hasql-th
+    , cborg
+    , cborg-json
