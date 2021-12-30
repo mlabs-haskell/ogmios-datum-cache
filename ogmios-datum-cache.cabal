@@ -51,8 +51,9 @@ executable ogmios-datum-cache
     -O2
 
   main-is:        Main.hs
-  -- other-modules:
-  --   Options
+  other-modules:
+    PlutusData
+  -- --   Options
 
   hs-source-dirs: src
   build-depends:
@@ -91,3 +92,4 @@ executable ogmios-datum-cache
     -- , hasql-th
     , cborg
     , cborg-json
+    , serialise

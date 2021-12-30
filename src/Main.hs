@@ -39,6 +39,10 @@ import Data.Text.Encoding.Base64 (decodeBase64)
 import qualified Codec.CBOR.Read as Cbor
 import qualified Codec.CBOR.JSON as CborJson
 
+import Codec.Serialise (Serialise, deserialise)
+
+import qualified PlutusData
+
 type OgmiosMirror = Int
 
 data CursorPoint = CursorPoint
@@ -257,8 +261,8 @@ receiveBlocksLoop conn pgConn = forever $ do
         -- print $ datums tx
         forM_ (Map.toList $ datums tx) $ \(datumHash, datumValueBase64) -> do
           -- print (datumHash, datumValueBase64)
-          -- print $ datumValueBase64
-          -- print $ decodeBase64 datumValueBase64
+          print $ datumValueBase64
+          print $ decodeBase64 datumValueBase64
           case Text.encodeUtf8 <$> decodeBase64 datumValueBase64 of
             Left _ -> do
               T.putStrLn $ "Error decoding value for " <> datumHash
@@ -279,6 +283,15 @@ wsApp pgConn conn = do
     threadDelay 10000000
     WS.sendClose conn ("Bye!" :: Text)
 
+data PlutusData =
+  Constr Integer [PlutusData]
+  | Map [(PlutusData, PlutusData)]
+  | List [PlutusData]
+  | I Integer
+  | B ByteString
+  deriving stock (Eq, Show, Generic)
+  deriving anyclass (Serialise)
+
 main :: IO ()
 main = do
   -- CREATE TABLE datums (hash text, value bytea);
@@ -290,11 +303,15 @@ main = do
   Right datumRes <- Session.run (getDatumSession "e827cc9fab9038391dabbe6b79440d7a14c4a38de5a69b2e130acbb46b5ae6ed") pgConn
   print datumRes
 
-  let r = Cbor.deserialiseFromBytes (CborJson.decodeValue True) (BSL.fromStrict $ value datumRes)
-  print r
+  -- let Right sampleValue = Text.encodeUtf8 <$> decodeBase64 "oWR0aGlzomJpc2VDQk9SIWN5YXn1"
+  -- print sampleValue
 
-  let Right (_, cborJson) = Cbor.deserialiseFromBytes (CborJson.decodeValue True) (BSL.fromStrict $ value datumRes)
-  print $ Json.encode cborJson
+  -- print $ deserialise @PlutusData (BSL.fromStrict $ value datumRes)
+  -- let r = Cbor.deserialiseFromBytes (CborJson.decodeValue True) (BSL.fromStrict $ sampleValue)
+  -- print r
+
+  -- let Right (_, cborJson) = Cbor.deserialiseFromBytes (CborJson.decodeValue True) (BSL.fromStrict $ value datumRes)
+  -- print $ Json.encode cborJson
 
   withSocketsDo $ WS.runClient "127.0.0.1" 1337 "" (wsApp pgConn)
   where

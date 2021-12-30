@@ -8,9 +8,10 @@ let
       , cborg, cborg-json, conduit, containers, cryptohash-sha256
       , directory, esqueleto, exceptions, filepath, hasql, http-types
       , lib, monad-logger, mtl, network, optparse-applicative, persistent
-      , persistent-postgresql, resource-pool, servant, servant-multipart
-      , servant-server, text, time, unordered-containers, wai, wai-extra
-      , wai-logger, warp, websockets
+      , persistent-postgresql, resource-pool, serialise, servant
+      , servant-multipart, servant-server, text, time
+      , unordered-containers, wai, wai-extra, wai-logger, warp
+      , websockets
       }:
       mkDerivation {
         pname = "ogmios-datum-cache";
@@ -23,7 +24,7 @@ let
           containers cryptohash-sha256 directory esqueleto exceptions
           filepath hasql http-types monad-logger mtl network
           optparse-applicative persistent persistent-postgresql resource-pool
-          servant servant-multipart servant-server text time
+          serialise servant servant-multipart servant-server text time
           unordered-containers wai wai-extra wai-logger warp websockets
         ];
         license = "unknown";
