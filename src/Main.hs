@@ -301,14 +301,18 @@ main = do
   -- Right datumRes <- Session.run (getDatumSession "5cd334edbfb9a0be6b4c17745d54acd80472108adb38da0d23c8cc4c130664ba") pgConn
   -- print datumRes
 
-  -- let Right sampleValue = Text.encodeUtf8 <$> decodeBase64 "oWR0aGlzomJpc2VDQk9SIWN5YXn1"
+  -- let Right sampleValue = BSBase64.decodeBase64 $ Text.encodeUtf8 "oWR0aGlzomJpc2VDQk9SIWN5YXn1"
   -- let Right sampleValue = Text.encodeUtf8 <$> decodeBase64 "2GaCAIA="
   -- let Right sampleValue = BSLBase64.decodeBase64 "2GaCAIA="
   let Right sampleValue = BSBase64.decodeBase64 $ Text.encodeUtf8 "2GaCAIA="
   print sampleValue
+
   -- print $ deserialise @PlutusData.Data (BSL.fromStrict $ sampleValue)
   -- print $ Cbor.deserialiseFromBytes @PlutusData.Data PlutusData.decodeData (BSL.fromStrict sampleValue)
-  print $ Cbor.deserialiseFromBytes @PlutusData.Data PlutusData.decodeData (BSL.fromStrict sampleValue) --"\xd8\x66\x82\x00\x80"
+  let Right (_, plutusData) = Cbor.deserialiseFromBytes @PlutusData.Data PlutusData.decodeData (BSL.fromStrict sampleValue) --"\xd8\x66\x82\x00\x80"
+  -- let Right plutusData = deserialise @PlutusData.Data (BSL.fromStrict sampleValue)
+  print plutusData
+  print $ Json.encode plutusData
 
   -- print $ deserialise @PlutusData.Data (BSL.fromStrict $ value datumRes)
   -- let r = Cbor.deserialiseFromBytes (CborJson.decodeValue True) (BSL.fromStrict $ sampleValue)

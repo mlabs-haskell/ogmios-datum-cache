@@ -23,6 +23,9 @@ import Data.Word (Word64, Word8)
 import GHC.Generics
 import Prelude
 
+import Data.Aeson (ToJSON, toJSON, object, (.=))
+import qualified Data.ByteString.Base16 as BSBase16
+
 -- | A generic "data" type.
 --
 -- The main constructor 'Constr' represents a datatype value in sum-of-products
@@ -36,6 +39,14 @@ data Data =
     | I Integer
     | B BS.ByteString
     deriving stock (Show, Eq, Ord, Generic)
+
+instance ToJSON Data where
+  toJSON = \case
+    Constr n ds -> object [ "constr" .= n, "fields" .= ds ]
+    Map ds -> object [ "map" .= map (\(k, v) -> object [ "key" .= k, "value" .= v ]) ds ]
+    List ds -> toJSON ds
+    I int -> toJSON int
+    B bs -> toJSON $ BSBase16.encodeBase16 bs
 
 {- Note [Encoding via Term]
 We want to write a custom encoder/decoder for Data (i.e. not use the Generic version), but actually

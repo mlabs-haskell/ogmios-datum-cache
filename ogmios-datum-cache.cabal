@@ -93,3 +93,4 @@ executable ogmios-datum-cache
     , cborg
     , cborg-json
     , serialise
+    , base16
