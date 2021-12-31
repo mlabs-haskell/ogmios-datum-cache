@@ -36,6 +36,9 @@ import qualified Data.Text.Encoding as Text
 
 import Data.Text.Encoding.Base64 (decodeBase64)
 
+import qualified Data.ByteString.Lazy.Base64 as BSLBase64
+import qualified Data.ByteString.Base64 as BSBase64
+
 import qualified Codec.CBOR.Read as Cbor
 import qualified Codec.CBOR.JSON as CborJson
 
@@ -264,6 +267,7 @@ receiveBlocksLoop conn pgConn = forever $ do
           -- print $ datumValueBase64
           -- print $ decodeBase64 datumValueBase64
           case Text.encodeUtf8 <$> decodeBase64 datumValueBase64 of
+          -- case BSBase64.decodeBase64 datumValueBase64 of
             Left _ -> do
               T.putStrLn $ "Error decoding value for " <> datumHash
             Right datumValue -> do
@@ -288,26 +292,32 @@ main :: IO ()
 main = do
   -- CREATE TABLE datums (hash text, value bytea);
   -- CREATE UNIQUE INDEX CONCURRENTLY IF NOT EXISTS datums_hash_index ON datums (hash);
-  Right pgConn <- Connection.acquire connSettings
-  res <- Session.run (datumInsertSession "abc" "def") pgConn
-  print res
+  -- Right pgConn <- Connection.acquire connSettings
+  -- res <- Session.run (datumInsertSession "abc" "def") pgConn
+  -- print res
 
   -- Right datumRes <- Session.run (getDatumSession "e827cc9fab9038391dabbe6b79440d7a14c4a38de5a69b2e130acbb46b5ae6ed") pgConn
 
-  Right datumRes <- Session.run (getDatumSession "5cd334edbfb9a0be6b4c17745d54acd80472108adb38da0d23c8cc4c130664ba") pgConn
-  print datumRes
+  -- Right datumRes <- Session.run (getDatumSession "5cd334edbfb9a0be6b4c17745d54acd80472108adb38da0d23c8cc4c130664ba") pgConn
+  -- print datumRes
 
   -- let Right sampleValue = Text.encodeUtf8 <$> decodeBase64 "oWR0aGlzomJpc2VDQk9SIWN5YXn1"
-  -- print sampleValue
+  -- let Right sampleValue = Text.encodeUtf8 <$> decodeBase64 "2GaCAIA="
+  -- let Right sampleValue = BSLBase64.decodeBase64 "2GaCAIA="
+  let Right sampleValue = BSBase64.decodeBase64 $ Text.encodeUtf8 "2GaCAIA="
+  print sampleValue
+  -- print $ deserialise @PlutusData.Data (BSL.fromStrict $ sampleValue)
+  -- print $ Cbor.deserialiseFromBytes @PlutusData.Data PlutusData.decodeData (BSL.fromStrict sampleValue)
+  print $ Cbor.deserialiseFromBytes @PlutusData.Data PlutusData.decodeData (BSL.fromStrict sampleValue) --"\xd8\x66\x82\x00\x80"
 
-  print $ deserialise @PlutusData.Data (BSL.fromStrict $ value datumRes)
+  -- print $ deserialise @PlutusData.Data (BSL.fromStrict $ value datumRes)
   -- let r = Cbor.deserialiseFromBytes (CborJson.decodeValue True) (BSL.fromStrict $ sampleValue)
   -- print r
 
   -- let Right (_, cborJson) = Cbor.deserialiseFromBytes (CborJson.decodeValue True) (BSL.fromStrict $ value datumRes)
   -- print $ Json.encode cborJson
 
-  withSocketsDo $ WS.runClient "127.0.0.1" 1337 "" (wsApp pgConn)
+  -- withSocketsDo $ WS.runClient "127.0.0.1" 1337 "" (wsApp pgConn)
   where
     connSettings = Connection.settings "localhost" 5432 "aske" "" "ogmios-datum-cache"
 

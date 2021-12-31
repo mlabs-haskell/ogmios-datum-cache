@@ -5,7 +5,8 @@
 {-# LANGUAGE OverloadedStrings  #-}
 {-# LANGUAGE TypeApplications   #-}
 
-module PlutusData (Data (..)) where
+-- module PlutusData (Data (..)) where
+module PlutusData where
 
 import Codec.CBOR.Decoding (Decoder)
 import Codec.CBOR.Decoding qualified as CBOR
