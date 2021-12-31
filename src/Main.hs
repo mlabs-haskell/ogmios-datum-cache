@@ -266,7 +266,7 @@ receiveBlocksLoop conn pgConn = forever $ do
           print (datumHash, datumValueBase64)
           -- print $ datumValueBase64
           -- print $ decodeBase64 datumValueBase64
-          case Text.encodeUtf8 <$> decodeBase64 datumValueBase64 of
+          case BSBase64.decodeBase64 $ Text.encodeUtf8 datumValueBase64 of
           -- case BSBase64.decodeBase64 datumValueBase64 of
             Left _ -> do
               T.putStrLn $ "Error decoding value for " <> datumHash
