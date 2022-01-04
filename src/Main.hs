@@ -42,9 +42,18 @@ import qualified Data.ByteString.Base64 as BSBase64
 import qualified Codec.CBOR.Read as Cbor
 import qualified Codec.CBOR.JSON as CborJson
 
-import Codec.Serialise (Serialise, deserialise)
+import Codec.Serialise (Serialise, deserialiseOrFail)
 
 import qualified PlutusData
+
+import Network.Wai.Handler.Warp qualified as W
+import Network.Wai.Logger (withStdoutLogger)
+import Servant.Server.Generic   (genericServerT)
+import Servant.Server (Application, Handler (..), serve, ServerT)
+import Servant.API.Generic (ToServantApi)
+
+import Api (Routes, datumApi)
+import Api.Handler (datumServiceHandlers)
 
 type OgmiosMirror = Int
 
@@ -288,40 +297,36 @@ wsApp pgConn conn = do
     -- threadDelay 10000000000
     WS.sendClose conn ("Bye!" :: Text)
 
+appService :: Hasql.Connection -> Application
+appService pgConn = serve datumApi appServer
+  where
+    appServer :: ServerT (ToServantApi Routes) Handler
+    appServer = genericServerT datumServiceHandlers
+
 main :: IO ()
 main = do
   -- CREATE TABLE datums (hash text, value bytea);
   -- CREATE UNIQUE INDEX CONCURRENTLY IF NOT EXISTS datums_hash_index ON datums (hash);
-  -- Right pgConn <- Connection.acquire connSettings
+  Right pgConn <- Connection.acquire connSettings
   -- res <- Session.run (datumInsertSession "abc" "def") pgConn
   -- print res
 
-  -- Right datumRes <- Session.run (getDatumSession "e827cc9fab9038391dabbe6b79440d7a14c4a38de5a69b2e130acbb46b5ae6ed") pgConn
+  Right datumRes <- Session.run (getDatumSession "ca3b51aec7831376f5cbbd96d3370f821b4593462edd4ea42e31edfd7fb03485") pgConn
 
-  -- Right datumRes <- Session.run (getDatumSession "5cd334edbfb9a0be6b4c17745d54acd80472108adb38da0d23c8cc4c130664ba") pgConn
-  -- print datumRes
+  -- let Right sampleValue = BSBase64.decodeBase64 $ Text.encodeUtf8 "2GaCAIA="
+  let sampleValue = value datumRes
 
-  -- let Right sampleValue = BSBase64.decodeBase64 $ Text.encodeUtf8 "oWR0aGlzomJpc2VDQk9SIWN5YXn1"
-  -- let Right sampleValue = Text.encodeUtf8 <$> decodeBase64 "2GaCAIA="
-  -- let Right sampleValue = BSLBase64.decodeBase64 "2GaCAIA="
-  let Right sampleValue = BSBase64.decodeBase64 $ Text.encodeUtf8 "2GaCAIA="
-  print sampleValue
-
-  -- print $ deserialise @PlutusData.Data (BSL.fromStrict $ sampleValue)
-  -- print $ Cbor.deserialiseFromBytes @PlutusData.Data PlutusData.decodeData (BSL.fromStrict sampleValue)
-  let Right (_, plutusData) = Cbor.deserialiseFromBytes @PlutusData.Data PlutusData.decodeData (BSL.fromStrict sampleValue) --"\xd8\x66\x82\x00\x80"
-  -- let Right plutusData = deserialise @PlutusData.Data (BSL.fromStrict sampleValue)
+  let Right plutusData = deserialiseOrFail @PlutusData.Data (BSL.fromStrict $ sampleValue)
   print plutusData
   print $ Json.encode plutusData
 
-  -- print $ deserialise @PlutusData.Data (BSL.fromStrict $ value datumRes)
-  -- let r = Cbor.deserialiseFromBytes (CborJson.decodeValue True) (BSL.fromStrict $ sampleValue)
-  -- print r
-
-  -- let Right (_, cborJson) = Cbor.deserialiseFromBytes (CborJson.decodeValue True) (BSL.fromStrict $ value datumRes)
-  -- print $ Json.encode cborJson
-
   -- withSocketsDo $ WS.runClient "127.0.0.1" 1337 "" (wsApp pgConn)
+
+  let serverPort = 9999
+  withStdoutLogger $ \logger -> do
+    let warpSettings = W.setPort serverPort $ W.setLogger logger W.defaultSettings
+    print serverPort
+    W.runSettings warpSettings (appService pgConn)
   where
     connSettings = Connection.settings "localhost" 5432 "aske" "" "ogmios-datum-cache"
 
