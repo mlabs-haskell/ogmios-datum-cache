@@ -14,7 +14,8 @@ import qualified Data.Vector as Vector
 
 import qualified PlutusData
 import Api
-import Database (getDatumSession, Datum (value), getDatumsSession)
+import Api.Types
+import qualified Database as Db
 
 datumServiceHandlers :: Hasql.Connection -> Routes (AsServerT Handler)
 datumServiceHandlers pgConn = Routes{..}
@@ -22,19 +23,19 @@ datumServiceHandlers pgConn = Routes{..}
     datumRoutes :: ToServant DatumApi (AsServerT Handler)
     datumRoutes = genericServerT DatumApi{..}
 
+    toPlutusData :: Db.Datum -> Handler PlutusData.Data
     toPlutusData datumRes =
-      deserialiseOrFail @PlutusData.Data (BSL.fromStrict $ value datumRes) & either (const $ throwError err500) pure
+      deserialiseOrFail @PlutusData.Data (BSL.fromStrict $ Db.value datumRes) & either (const $ throwError err500) pure
 
     getDatumByHash :: Text -> Handler GetDatumByHashResponse
     getDatumByHash hash = do
-      datumRes <- liftIO (Session.run (getDatumSession hash) pgConn) >>= either (const $ throwError err404) pure
+      datumRes <- liftIO (Session.run (Db.getDatumSession hash) pgConn) >>= either (const $ throwError err404) pure
       plutusData <- toPlutusData datumRes
 
       pure $ GetDatumByHashResponse plutusData
 
-    getDatumsByHashes :: Text -> Handler GetDatumsByHashesResponse
-    getDatumsByHashes _hashes = do
-      let hashes = ["923918e403bf43c34b4ef6b48eb2ee04babed17320d8d1b9ff9ad086e86f44ec"]
-      datums <- liftIO (Session.run (getDatumsSession hashes) pgConn) >>= either (const $ throwError err404) pure
-      plutusDatums <- Vector.mapM toPlutusData datums
+    getDatumsByHashes :: GetDatumsByHashesRequest -> Handler GetDatumsByHashesResponse
+    getDatumsByHashes (GetDatumsByHashesRequest hashes) = do
+      datums <- liftIO (Session.run (Db.getDatumsSession hashes) pgConn) >>= either (const $ throwError err404) pure
+      plutusDatums <- Vector.mapM (\dt -> GetDatumsByHashesDatum (Db.hash dt) <$> (toPlutusData dt)) datums
       pure $ GetDatumsByHashesResponse plutusDatums
