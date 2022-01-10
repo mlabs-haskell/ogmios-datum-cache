@@ -24,13 +24,6 @@ import qualified Data.HashMap.Strict as HM
 import qualified Hasql.Connection as Connection
 import qualified Hasql.Connection as Hasql
 import qualified Hasql.Session as Session
-import Hasql.Session (Session)
-import Hasql.Statement (Statement(..))
-import qualified Hasql.Decoders as Decoders
-import qualified Hasql.Encoders as Encoders
-import Data.Int (Int64)
-import Data.Functor.Contravariant ((>$<))
-import Data.ByteString (ByteString)
 
 import qualified Data.Text.Encoding as Text
 
@@ -54,6 +47,7 @@ import Servant.API.Generic (ToServantApi)
 
 import Api (Routes, datumApi)
 import Api.Handler (datumServiceHandlers)
+import Database (datumInsertSession, getDatumSession, Datum (..))
 
 type OgmiosMirror = Int
 
@@ -301,7 +295,7 @@ appService :: Hasql.Connection -> Application
 appService pgConn = serve datumApi appServer
   where
     appServer :: ServerT (ToServantApi Routes) Handler
-    appServer = genericServerT datumServiceHandlers
+    appServer = genericServerT (datumServiceHandlers pgConn)
 
 main :: IO ()
 main = do
@@ -325,45 +319,6 @@ main = do
   let serverPort = 9999
   withStdoutLogger $ \logger -> do
     let warpSettings = W.setPort serverPort $ W.setLogger logger W.defaultSettings
-    print serverPort
     W.runSettings warpSettings (appService pgConn)
   where
     connSettings = Connection.settings "localhost" 5432 "aske" "" "ogmios-datum-cache"
-
-data Datum = Datum
-  { hash :: Text
-  , value :: ByteString
-  }
-  deriving stock (Eq, Show)
-
-getDatumSession :: Text -> Session Datum
-getDatumSession datumHash =
-  Session.statement datumHash getDatumStatement
-
-getDatumStatement :: Statement Text Datum
-getDatumStatement = Statement sql enc dec True
-  where
-    sql =
-      "SELECT hash, value FROM datums WHERE hash = $1"
-    enc =
-      Encoders.param (Encoders.nonNullable Encoders.text)
-    dec = Decoders.singleRow $
-      Datum <$>
-      Decoders.column (Decoders.nonNullable Decoders.text) <*>
-      Decoders.column (Decoders.nonNullable Decoders.bytea)
-
-datumInsertSession :: Text -> ByteString -> Session ()
-datumInsertSession datumHash datumValue = do
-  Session.statement (datumHash, datumValue) datumInsertStatement
-
-datumInsertStatement :: Statement (Text, ByteString) ()
-datumInsertStatement = Statement sql enc dec True
-  where
-    sql =
-      "INSERT INTO datums VALUES ($1, $2) ON CONFLICT DO NOTHING"
-    enc =
-      (fst >$< Encoders.param (Encoders.nonNullable Encoders.text)) <>
-      (snd >$< Encoders.param (Encoders.nonNullable Encoders.bytea))
-
-    dec =
-      Decoders.noResult

@@ -53,6 +53,7 @@ executable ogmios-datum-cache
   main-is:        Main.hs
   other-modules:
     Api
+    Database
     PlutusData
   -- --   Options
 
