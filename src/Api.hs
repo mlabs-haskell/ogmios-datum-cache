@@ -23,10 +23,33 @@ data DatumApi route = DatumApi
   }
   deriving stock Generic
 
-data Routes route = Routes
-  { datumRoutes :: route :- ToServantApi DatumApi
+data ControlApi route = ControlApi
+  { addDatumHashes ::
+      route
+        :- "add_hashes"
+        :> Summary "Add a set of additional datum hashes for fetching"
+        :> ReqBody '[JSON] AddDatumHashesRequest
+        :> Post '[JSON] AddDatumHashesResponse
+  , removeDatumHashes ::
+      route
+        :- "remove_hashes"
+        :> Summary "Don't fetch specified datum hashes"
+        :> ReqBody '[JSON] RemoveDatumHashesRequest
+        :> Post '[JSON] RemoveDatumHashesResponse
+  , setDatumHashes ::
+      route
+        :- "set_hashes"
+        :> Summary "Set a set of datum hashes for fetching"
+        :> ReqBody '[JSON] SetDatumHashesRequest
+        :> Post '[JSON] SetDatumHashesResponse
   }
   deriving stock Generic
 
-datumApi :: Proxy (ToServantApi Routes)
-datumApi = genericApi (Proxy :: Proxy Routes)
+data Routes route = Routes
+  { datumRoutes :: route :- ToServantApi DatumApi
+  , controlRoutes :: route :- "control" :> ToServantApi ControlApi
+  }
+  deriving stock Generic
+
+datumCacheApi :: Proxy (ToServantApi Routes)
+datumCacheApi = genericApi (Proxy :: Proxy Routes)

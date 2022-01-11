@@ -10,21 +10,34 @@ import qualified Network.WebSockets  as WS
 import Network.Wai.Handler.Warp qualified as W
 import Network.Wai.Logger (withStdoutLogger)
 import Servant.Server.Generic   (genericServerT)
-import Servant.Server (Application, Handler (..), serve, ServerT)
+import Servant.Server (Application, Handler (..), serve, ServerT, hoistServer)
 import Servant.API.Generic (ToServantApi)
 import Control.Concurrent (forkIO)
+import qualified Data.Set as Set
+import Control.Concurrent.MVar (newMVar)
+import Control.Monad.Reader (runReaderT)
+import Control.Monad.Except (ExceptT (..))
+import Control.Monad.Catch (try)
 
 import qualified PlutusData
-import Api (Routes, datumApi)
+import Api (Routes, datumCacheApi)
 import Api.Handler (datumServiceHandlers)
 import Database (datumInsertSession, getDatumSession, Datum (..))
 import Block.Fetch (wsApp)
+import App.Env
+import App
 
-appService :: Hasql.Connection -> Application
-appService pgConn = serve datumApi appServer
+appService :: Env -> Application
+appService env = serve datumCacheApi appServer
   where
     appServer :: ServerT (ToServantApi Routes) Handler
-    appServer = genericServerT (datumServiceHandlers pgConn)
+    appServer = hoistServer datumCacheApi hoistApp appServerT
+
+    hoistApp :: App a -> Handler a
+    hoistApp = Handler . ExceptT . try . flip runReaderT env . unApp
+
+    appServerT :: ServerT (ToServantApi Routes) App
+    appServerT = genericServerT datumServiceHandlers
 
 main :: IO ()
 main = do
@@ -41,11 +54,14 @@ main = do
   -- print plutusData
   -- print $ Json.encode plutusData
 
+  requestedDatumHashes <- newMVar Set.empty
+  let env = Env requestedDatumHashes pgConn
+
   forkIO $ withSocketsDo $ WS.runClient "127.0.0.1" 1337 "" (wsApp pgConn)
 
   let serverPort = 9999
   withStdoutLogger $ \logger -> do
     let warpSettings = W.setPort serverPort $ W.setLogger logger W.defaultSettings
-    W.runSettings warpSettings (appService pgConn)
+    W.runSettings warpSettings (appService env)
   where
     connSettings = Connection.settings "localhost" 5432 "aske" "" "ogmios-datum-cache"

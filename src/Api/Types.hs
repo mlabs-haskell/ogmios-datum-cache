@@ -1,3 +1,4 @@
+{-# LANGUAGE DuplicateRecordFields #-}
 module Api.Types where
 
 import Servant.API.Generic (Generic)
@@ -26,6 +27,42 @@ data GetDatumsByHashesDatum = GetDatumsByHashesDatum
 
 data GetDatumsByHashesResponse = GetDatumsByHashesResponse
   { datums :: Vector GetDatumsByHashesDatum
+  }
+  deriving stock Generic
+  deriving anyclass ToJSON
+
+data AddDatumHashesRequest = AddDatumHashesRequest
+  { hashes :: [Text]
+  }
+  deriving stock Generic
+  deriving anyclass FromJSON
+
+data AddDatumHashesResponse = AddDatumHashesResponse
+  { message :: Text
+  }
+  deriving stock Generic
+  deriving anyclass ToJSON
+
+data RemoveDatumHashesRequest = RemoveDatumHashesRequest
+  { hashes :: [Text]
+  }
+  deriving stock Generic
+  deriving anyclass FromJSON
+
+data RemoveDatumHashesResponse = RemoveDatumHashesResponse
+  { message :: Text
+  }
+  deriving stock Generic
+  deriving anyclass ToJSON
+
+data SetDatumHashesRequest = SetDatumHashesRequest
+  { hashes :: [Text]
+  }
+  deriving stock Generic
+  deriving anyclass FromJSON
+
+data SetDatumHashesResponse = SetDatumHashesResponse
+  { message :: Text
   }
   deriving stock Generic
   deriving anyclass ToJSON

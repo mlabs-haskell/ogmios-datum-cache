@@ -55,6 +55,8 @@ executable ogmios-datum-cache
     Api
     Api.Handler
     Api.Types
+    App
+    App.Env
     Block.Fetch
     Block.Types
     Database
