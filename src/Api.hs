@@ -42,6 +42,11 @@ data ControlApi route = ControlApi
         :> Summary "Set a set of datum hashes for fetching"
         :> ReqBody '[JSON] SetDatumHashesRequest
         :> Post '[JSON] SetDatumHashesResponse
+  , getDatumHashes ::
+      route
+        :- "get_hashes"
+        :> Summary "Get a set of datum hashes for fetching"
+        :> Get '[JSON] GetDatumHashesResponse
   }
   deriving stock Generic
 

@@ -57,7 +57,8 @@ main = do
   requestedDatumHashes <- newMVar Set.empty
   let env = Env requestedDatumHashes pgConn
 
-  forkIO $ withSocketsDo $ WS.runClient "127.0.0.1" 1337 "" (wsApp pgConn)
+  forkIO $ withSocketsDo $ WS.runClient "127.0.0.1" 1337 "" $
+    (\wsConn -> runReaderT (unApp $ wsApp wsConn) env)
 
   let serverPort = 9999
   withStdoutLogger $ \logger -> do

@@ -5,6 +5,7 @@ import Servant.API.Generic (Generic)
 import Data.Vector (Vector)
 import Data.Aeson (ToJSON, FromJSON)
 import Data.Text (Text)
+import Data.Set (Set)
 
 import qualified PlutusData
 
@@ -63,6 +64,12 @@ data SetDatumHashesRequest = SetDatumHashesRequest
 
 data SetDatumHashesResponse = SetDatumHashesResponse
   { message :: Text
+  }
+  deriving stock Generic
+  deriving anyclass ToJSON
+
+data GetDatumHashesResponse = GetDatumHashesResponse
+  { hashes :: Set Text
   }
   deriving stock Generic
   deriving anyclass ToJSON

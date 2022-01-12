@@ -14,9 +14,12 @@ import qualified Data.Text.Encoding as Text
 import qualified Data.Map as Map
 import qualified Data.ByteString.Base64 as BSBase64
 import qualified Data.Aeson as Json
+import Control.Monad.Reader (ask)
 
 import Block.Types
 import Database
+import App
+import App.Env
 
 -- TODO: ReaderT Env
 receiveLoop :: WS.Connection -> Hasql.Connection -> IO ()
@@ -69,15 +72,17 @@ receiveBlocksLoop conn pgConn = forever $ do
 
   threadDelay 100000
 
-wsApp :: Hasql.Connection -> WS.Connection -> IO ()
-wsApp pgConn conn = do
-    putStrLn "Connected!"
-    forkIO $ receiveLoop conn pgConn
+wsApp :: WS.Connection -> App ()
+wsApp conn = do
+    Env{..} <- ask
+    let pgConn = envDbConnection
+    liftIO $ putStrLn "Connected!"
+    liftIO $ forkIO $ receiveLoop conn pgConn
 
-    WS.sendTextData conn findIntersect1
-    threadDelay 10000000
+    liftIO $ WS.sendTextData conn findIntersect1
+    liftIO $ threadDelay 10000000
     -- threadDelay 10000000000
-    WS.sendClose conn ("Bye!" :: Text)
+    liftIO $ WS.sendClose conn ("Bye!" :: Text)
 
 data FindIntersectException = FindIntersectException Text
   deriving stock (Eq, Show)

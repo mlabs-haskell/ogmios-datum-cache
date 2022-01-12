@@ -57,6 +57,7 @@ executable ogmios-datum-cache
     Api.Types
     App
     App.Env
+    App.RequestedDatumHashes
     Block.Fetch
     Block.Types
     Database
