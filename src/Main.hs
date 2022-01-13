@@ -55,7 +55,7 @@ main = do
   -- print $ Json.encode plutusData
 
   requestedDatumHashes <- newMVar Set.empty
-  let env = Env requestedDatumHashes pgConn
+  let env = Env requestedDatumHashes True pgConn
 
   forkIO $ withSocketsDo $ WS.runClient "127.0.0.1" 1337 "" $
     (\wsConn -> runReaderT (unApp $ wsApp wsConn) env)

@@ -9,8 +9,8 @@ let
       , directory, esqueleto, exceptions, filepath, hasql, http-types
       , lib, monad-logger, mtl, network, optparse-applicative, persistent
       , persistent-postgresql, resource-pool, serialise, servant
-      , servant-multipart, servant-server, text, time
-      , unordered-containers, wai, wai-extra, wai-logger, warp
+      , servant-multipart, servant-server, text, time, unliftio
+      , unordered-containers, vector, wai, wai-extra, wai-logger, warp
       , websockets
       }:
       mkDerivation {
@@ -25,7 +25,8 @@ let
           filepath hasql http-types monad-logger mtl network
           optparse-applicative persistent persistent-postgresql resource-pool
           serialise servant servant-multipart servant-server text time
-          unordered-containers wai wai-extra wai-logger warp websockets
+          unliftio unordered-containers vector wai wai-extra wai-logger warp
+          websockets
         ];
         license = "unknown";
         hydraPlatforms = lib.platforms.none;

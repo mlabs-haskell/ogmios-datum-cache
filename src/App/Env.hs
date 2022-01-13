@@ -7,6 +7,7 @@ import App.RequestedDatumHashes
 
 data Env = Env
   { envRequestedDatumHashes :: RequestedDatumHashes
+  , envSaveAllDatums :: Bool
   -- TODO: (?) pool
   , envDbConnection :: Hasql.Connection
   }

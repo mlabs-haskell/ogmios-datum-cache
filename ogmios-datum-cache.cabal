@@ -104,3 +104,5 @@ executable ogmios-datum-cache
     , serialise
     , base16
     , vector
+    , unliftio
+    , unliftio-core
