@@ -60,9 +60,9 @@ executable ogmios-datum-cache
     App.RequestedDatumHashes
     Block.Fetch
     Block.Types
+    Config
     Database
     PlutusData
-  -- --   Options
 
   hs-source-dirs: src
   build-depends:
@@ -106,3 +106,4 @@ executable ogmios-datum-cache
     , vector
     , unliftio
     , unliftio-core
+    , tomland
