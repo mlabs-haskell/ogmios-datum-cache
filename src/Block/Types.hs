@@ -10,6 +10,8 @@ import qualified Data.Map as Map
 import qualified Data.ByteString.Lazy as BSL
 import Data.Text (Text)
 
+import App.FirstFetchBlock
+
 type OgmiosMirror = Int
 
 data CursorPoint = CursorPoint
@@ -39,18 +41,17 @@ type OgmiosFindIntersectRequest = OgmiosRequest CursorPoints OgmiosMirror
 
 type OgmiosRequestNextRequest = OgmiosRequest (Map Text Text) OgmiosMirror
 
-sampleFindIntersectRequest :: OgmiosFindIntersectRequest
-sampleFindIntersectRequest = OgmiosRequest
+mkFindIntersectRequest :: FirstFetchBlock -> OgmiosFindIntersectRequest
+mkFindIntersectRequest (FirstFetchBlock firstBlockSlot firstBlockId) = OgmiosRequest
   { _type = "jsonwsp/request"
   , _version = "1.0"
   , _servicename = "ogmios"
   , _methodname = "FindIntersect"
   , _args = points
-  , _mirror = 15 --Map.fromList [("n", 15)]
+  , _mirror = 0
   }
   where
-    points =
-      CursorPoints [CursorPoint 44366242 "d2a4249fe3d0607535daa26caf12a38da2233586bc51e79ed0b3a36170471bf5"]
+    points = CursorPoints [CursorPoint firstBlockSlot firstBlockId]
 
 mkRequestNextRequest :: Int -> OgmiosRequestNextRequest
 mkRequestNextRequest n = OgmiosRequest
@@ -61,9 +62,6 @@ mkRequestNextRequest n = OgmiosRequest
   , _args = Map.empty
   , _mirror = n
   }
-
-findIntersect1 :: BSL.ByteString
-findIntersect1 = Json.encode sampleFindIntersectRequest
 
 data OgmiosResponse result reflection = OgmiosResponse
   { _type :: Text

@@ -27,6 +27,7 @@ import Block.Fetch (wsApp)
 import App.Env
 import App
 import Config
+import App.FirstFetchBlock
 
 appService :: Env -> Application
 appService env = serve datumCacheApi appServer
@@ -48,7 +49,8 @@ mkAppEnv :: Config -> IO Env
 mkAppEnv Config{..} = do
   pgConn <- Connection.acquire cfgDbConnectionString >>= either (throwM . DbConnectionAcquireException) pure
   requestedDatumHashes <- newMVar Set.empty
-  let env = Env requestedDatumHashes True pgConn
+  let firstFetchBlock = FirstFetchBlock cfgFirstFetchBlockSlot cfgFirstFetchBlockId
+  let env = Env requestedDatumHashes cfgSaveAllDatums firstFetchBlock pgConn
   pure env
 
 main :: IO ()
@@ -56,9 +58,6 @@ main = do
   cfg@Config{..} <- loadConfig
   -- CREATE TABLE datums (hash text, value bytea);
   -- CREATE UNIQUE INDEX CONCURRENTLY IF NOT EXISTS datums_hash_index ON datums (hash);
-
-  print $ connSettings
-
   env <- mkAppEnv cfg
 
   forkIO $ withSocketsDo $ WS.runClient cfgOgmiosAddress cfgOgmiosPort "" $
@@ -67,5 +66,3 @@ main = do
   withStdoutLogger $ \logger -> do
     let warpSettings = W.setPort cfgServerPort $ W.setLogger logger W.defaultSettings
     W.runSettings warpSettings (appService env)
-  where
-    connSettings = Connection.settings "localhost" 5432 "aske" "" "ogmios-datum-cache"

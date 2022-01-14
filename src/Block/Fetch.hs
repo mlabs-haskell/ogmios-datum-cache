@@ -89,9 +89,9 @@ wsApp conn = do
     liftIO $ putStrLn "Connected!"
     forkIO $ receiveLoop conn
 
-    liftIO $ WS.sendTextData conn findIntersect1
-    liftIO $ threadDelay 10000000
-    -- threadDelay 10000000000
+    let findIntersectRequest = mkFindIntersectRequest envFirstFetchBlock
+    liftIO $ WS.sendTextData conn (Json.encode findIntersectRequest)
+    threadDelay 10000000
     liftIO $ WS.sendClose conn ("Bye!" :: Text)
 
 data FindIntersectException = FindIntersectException Text

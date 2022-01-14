@@ -12,7 +12,7 @@ data Config = Config
     , cfgServerPort :: Int
     , cfgOgmiosAddress :: String
     , cfgOgmiosPort :: Int
-    , cfgFirstFetchBlockSlot :: Int
+    , cfgFirstFetchBlockSlot :: Integer
     , cfgFirstFetchBlockId :: Text
     }
 
@@ -23,7 +23,7 @@ configT = Config
     <*> Toml.int "server.port" .= cfgServerPort
     <*> Toml.string "ogmios.address" .= cfgOgmiosAddress
     <*> Toml.int "ogmios.port" .= cfgOgmiosPort
-    <*> Toml.int "firstFetchBlock.slot" .= cfgFirstFetchBlockSlot
+    <*> Toml.integer "firstFetchBlock.slot" .= cfgFirstFetchBlockSlot
     <*> Toml.text "firstFetchBlock.id" .= cfgFirstFetchBlockId
 
 loadConfig :: MonadIO m => m Config
