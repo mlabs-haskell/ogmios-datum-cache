@@ -1,0 +1,109 @@
+cabal-version: 2.4
+name:          ogmios-datum-cache
+version:       0.1.0.0
+author:        mlabs
+maintainer:    anton@mlabs.gmail
+build-type:    Simple
+
+common common-language
+  default-extensions:
+    BangPatterns
+    DataKinds
+    DeriveAnyClass
+    DeriveFoldable
+    DeriveFunctor
+    DeriveGeneric
+    DeriveLift
+    DeriveTraversable
+    DerivingStrategies
+    ExplicitForAll
+    FlexibleContexts
+    FlexibleInstances
+    GeneralizedNewtypeDeriving
+    ImportQualifiedPost
+    LambdaCase
+    MonoLocalBinds
+    MultiParamTypeClasses
+    NumericUnderscores
+    OverloadedStrings
+    QuasiQuotes
+    RankNTypes
+    RecordWildCards
+    ScopedTypeVariables
+    StandaloneDeriving
+    TemplateHaskell
+    TupleSections
+    TypeApplications
+    TypeFamilies
+    TypeOperators
+    TypeSynonymInstances
+
+common common-configs
+  default-language: Haskell2010
+
+executable ogmios-datum-cache
+  import:         common-language
+  import:         common-configs
+  ghc-options:
+    -Wall -Wcompat -Wincomplete-uni-patterns -Wredundant-constraints
+    -Wmissing-export-lists -Wmissing-deriving-strategies
+    -- -Werror
+    -O2
+
+  main-is:        Main.hs
+  other-modules:
+    Api
+    Api.Handler
+    Api.Types
+    App
+    App.Env
+    App.RequestedDatumHashes
+    Block.Fetch
+    Block.Types
+    Config
+    Database
+    PlutusData
+
+  hs-source-dirs: src
+  build-depends:
+      aeson
+    , base
+    , base16
+    , bytestring
+    , conduit
+    , containers
+    , cryptohash-sha256
+    , directory
+    , esqueleto
+    , exceptions
+    , filepath
+    , http-types
+    , monad-logger
+    , mtl
+    , optparse-applicative
+    , persistent
+    , persistent-postgresql
+    , resource-pool
+    , servant
+    , servant-multipart
+    , servant-server
+    , text
+    , time
+    , wai
+    , wai-extra
+    , wai-logger
+    , warp
+    , websockets
+    , network
+    , unordered-containers
+    , hasql
+    , base64
+    -- , hasql-th
+    , cborg
+    , cborg-json
+    , serialise
+    , base16
+    , vector
+    , unliftio
+    , unliftio-core
+    , tomland
