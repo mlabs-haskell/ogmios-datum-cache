@@ -44,8 +44,8 @@ receiveLoop conn = do
         Async.wait receiveBlocksWorker
 
 debounce :: App ()
--- debounce = threadDelay 100
-debounce = threadDelay $ 10^6
+debounce = threadDelay 100
+-- debounce = threadDelay $ 10^6
 
 requestRemainingBlocks :: WS.Connection -> App ()
 requestRemainingBlocks conn = forever $ do
@@ -86,8 +86,6 @@ receiveBlocksLoop conn = forever $ do
         liftIO $ Text.putStrLn $ "Inserting datums: " <> (Text.intercalate ", " savedHashes)
         res <- liftIO $ Session.run (insertDatumsSession savedHashes savedValues) envDbConnection
         liftIO $ print res
-
-  debounce
 
 wsApp :: WS.Connection -> App ()
 wsApp conn = do
