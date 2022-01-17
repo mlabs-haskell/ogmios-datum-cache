@@ -4,14 +4,15 @@ let
 
   inherit (nixpkgs) pkgs;
 
-  f = { mkDerivation, aeson, base, base16, base64, bytestring
-      , cborg, cborg-json, conduit, containers, cryptohash-sha256
-      , directory, esqueleto, exceptions, filepath, hasql, http-types
-      , lib, monad-logger, mtl, network, optparse-applicative, persistent
-      , persistent-postgresql, resource-pool, serialise, servant
-      , servant-multipart, servant-server, text, time, tomland, unliftio
-      , unliftio-core, unordered-containers, vector, wai, wai-extra
-      , wai-logger, warp, websockets
+  f = { mkDerivation, aeson, async, base, base16, base64
+      , bytestring, cborg, cborg-json, conduit, containers
+      , cryptohash-sha256, directory, esqueleto, exceptions, filepath
+      , hasql, http-types, lib, monad-logger, mtl, network
+      , optparse-applicative, persistent, persistent-postgresql
+      , resource-pool, serialise, servant, servant-multipart
+      , servant-server, text, time, tomland, unliftio, unliftio-core
+      , unordered-containers, vector, wai, wai-extra, wai-logger, warp
+      , websockets
       }:
       mkDerivation {
         pname = "ogmios-datum-cache";
@@ -20,7 +21,7 @@ let
         isLibrary = false;
         isExecutable = true;
         executableHaskellDepends = [
-          aeson base base16 base64 bytestring cborg cborg-json conduit
+          aeson async base base16 base64 bytestring cborg cborg-json conduit
           containers cryptohash-sha256 directory esqueleto exceptions
           filepath hasql http-types monad-logger mtl network
           optparse-applicative persistent persistent-postgresql resource-pool

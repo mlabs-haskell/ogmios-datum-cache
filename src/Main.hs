@@ -19,6 +19,8 @@ import Control.Monad.Reader (runReaderT)
 import Control.Monad.Except (ExceptT (..))
 import Control.Monad.Catch (try, throwM, Exception)
 
+import qualified Control.Concurrent.Async as Async
+
 import qualified PlutusData
 import Api (Routes, datumCacheApi)
 import Api.Handler (datumServiceHandlers)
@@ -60,9 +62,12 @@ main = do
   -- CREATE UNIQUE INDEX CONCURRENTLY IF NOT EXISTS datums_hash_index ON datums (hash);
   env <- mkAppEnv cfg
 
-  forkIO $ withSocketsDo $ WS.runClient cfgOgmiosAddress cfgOgmiosPort "" $
-    (\wsConn -> runReaderT (unApp $ wsApp wsConn) env)
+  let runOgmiosClient = withSocketsDo $ WS.runClient cfgOgmiosAddress cfgOgmiosPort "" $
+        (\wsConn -> runReaderT (unApp $ wsApp wsConn) env)
 
-  withStdoutLogger $ \logger -> do
-    let warpSettings = W.setPort cfgServerPort $ W.setLogger logger W.defaultSettings
-    W.runSettings warpSettings (appService env)
+  Async.withAsync runOgmiosClient $ \ogmiosWorker -> do
+    Async.link ogmiosWorker
+
+    withStdoutLogger $ \logger -> do
+      let warpSettings = W.setPort cfgServerPort $ W.setLogger logger W.defaultSettings
+      W.runSettings warpSettings (appService env)

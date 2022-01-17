@@ -19,13 +19,14 @@ import qualified Data.Aeson as Json
 import Control.Monad.Reader (ask)
 import qualified Data.Set as Set
 
+import qualified UnliftIO.Async as Async
+
 import Block.Types
 import Database
 import App
 import App.Env
 import qualified App.RequestedDatumHashes as RequestedDatumHashes
 
--- TODO: UnliftIO.Async async
 receiveLoop :: WS.Connection -> App ()
 receiveLoop conn = do
   jsonMsg <- liftIO $ WS.receiveData conn
@@ -37,13 +38,19 @@ receiveLoop conn = do
     IntersectionNotFound _ -> do
       error "Intersection not found"
     IntersectionFound _ _ -> do
-      forkIO $ receiveBlocksLoop conn
-      requestRemainingBlocks conn
+      Async.withAsync (receiveBlocksLoop conn) $ \receiveBlocksWorker -> do
+        Async.link receiveBlocksWorker
+        requestRemainingBlocks conn
+        Async.wait receiveBlocksWorker
+
+debounce :: App ()
+-- debounce = threadDelay 100
+debounce = threadDelay $ 10^6
 
 requestRemainingBlocks :: WS.Connection -> App ()
 requestRemainingBlocks conn = forever $ do
   liftIO $ WS.sendTextData conn (Json.encode $ mkRequestNextRequest 0)
-  threadDelay 100000
+  debounce
 
 receiveBlocksLoop :: WS.Connection -> App ()
 receiveBlocksLoop conn = forever $ do
@@ -77,22 +84,22 @@ receiveBlocksLoop conn = forever $ do
       let savedValues = Map.elems requestedDatumsWithDecodedValues
       unless (null savedHashes) $ do
         liftIO $ Text.putStrLn $ "Inserting datums: " <> (Text.intercalate ", " savedHashes)
-        res <- liftIO $ Session.run (insertDatumsSession savedHashes savedValues) pgConn
+        res <- liftIO $ Session.run (insertDatumsSession savedHashes savedValues) envDbConnection
         liftIO $ print res
 
-  threadDelay 100000
+  debounce
 
 wsApp :: WS.Connection -> App ()
 wsApp conn = do
     Env{..} <- ask
-    let pgConn = envDbConnection
     liftIO $ putStrLn "Connected!"
-    forkIO $ receiveLoop conn
-
-    let findIntersectRequest = mkFindIntersectRequest envFirstFetchBlock
-    liftIO $ WS.sendTextData conn (Json.encode findIntersectRequest)
-    threadDelay 10000000
-    liftIO $ WS.sendClose conn ("Bye!" :: Text)
+    Async.withAsync (receiveLoop conn) $ \receiveWorker -> do
+      Async.link receiveWorker
+      let findIntersectRequest = mkFindIntersectRequest envFirstFetchBlock
+      liftIO $ WS.sendTextData conn (Json.encode findIntersectRequest)
+      debounce
+      Async.wait receiveWorker
+      liftIO $ WS.sendClose conn ("Fin" :: Text)
 
 data FindIntersectException = FindIntersectException Text
   deriving stock (Eq, Show)
