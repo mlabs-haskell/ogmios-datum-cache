@@ -30,22 +30,23 @@ import qualified App.RequestedDatumHashes as RequestedDatumHashes
 receiveLoop :: WS.Connection -> App ()
 receiveLoop conn = do
   jsonMsg <- liftIO $ WS.receiveData conn
-  liftIO $ print jsonMsg
-
-  msg <- maybe (throwM $ FindIntersectException "Can't decode response") pure $ Json.decode @OgmiosFindIntersectResponse jsonMsg
-  liftIO $ print msg
-  case _result msg of
-    IntersectionNotFound _ -> do
-      error "Intersection not found"
-    IntersectionFound _ _ -> do
+  let msg = Json.decode @OgmiosFindIntersectResponse jsonMsg
+  case _result <$> msg of
+    Nothing -> do
+      liftIO $ putStrLn "Error decoding FindIntersect response"
+    Just (IntersectionNotFound _) -> do
+      liftIO $ putStrLn "Find intersection error: Intersection not found"
+      -- throwM $ FindIntersectException "Intersection not found"
+    Just (IntersectionFound _ _) -> do
+      liftIO $ putStrLn "Find intersection: intersection found, starting RequestNext loop"
       Async.withAsync (receiveBlocksLoop conn) $ \receiveBlocksWorker -> do
         Async.link receiveBlocksWorker
         requestRemainingBlocks conn
         Async.wait receiveBlocksWorker
 
 debounce :: App ()
-debounce = threadDelay 100
--- debounce = threadDelay $ 10^6
+-- debounce = threadDelay 10
+debounce = threadDelay $ 10^6
 
 requestRemainingBlocks :: WS.Connection -> App ()
 requestRemainingBlocks conn = forever $ do
@@ -58,14 +59,17 @@ receiveBlocksLoop conn = forever $ do
   let pgConn = envDbConnection
   requestedHashes <- RequestedDatumHashes.get envRequestedDatumHashes
   jsonMsg <- liftIO $ WS.receiveData conn
-  msg <- maybe (throwM $ RequestNextException "Can't decode response") pure $ Json.decode @OgmiosRequestNextResponse jsonMsg
+  let msg = Json.decode @OgmiosRequestNextResponse jsonMsg
 
-  case _result msg of
-    RollBackward _point _tip -> do
+  case _result <$> msg of
+    Nothing -> do
+      liftIO $ putStrLn "Error decoding RequestNext response"
       pure ()
-    RollForward OtherBlock _tip -> do
+    Just (RollBackward _point _tip) -> do
       pure ()
-    RollForward (MkAlonzoBlock block) _tip -> do
+    Just (RollForward OtherBlock _tip) -> do
+      pure ()
+    Just (RollForward (MkAlonzoBlock block) _tip) -> do
 
       let txDatums = map datums $ body block
       let filterDatums =
@@ -90,7 +94,7 @@ receiveBlocksLoop conn = forever $ do
 wsApp :: WS.Connection -> App ()
 wsApp conn = do
     Env{..} <- ask
-    liftIO $ putStrLn "Connected!"
+    liftIO $ putStrLn "Connected to ogmios websocket"
     Async.withAsync (receiveLoop conn) $ \receiveWorker -> do
       Async.link receiveWorker
       let findIntersectRequest = mkFindIntersectRequest envFirstFetchBlock
@@ -100,9 +104,5 @@ wsApp conn = do
       liftIO $ WS.sendClose conn ("Fin" :: Text)
 
 data FindIntersectException = FindIntersectException Text
-  deriving stock (Eq, Show)
-  deriving anyclass (Exception)
-
-data RequestNextException = RequestNextException Text
   deriving stock (Eq, Show)
   deriving anyclass (Exception)
