@@ -67,8 +67,10 @@ receiveBlocksLoop conn = forever $ do
       logError "Error decoding RequestNext response"
       pure ()
     Just (RollBackward _point _tip) -> do
+      logWarning "Received RollBackward response"
       pure ()
     Just (RollForward OtherBlock _tip) -> do
+      logWarning "Received non-Alonzo block in the RollForward response"
       pure ()
     Just (RollForward (MkAlonzoBlock block) _tip) -> do
 
@@ -83,14 +85,16 @@ receiveBlocksLoop conn = forever $ do
 
       let (failedDecodings, requestedDatumsWithDecodedValues) = Map.mapEither decodeDatumValue requestedDatums
       unless (null failedDecodings) $ do
-        logWarning $ "Error decoding values for datums: " <> (Text.intercalate ", " $ Map.keys failedDecodings)
+        logError $ "Error decoding values for datums: " <> (Text.intercalate ", " $ Map.keys failedDecodings)
 
       let savedHashes = Map.keys requestedDatums
       let savedValues = Map.elems requestedDatumsWithDecodedValues
       unless (null savedHashes) $ do
         logInfo $ "Inserting datums: " <> (Text.intercalate ", " savedHashes)
         res <- liftIO $ Session.run (insertDatumsSession savedHashes savedValues) envDbConnection
-        liftIO $ print res
+        case res of
+          Right _ -> pure ()
+          Left err -> logError $ "Error inserting datums: " <> (Text.pack $ show err)
 
 wsApp :: WS.Connection -> App ()
 wsApp conn = do

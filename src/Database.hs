@@ -74,7 +74,7 @@ insertDatumsStatement :: Statement ([Text], [ByteString]) ()
 insertDatumsStatement = Statement sql enc dec True
   where
     sql =
-      "INSERT INTO datums (hash, value) (SELECT h::text, v::bytea FROM unnest($1, $2) AS x(h, v)) ON CONFLICT DO NOTHING "
+      "INSERT INTO datums (hash, value) (SELECT h::text, v::bytea FROM unnest($1, $2) AS x(h, v)) ON CONFLICT DO NOTHING"
 
     encArray elemEncoder =
       Encoders.param (Encoders.nonNullable (Encoders.array (Encoders.dimension foldl' (Encoders.element (Encoders.nonNullable elemEncoder)))))
