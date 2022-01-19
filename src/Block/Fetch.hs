@@ -21,6 +21,8 @@ import qualified Data.Set as Set
 
 import qualified UnliftIO.Async as Async
 
+import Colog (logWarning, logError, logInfo)
+
 import Block.Types
 import Database
 import App
@@ -33,12 +35,12 @@ receiveLoop conn = do
   let msg = Json.decode @OgmiosFindIntersectResponse jsonMsg
   case _result <$> msg of
     Nothing -> do
-      liftIO $ putStrLn "Error decoding FindIntersect response"
+      logError "Error decoding FindIntersect response"
     Just (IntersectionNotFound _) -> do
-      liftIO $ putStrLn "Find intersection error: Intersection not found"
+      logError "Find intersection error: Intersection not found"
       -- throwM $ FindIntersectException "Intersection not found"
     Just (IntersectionFound _ _) -> do
-      liftIO $ putStrLn "Find intersection: intersection found, starting RequestNext loop"
+      logInfo "Find intersection: intersection found, starting RequestNext loop"
       Async.withAsync (receiveBlocksLoop conn) $ \receiveBlocksWorker -> do
         Async.link receiveBlocksWorker
         requestRemainingBlocks conn
@@ -56,14 +58,13 @@ requestRemainingBlocks conn = forever $ do
 receiveBlocksLoop :: WS.Connection -> App ()
 receiveBlocksLoop conn = forever $ do
   Env{..} <- ask
-  let pgConn = envDbConnection
   requestedHashes <- RequestedDatumHashes.get envRequestedDatumHashes
   jsonMsg <- liftIO $ WS.receiveData conn
   let msg = Json.decode @OgmiosRequestNextResponse jsonMsg
 
   case _result <$> msg of
     Nothing -> do
-      liftIO $ putStrLn "Error decoding RequestNext response"
+      logError "Error decoding RequestNext response"
       pure ()
     Just (RollBackward _point _tip) -> do
       pure ()
@@ -82,19 +83,19 @@ receiveBlocksLoop conn = forever $ do
 
       let (failedDecodings, requestedDatumsWithDecodedValues) = Map.mapEither decodeDatumValue requestedDatums
       unless (null failedDecodings) $ do
-        liftIO $ Text.putStrLn $ "Error decoding values for datums: " <> (Text.intercalate ", " $ Map.keys failedDecodings)
+        logWarning $ "Error decoding values for datums: " <> (Text.intercalate ", " $ Map.keys failedDecodings)
 
       let savedHashes = Map.keys requestedDatums
       let savedValues = Map.elems requestedDatumsWithDecodedValues
       unless (null savedHashes) $ do
-        liftIO $ Text.putStrLn $ "Inserting datums: " <> (Text.intercalate ", " savedHashes)
+        logInfo $ "Inserting datums: " <> (Text.intercalate ", " savedHashes)
         res <- liftIO $ Session.run (insertDatumsSession savedHashes savedValues) envDbConnection
         liftIO $ print res
 
 wsApp :: WS.Connection -> App ()
 wsApp conn = do
     Env{..} <- ask
-    liftIO $ putStrLn "Connected to ogmios websocket"
+    logInfo "Connected to ogmios websocket"
     Async.withAsync (receiveLoop conn) $ \receiveWorker -> do
       Async.link receiveWorker
       let findIntersectRequest = mkFindIntersectRequest envFirstFetchBlock
