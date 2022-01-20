@@ -1,10 +1,11 @@
-{ mkDerivation, aeson, base, base16, bytestring, conduit
-, containers, cryptohash-sha256, directory, esqueleto, exceptions
-, filepath, hasql, hasql-th, http-types, lib, monad-logger, mtl
-, network, optparse-applicative, persistent, persistent-postgresql
-, resource-pool, servant, servant-multipart, servant-server, text
-, time, unordered-containers, wai, wai-extra, wai-logger, warp
-, websockets
+{ mkDerivation, aeson, async, base, base16, base64, bytestring
+, cborg, cborg-json, co-log, conduit, containers, cryptohash-sha256
+, directory, esqueleto, exceptions, filepath, hasql, http-types
+, lib, monad-logger, mtl, network, optparse-applicative, persistent
+, persistent-postgresql, resource-pool, serialise, servant
+, servant-multipart, servant-server, text, time, tomland, unliftio
+, unliftio-core, unordered-containers, vector, wai, wai-extra
+, wai-logger, warp, websockets
 }:
 mkDerivation {
   pname = "ogmios-datum-cache";
@@ -13,12 +14,13 @@ mkDerivation {
   isLibrary = false;
   isExecutable = true;
   executableHaskellDepends = [
-    aeson base base16 bytestring conduit containers cryptohash-sha256
-    directory esqueleto exceptions filepath hasql hasql-th http-types
-    monad-logger mtl network optparse-applicative persistent
-    persistent-postgresql resource-pool servant servant-multipart
-    servant-server text time unordered-containers wai wai-extra
-    wai-logger warp websockets
+    aeson async base base16 base64 bytestring cborg cborg-json co-log
+    conduit containers cryptohash-sha256 directory esqueleto exceptions
+    filepath hasql http-types monad-logger mtl network
+    optparse-applicative persistent persistent-postgresql resource-pool
+    serialise servant servant-multipart servant-server text time
+    tomland unliftio unliftio-core unordered-containers vector wai
+    wai-extra wai-logger warp websockets
   ];
   license = "unknown";
   hydraPlatforms = lib.platforms.none;
