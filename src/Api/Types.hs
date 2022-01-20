@@ -73,3 +73,22 @@ data GetDatumHashesResponse = GetDatumHashesResponse
   }
   deriving stock Generic
   deriving anyclass ToJSON
+
+data StartBlockFetchingRequest = StartBlockFetchingRequest
+  { slot :: Integer
+  , id :: Text
+  }
+  deriving stock Generic
+  deriving anyclass FromJSON
+
+data StartBlockFetchingResponse = StartBlockFetchingResponse
+  { message :: Text
+  }
+  deriving stock Generic
+  deriving anyclass ToJSON
+
+data CancelBlockFetchingResponse = CancelBlockFetchingResponse
+  { message :: Text
+  }
+  deriving stock Generic
+  deriving anyclass ToJSON

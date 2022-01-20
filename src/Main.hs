@@ -14,7 +14,7 @@ import Servant.Server (Application, Handler (..), serve, ServerT, hoistServer)
 import Servant.API.Generic (ToServantApi)
 import Control.Concurrent (forkIO)
 import qualified Data.Set as Set
-import Control.Concurrent.MVar (newMVar)
+import Control.Concurrent.MVar (newMVar, newEmptyMVar)
 import Control.Monad.Reader (runReaderT)
 import Control.Monad.Except (ExceptT (..))
 import Control.Monad.Catch (try, throwM, Exception)
@@ -55,7 +55,8 @@ mkAppEnv Config{..} = do
   pgConn <- Connection.acquire cfgDbConnectionString >>= either (throwM . DbConnectionAcquireException) pure
   requestedDatumHashes <- newMVar Set.empty
   let firstFetchBlock = FirstFetchBlock cfgFirstFetchBlockSlot cfgFirstFetchBlockId
-  let env = Env requestedDatumHashes cfgSaveAllDatums firstFetchBlock pgConn Colog.richMessageAction
+  ogmiosWorker <- newEmptyMVar
+  let env = Env requestedDatumHashes cfgSaveAllDatums firstFetchBlock pgConn Colog.richMessageAction cfgOgmiosAddress cfgOgmiosPort ogmiosWorker
   pure env
 
 main :: IO ()
@@ -65,12 +66,12 @@ main = do
   -- CREATE UNIQUE INDEX CONCURRENTLY IF NOT EXISTS datums_hash_index ON datums (hash);
   env <- mkAppEnv cfg
 
-  let runOgmiosClient = withSocketsDo $ WS.runClient cfgOgmiosAddress cfgOgmiosPort "" $
-        (\wsConn -> runReaderT (unApp $ wsApp wsConn) env)
+  -- let runOgmiosClient = withSocketsDo $ WS.runClient cfgOgmiosAddress cfgOgmiosPort "" $
+  --       (\wsConn -> runReaderT (unApp $ wsApp wsConn) env)
 
-  Async.withAsync runOgmiosClient $ \ogmiosWorker -> do
-    Async.link ogmiosWorker
+  -- Async.withAsync runOgmiosClient $ \ogmiosWorker -> do
+  --   Async.link ogmiosWorker
 
-    withStdoutLogger $ \logger -> do
-      let warpSettings = W.setPort cfgServerPort $ W.setLogger logger W.defaultSettings
-      W.runSettings warpSettings (appService env)
+  withStdoutLogger $ \logger -> do
+    let warpSettings = W.setPort cfgServerPort $ W.setLogger logger W.defaultSettings
+    W.runSettings warpSettings (appService env)
