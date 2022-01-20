@@ -9,5 +9,5 @@ import Control.Monad.IO.Unlift (MonadUnliftIO)
 
 import App.Env
 
-newtype App a = App { unApp :: ReaderT Env IO a }
-  deriving newtype (Functor, Applicative, Monad, MonadReader Env, MonadIO, MonadThrow, MonadUnliftIO)
+newtype App a = App { unApp :: ReaderT (Env App) IO a }
+  deriving newtype (Functor, Applicative, Monad, MonadReader (Env App), MonadIO, MonadThrow, MonadUnliftIO)

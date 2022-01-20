@@ -108,3 +108,4 @@ executable ogmios-datum-cache
     , unliftio-core
     , tomland
     , async
+    , co-log

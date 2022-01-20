@@ -21,6 +21,9 @@ import Control.Monad.Catch (try, throwM, Exception)
 
 import qualified Control.Concurrent.Async as Async
 
+import qualified Colog as Colog
+import Control.Monad.IO.Class (liftIO)
+
 import qualified PlutusData
 import Api (Routes, datumCacheApi)
 import Api.Handler (datumServiceHandlers)
@@ -31,7 +34,7 @@ import App
 import Config
 import App.FirstFetchBlock
 
-appService :: Env -> Application
+appService :: Env App -> Application
 appService env = serve datumCacheApi appServer
   where
     appServer :: ServerT (ToServantApi Routes) Handler
@@ -47,12 +50,12 @@ data DbConnectionAcquireException = DbConnectionAcquireException Hasql.Connectio
   deriving stock (Eq, Show)
   deriving anyclass Exception
 
-mkAppEnv :: Config -> IO Env
+mkAppEnv :: Config -> IO (Env App)
 mkAppEnv Config{..} = do
   pgConn <- Connection.acquire cfgDbConnectionString >>= either (throwM . DbConnectionAcquireException) pure
   requestedDatumHashes <- newMVar Set.empty
   let firstFetchBlock = FirstFetchBlock cfgFirstFetchBlockSlot cfgFirstFetchBlockId
-  let env = Env requestedDatumHashes cfgSaveAllDatums firstFetchBlock pgConn
+  let env = Env requestedDatumHashes cfgSaveAllDatums firstFetchBlock pgConn Colog.richMessageAction
   pure env
 
 main :: IO ()
