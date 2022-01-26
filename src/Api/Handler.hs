@@ -24,6 +24,8 @@ import UnliftIO.MVar (tryTakeMVar, isEmptyMVar, tryPutMVar)
 import UnliftIO.Concurrent (threadDelay)
 import Control.Monad (when, unless, void)
 
+import qualified Data.Aeson as Json
+
 import qualified PlutusData
 import Api
 import Api.Types
@@ -130,4 +132,7 @@ datumServiceHandlers = Routes{..}
     websocketApi conn = do
       logInfo "New WS connection established"
       liftIO $ WS.sendTextData conn ("{}" :: Text)
+      jsonMsg <- liftIO $ WS.receiveData conn
+      let msg = Json.decode @[Int] jsonMsg
+      liftIO $ print msg
       pure ()

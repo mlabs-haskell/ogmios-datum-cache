@@ -8,4 +8,5 @@ client.on('message', function(msg) {
 
 client.once('open', () => {
     console.log('opened');
+    client.send(JSON.stringify([1,2,3]));
 });
