@@ -111,7 +111,7 @@ datumServiceHandlers = Routes{..}
       unless putSuccessful $ do
         Async.cancel ogmiosWorker
         logWarning "Another block fetcher was already running, cancelling worker thread"
-        throwJsonError err422 (JsonError "Another block fetcher was already running")
+        throwJsonError err422 (JsonError "Another block fetcher was already running, cancelling worker thread")
 
       pure $ StartBlockFetchingResponse "Started block fetcher"
 
