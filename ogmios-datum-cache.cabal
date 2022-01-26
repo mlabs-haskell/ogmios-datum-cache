@@ -109,3 +109,4 @@ executable ogmios-datum-cache
     , tomland
     , async
     , co-log
+    , servant-websockets
