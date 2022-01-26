@@ -97,12 +97,48 @@ Response
 
 ## Control API
 ### `POST /control/add_hashes`
+Request:
+```json
+{
+  "hashes": ["a", "b"]
+}
+```
 
 ### `POST /control/remove_hashes`
+Request:
+```json
+{
+  "hashes": ["a", "b"]
+}
+```
 
 ### `POST /control/set_hashes`
+Request:
+```json
+{
+  "hashes": ["a", "b"]
+}
+```
 
 ### `GET /control/get_hashes`
+
+### `POST /control/fetch_blocks`
+Request body:
+```json
+{
+  "slot": 44366242,
+  "id": "d2a4249fe3d0607535daa26caf12a38da2233586bc51e79ed0b3a36170471bf5"
+}
+```
+Responses:
+* 200 `{"message": "Started block fetcher"}`
+* 422 `{"error": "Block fetcher already running"}`
+* 422 `{"error": "Another block fetcher was already running, cancelling worker thread"}`
+
+### `POST /control/cancel_fetch_blocks`
+Responses:
+* 200 `{"message": "Stopped block fetcher"}`
+* 422 `{"error": "No block fetcher running"}`
 
 ## Block data from ogmios local chain sync
 Structure:
