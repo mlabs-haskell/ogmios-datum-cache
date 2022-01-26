@@ -122,3 +122,12 @@ datumServiceHandlers = Routes{..}
         maybe (throwJsonError err422 (JsonError "No block fetcher running")) pure
       Async.cancel ogmiosWorker
       pure $ CancelBlockFetchingResponse "Stopped block fetcher"
+
+    websocketRoutes :: ToServant WebSocketApi (AsServerT App)
+    websocketRoutes = genericServerT WebSocketApi{..}
+
+    websocketApi :: WS.Connection -> App ()
+    websocketApi conn = do
+      logInfo "New WS connection established"
+      liftIO $ WS.sendTextData conn ("{}" :: Text)
+      pure ()
