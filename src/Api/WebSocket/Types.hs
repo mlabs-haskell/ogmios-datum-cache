@@ -3,11 +3,17 @@ module Api.WebSocket.Types where
 import Data.Text (Text)
 import GHC.Generics (Generic)
 
-import Data.Aeson
+import Data.Aeson (FromJSON, parseJSON, withObject, (.:))
 
 data Method =
     GetDatumByHash Text
   | GetDatumsByHashes [Text]
+  | StartFetchBlocks Integer Text
+  | CancelFetchBlocks
+  | DatumFilterAddHashes [Text]
+  | DatumFilterRemoveHashes [Text]
+  | DatumFilterSetHashes [Text]
+  | DatumFilterGetHashes
   deriving stock Show
 
 instance FromJSON Method where
@@ -19,6 +25,29 @@ instance FromJSON Method where
         hash <- args .: "hash"
         pure $ GetDatumByHash hash
       "GetDatumsByHashes" -> do
-        pure $ GetDatumsByHashes ["1"]
-      _ -> fail ""
-    -- pure $ GetDatumByHash ""
+        args <- o .: "args"
+        hashes <- args .: "hashes"
+        pure $ GetDatumsByHashes hashes
+      "StartFetchBlocks" -> do
+        args <- o .: "args"
+        slot <- args .: "slot"
+        blockId <- args .: "id"
+        pure $ StartFetchBlocks slot blockId
+      "CancelFetchBlocks" -> do
+        pure CancelFetchBlocks
+      "DatumFilterAddHashes" -> do
+        args <- o .: "args"
+        hashes <- args .: "hashes"
+        pure $ DatumFilterAddHashes hashes
+      "DatumFilterRemoveHashes" -> do
+        args <- o .: "args"
+        hashes <- args .: "hashes"
+        pure $ DatumFilterRemoveHashes hashes
+      "DatumFilterSetHashes" -> do
+        args <- o .: "args"
+        hashes <- args .: "hashes"
+        pure $ DatumFilterSetHashes hashes
+      "DatumFilterGetHashes" -> do
+        pure DatumFilterGetHashes
+
+      _ -> fail "Unexpected method"

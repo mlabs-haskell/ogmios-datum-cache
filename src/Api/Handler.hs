@@ -34,6 +34,7 @@ import App.Env
 import qualified App.RequestedDatumHashes as RequestedDatumHashes
 import qualified Database as Db
 import Api.Error (JsonError(..), throwJsonError)
+import Api.WebSocket
 
 import Block.Fetch (wsApp)
 
@@ -131,8 +132,4 @@ datumServiceHandlers = Routes{..}
     websocketApi :: WS.Connection -> App ()
     websocketApi conn = do
       logInfo "New WS connection established"
-      liftIO $ WS.sendTextData conn ("{}" :: Text)
-      jsonMsg <- liftIO $ WS.receiveData conn
-      let msg = Json.decode @[Int] jsonMsg
-      liftIO $ print msg
-      pure ()
+      websocketServer conn
