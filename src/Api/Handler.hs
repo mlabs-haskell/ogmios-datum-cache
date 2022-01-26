@@ -24,6 +24,8 @@ import UnliftIO.MVar (tryTakeMVar, isEmptyMVar, tryPutMVar)
 import UnliftIO.Concurrent (threadDelay)
 import Control.Monad (when, unless, void)
 
+import qualified Data.Aeson as Json
+
 import qualified PlutusData
 import Api
 import Api.Types
@@ -32,6 +34,7 @@ import App.Env
 import qualified App.RequestedDatumHashes as RequestedDatumHashes
 import qualified Database as Db
 import Api.Error (JsonError(..), throwJsonError)
+import Api.WebSocket
 
 import Block.Fetch (wsApp)
 
@@ -122,3 +125,11 @@ datumServiceHandlers = Routes{..}
         maybe (throwJsonError err422 (JsonError "No block fetcher running")) pure
       Async.cancel ogmiosWorker
       pure $ CancelBlockFetchingResponse "Stopped block fetcher"
+
+    websocketRoutes :: ToServant WebSocketApi (AsServerT App)
+    websocketRoutes = genericServerT WebSocketApi{..}
+
+    websocketApi :: WS.Connection -> App ()
+    websocketApi conn = do
+      logInfo "New WS connection established"
+      websocketServer conn
