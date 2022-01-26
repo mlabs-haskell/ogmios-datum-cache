@@ -55,6 +55,8 @@ executable ogmios-datum-cache
     Api
     Api.Handler
     Api.Types
+    Api.WebSocket
+    Api.WebSocket.Types
     App
     App.Env
     App.RequestedDatumHashes
