@@ -13,6 +13,16 @@ import Control.Monad.IO.Class (liftIO)
 import qualified Data.Vector as Vector
 import Control.Monad.Reader (ask)
 import Control.Monad.Catch (throwM)
+import qualified Data.Text as Text
+
+import qualified Network.WebSockets  as WS
+import qualified UnliftIO.Async as Async
+import UnliftIO.Exception (onException)
+import Control.Monad.Reader (runReaderT)
+import Colog (logWarning, logInfo, logError)
+import UnliftIO.MVar (tryTakeMVar, isEmptyMVar, tryPutMVar)
+import UnliftIO.Concurrent (threadDelay)
+import Control.Monad (when, unless, void)
 
 import qualified PlutusData
 import Api
@@ -21,6 +31,9 @@ import App
 import App.Env
 import qualified App.RequestedDatumHashes as RequestedDatumHashes
 import qualified Database as Db
+import Api.Error (JsonError(..), throwJsonError)
+
+import Block.Fetch (wsApp)
 
 datumServiceHandlers :: Routes (AsServerT App)
 datumServiceHandlers = Routes{..}
@@ -74,3 +87,38 @@ datumServiceHandlers = Routes{..}
       Env{..} <- ask
       hashSet <- RequestedDatumHashes.get envRequestedDatumHashes
       pure $ GetDatumHashesResponse hashSet
+
+    startBlockFetching :: StartBlockFetchingRequest -> App StartBlockFetchingResponse
+    startBlockFetching (StartBlockFetchingRequest firstBlockSlot firstBlockId) = do
+      env@Env{..} <- ask
+
+      isOgmiosWorkerRunning <- not <$> isEmptyMVar envOgmiosWorker
+      when isOgmiosWorkerRunning $ do
+        throwJsonError err422 (JsonError "Block fetcher already running")
+
+      let runOgmiosClient =
+            WS.runClient envOgmiosAddress envOgmiosPort "" $ \wsConn ->
+              runReaderT (unApp $ wsApp wsConn) env
+
+      ogmiosWorker <- Async.async $ do
+        logInfo "Starting ogmios client"
+        threadDelay 10000000
+        (liftIO runOgmiosClient) `onException` (do
+          logError $ "Error starting ogmios client"
+          void $ tryTakeMVar envOgmiosWorker)
+
+      putSuccessful <- tryPutMVar envOgmiosWorker ogmiosWorker
+      unless putSuccessful $ do
+        Async.cancel ogmiosWorker
+        logWarning "Another block fetcher was already running, cancelling worker thread"
+        throwJsonError err422 (JsonError "Another block fetcher was already running")
+
+      pure $ StartBlockFetchingResponse "Started block fetcher"
+
+    cancelBlockFetching :: App CancelBlockFetchingResponse
+    cancelBlockFetching = do
+      Env{..} <- ask
+      ogmiosWorker <- tryTakeMVar envOgmiosWorker >>=
+        maybe (throwJsonError err422 (JsonError "No block fetcher running")) pure
+      Async.cancel ogmiosWorker
+      pure $ CancelBlockFetchingResponse "Stopped block fetcher"

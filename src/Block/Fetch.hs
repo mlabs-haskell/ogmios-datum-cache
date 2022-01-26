@@ -98,6 +98,7 @@ receiveBlocksLoop conn = forever $ do
 
 wsApp :: WS.Connection -> App ()
 wsApp conn = do
+    logWarning "wsApp"
     Env{..} <- ask
     logInfo "Connected to ogmios websocket"
     Async.withAsync (receiveLoop conn) $ \receiveWorker -> do

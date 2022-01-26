@@ -47,6 +47,17 @@ data ControlApi route = ControlApi
         :- "get_hashes"
         :> Summary "Get a set of datum hashes for fetching"
         :> Get '[JSON] GetDatumHashesResponse
+  , startBlockFetching ::
+      route
+        :- "fetch_blocks"
+        :> Summary "Start a block fetcher starting with the specified block"
+        :> ReqBody '[JSON] StartBlockFetchingRequest
+        :> Post '[JSON] StartBlockFetchingResponse
+  , cancelBlockFetching ::
+      route
+        :- "cancel_fetch_blocks"
+        :> Summary "Stop a block fetcher"
+        :> Post '[JSON] CancelBlockFetchingResponse
   }
   deriving stock Generic
 

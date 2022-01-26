@@ -6,6 +6,8 @@ import GHC.Generics (Generic)
 
 import qualified Colog
 import Colog (HasLog, LogAction, Message)
+import Control.Concurrent.MVar (MVar)
+import UnliftIO.Async (Async)
 
 import App.RequestedDatumHashes
 import App.FirstFetchBlock
@@ -17,6 +19,9 @@ data Env m = Env
   -- TODO: (?) pool
   , envDbConnection :: Hasql.Connection
   , envLogAction :: Colog.LogAction m Colog.Message
+  , envOgmiosAddress :: String
+  , envOgmiosPort :: Int
+  , envOgmiosWorker :: MVar (Async ())
   }
   deriving stock Generic
 
