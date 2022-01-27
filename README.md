@@ -140,6 +140,96 @@ Responses:
 * 200 `{"message": "Stopped block fetcher"}`
 * 422 `{"error": "No block fetcher running"}`
 
+## WebSocket API
+### Examples from ogmios
+```json
+{
+  type: 'jsonwsp/response',
+  version: '1.0',
+  servicename: 'ogmios',
+  methodname: 'FindIntersect',
+  result: { IntersectionFound: { point: [Object], tip: [Object] } },
+  reflection: null
+}
+```
+
+```json
+{
+  type: 'jsonwsp/response',
+  version: '1.0',
+  servicename: 'ogmios',
+  methodname: 'FindIntersect',
+  result: { IntersectionNotFound: { tip: [Object] } },
+  reflection: null
+}
+```
+
+```json
+{
+  type: 'jsonwsp/fault',
+  version: '1.0',
+  servicename: 'ogmios',
+  fault: {
+    code: 'client',
+    string: 'Invalid request: field "points" not found.'
+  },
+  reflection: null
+}
+```
+
+```json
+{
+  type: 'jsonwsp/fault',
+  version: '1.0',
+  servicename: 'ogmios',
+  fault: {
+    code: 'client',
+    string: "Invalid request: unknown method in 'methodname' (beware names are case-sensitive)."
+  },
+  reflection: null
+}
+```
+
+```json
+{
+  type: 'jsonwsp/fault',
+  version: '1.0',
+  servicename: 'ogmios',
+  fault: {
+    code: 'client',
+    string: "Invalid request: invalid value for field 'version': should be '1.0'."
+  },
+  reflection: null
+}
+```
+
+```json
+{
+  type: 'jsonwsp/fault',
+  version: '1.0',
+  servicename: 'ogmios',
+  fault: {
+    code: 'client',
+    string: "Invalid request: invalid value for field 'type': should be 'jsonwsp/request'."
+  },
+  reflection: null
+}
+```
+
+```json
+{
+  type: 'jsonwsp/fault',
+  version: '1.0',
+  servicename: 'ogmios',
+  fault: {
+    code: 'client',
+    string: "Invalid request: missing required field 'version'."
+  },
+  reflection: null
+}
+```
+
+
 ## Block data from ogmios local chain sync
 Structure:
 ```json
