@@ -1,1 +1,40 @@
 module Api.WebSocket.Json where
+
+import GHC.Generics (Generic)
+import qualified Data.Aeson as Json
+import Data.Text (Text)
+
+import Data.Aeson
+
+-- {
+--   type: 'jsonwsp/response',
+--   version: '1.0',
+--   servicename: 'ogmios',
+--   methodname: 'FindIntersect',
+--   result: { IntersectionFound: { point: [Object], tip: [Object] } },
+--   reflection: null
+-- }
+
+data JsonWspResponse = JsonWspResponse
+  { methodname :: Text
+  , result :: Json.Value
+  }
+  deriving stock Generic
+
+instance ToJSON JsonWspResponse where
+  toJSON resp = object
+    [ "type" .= ("jsonwsp/response" :: Text)
+    , "version" .= ("1.0" :: Text)
+    , "servicename" .= ("ogmios-datum-cache" :: Text)
+    , "methodname" .= methodname resp
+    , "result" .= result resp
+    ]
+
+mkGetDatumByHashResponse :: Maybe Json.Value -> JsonWspResponse
+mkGetDatumByHashResponse = \case
+  Just datumValue ->
+    JsonWspResponse "GetDatumByHash" (object [ "DatumFound" .= value ])
+    where
+      value = object [ "value" .= datumValue ]
+  Nothing ->
+    JsonWspResponse "GetDatumByHash" (object [ "DatumNotFound" .= Null ])
