@@ -142,7 +142,7 @@ Responses:
 
 ## WebSocket API
 ### Examples from ogmios
-```json
+```
 {
   type: 'jsonwsp/response',
   version: '1.0',
@@ -153,7 +153,7 @@ Responses:
 }
 ```
 
-```json
+```
 {
   type: 'jsonwsp/response',
   version: '1.0',
@@ -164,7 +164,7 @@ Responses:
 }
 ```
 
-```json
+```
 {
   type: 'jsonwsp/fault',
   version: '1.0',
@@ -177,7 +177,7 @@ Responses:
 }
 ```
 
-```json
+```
 {
   type: 'jsonwsp/fault',
   version: '1.0',
@@ -190,7 +190,7 @@ Responses:
 }
 ```
 
-```json
+```
 {
   type: 'jsonwsp/fault',
   version: '1.0',
@@ -203,7 +203,7 @@ Responses:
 }
 ```
 
-```json
+```
 {
   type: 'jsonwsp/fault',
   version: '1.0',
@@ -216,7 +216,7 @@ Responses:
 }
 ```
 
-```json
+```
 {
   type: 'jsonwsp/fault',
   version: '1.0',
