@@ -13,6 +13,6 @@ client.once('open', () => {
         version: "1.0",
         servicename: "ogmios",
         methodname: "GetDatumByHash",
-        args: { hash: "samplehash" }
+        args: { hash: "abc" }
     }));
 });

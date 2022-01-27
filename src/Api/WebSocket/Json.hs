@@ -1,3 +1,4 @@
+{-# LANGUAGE DuplicateRecordFields #-}
 module Api.WebSocket.Json where
 
 import GHC.Generics (Generic)
@@ -22,12 +23,29 @@ data JsonWspResponse = JsonWspResponse
   deriving stock Generic
 
 instance ToJSON JsonWspResponse where
-  toJSON resp = object
+  toJSON (JsonWspResponse method res) = object
     [ "type" .= ("jsonwsp/response" :: Text)
     , "version" .= ("1.0" :: Text)
     , "servicename" .= ("ogmios-datum-cache" :: Text)
-    , "methodname" .= methodname resp
-    , "result" .= result resp
+    , "methodname" .= method
+    , "result" .= res
+    ]
+
+data JsonWspFault = JsonWspFault
+  { methodname :: Text
+  , faultCode :: Text
+  , faultString :: Text
+  }
+
+instance ToJSON JsonWspFault where
+  toJSON (JsonWspFault method code str) = object
+    [ "type" .= ("jsonwsp/fault" :: Text)
+    , "version" .= ("1.0" :: Text)
+    , "servicename" .= ("ogmios-datum-cache" :: Text)
+    , "methodname" .= method
+    , "fault" .= object [ "code" .= code
+                        , "string" .= str
+                        ]
     ]
 
 mkGetDatumByHashResponse :: Maybe Json.Value -> JsonWspResponse
@@ -38,3 +56,7 @@ mkGetDatumByHashResponse = \case
       value = object [ "value" .= datumValue ]
   Nothing ->
     JsonWspResponse "GetDatumByHash" (object [ "DatumNotFound" .= Null ])
+
+mkGetDatumByHashFault :: Text -> JsonWspFault
+mkGetDatumByHashFault str =
+  JsonWspFault "GetDatumByHash" "client" str

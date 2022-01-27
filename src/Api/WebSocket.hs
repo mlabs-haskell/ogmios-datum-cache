@@ -9,12 +9,15 @@ import Data.Text (Text)
 import Control.Monad.Reader (ask)
 
 import qualified Hasql.Session as Session
+import qualified Data.ByteString.Lazy as BSL
+import Codec.Serialise (deserialiseOrFail)
 
 import App
 import App.Env
 import Api.WebSocket.Json
 import Api.WebSocket.Types
 import qualified Database as Db
+import qualified PlutusData
 
 websocketServer :: WS.Connection -> App ()
 websocketServer conn = forever $ do
@@ -33,10 +36,15 @@ websocketServer conn = forever $ do
             Left _ -> do
               let resp = mkGetDatumByHashResponse Nothing
               sendTextData $ Json.encode resp
-
-
-          let sampleResp = mkGetDatumByHashResponse res
-          sendTextData $ Json.encode sampleResp
+            Right datum ->
+              case deserialiseOrFail @PlutusData.Data (BSL.fromStrict $ Db.value datum) of
+                Left _ -> do
+                  let resp = mkGetDatumByHashFault "Error deserializing plutus Data"
+                  sendTextData $ Json.encode resp
+                Right plutusData -> do
+                  let plutusDataJson = Json.toJSON plutusData
+                  let resp = mkGetDatumByHashResponse (Just plutusDataJson)
+                  sendTextData $ Json.encode resp
   where
     receiveData = liftIO $ WS.receiveData conn
     sendTextData = liftIO . WS.sendTextData conn
