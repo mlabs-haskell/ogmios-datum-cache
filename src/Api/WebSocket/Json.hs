@@ -60,3 +60,6 @@ mkGetDatumByHashResponse = \case
 mkGetDatumByHashFault :: Text -> JsonWspFault
 mkGetDatumByHashFault str =
   JsonWspFault "GetDatumByHash" "client" str
+
+mkGetDatumsByHashesResponse :: Maybe Json.Value -> JsonWspResponse
+mkGetDatumsByHashesResponse = \case

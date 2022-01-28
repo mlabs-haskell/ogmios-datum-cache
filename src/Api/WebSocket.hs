@@ -30,7 +30,6 @@ websocketServer conn = forever $ do
     Just action ->
       case action of
         GetDatumByHash hash -> do
-          let res = Json.Bool True
           datumRes <- liftIO (Session.run (Db.getDatumSession hash) envDbConnection)
           case datumRes of
             Left _ -> do
@@ -45,6 +44,11 @@ websocketServer conn = forever $ do
                   let plutusDataJson = Json.toJSON plutusData
                   let resp = mkGetDatumByHashResponse (Just plutusDataJson)
                   sendTextData $ Json.encode resp
+        GetDatumsByHashes hashes -> do
+          datumsRes <- liftIO (Session.run (Db.getDatumsSession hashes) envDbConnection)
+          case datumsRes of
+            Left _ ->
+
   where
     receiveData = liftIO $ WS.receiveData conn
     sendTextData = liftIO . WS.sendTextData conn
