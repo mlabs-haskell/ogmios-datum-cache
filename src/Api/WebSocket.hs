@@ -11,6 +11,7 @@ import Control.Monad.Reader (ask)
 import qualified Hasql.Session as Session
 import qualified Data.ByteString.Lazy as BSL
 import Codec.Serialise (deserialiseOrFail)
+import Data.Either (isLeft)
 
 import App
 import App.Env
@@ -33,10 +34,11 @@ websocketServer conn = forever $ do
           datumRes <- liftIO (Session.run (Db.getDatumSession hash) envDbConnection)
           case datumRes of
             Left _ -> do
+              -- TODO: different response?
               let resp = mkGetDatumByHashResponse Nothing
               sendTextData $ Json.encode resp
             Right datum ->
-              case deserialiseOrFail @PlutusData.Data (BSL.fromStrict $ Db.value datum) of
+              case toPlutusData datum of
                 Left _ -> do
                   let resp = mkGetDatumByHashFault "Error deserializing plutus Data"
                   sendTextData $ Json.encode resp
@@ -47,8 +49,21 @@ websocketServer conn = forever $ do
         GetDatumsByHashes hashes -> do
           datumsRes <- liftIO (Session.run (Db.getDatumsSession hashes) envDbConnection)
           case datumsRes of
-            Left _ ->
+            Left _ -> do
+              -- TODO: different response?
+              let resp = mkGetDatumsByHashes Nothing
+              sendTextData $ Json.encode resp
+            Right datums -> do
+              case partition isLeft $ map (\dt -> case toPlutusData dt of
+                                              Left _ -> Left $ Db.hash dt
+                                              Right plutusData -> Right $ GetDatumsByHashesDatum (Db.hash dt) plutusData) datums of
+                ([], validDatums) -> do
+                  pure ()
+                (invalidDatums, _) -> do
+                  pure ()
+
 
   where
     receiveData = liftIO $ WS.receiveData conn
     sendTextData = liftIO . WS.sendTextData conn
+    toPlutusData dt = deserialiseOrFail @PlutusData.Data (BSL.fromStrict $ Db.value dt)

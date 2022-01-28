@@ -5,6 +5,8 @@ import GHC.Generics (Generic)
 
 import Data.Aeson (FromJSON, parseJSON, withObject, (.:))
 
+import qualified PlutusData
+
 data Method =
     GetDatumByHash Text
   | GetDatumsByHashes [Text]
@@ -51,3 +53,8 @@ instance FromJSON Method where
         pure DatumFilterGetHashes
 
       _ -> fail "Unexpected method"
+
+data GetDatumsByHashesDatum = GetDatumsByHashesDatum
+  { hash :: Text
+  , value :: PlutusData.Data
+  }

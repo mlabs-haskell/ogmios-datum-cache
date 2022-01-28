@@ -61,5 +61,11 @@ mkGetDatumByHashFault :: Text -> JsonWspFault
 mkGetDatumByHashFault str =
   JsonWspFault "GetDatumByHash" "client" str
 
-mkGetDatumsByHashesResponse :: Maybe Json.Value -> JsonWspResponse
+mkGetDatumsByHashesResponse :: Maybe [Json.Value] -> JsonWspResponse
 mkGetDatumsByHashesResponse = \case
+  Just datumsWithValues ->
+    JsonWspResponse "GetDatumsByHashes" (object [ "DatumsFound" .= value ])
+    where
+      value = object [ "value" .= datumsWithValues ]
+  Nothing ->
+    JsonWspResponse "GetDatumsByHashes" (object [ "DatumsNotFound" .= Null ])
