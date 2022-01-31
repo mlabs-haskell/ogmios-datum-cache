@@ -144,11 +144,77 @@ Responses:
 ### Examples from ogmios-datum-cache
 #### GetDatumByHash
 Request:
-```
+```json
+{
+  "type": "jsonwsp/request",
+  "version": "1.0",
+  "servicename": "ogmios",
+  "methodname": "GetDatumByHash",
+  "args": {
+    "hash": "04caaf1336b754e0b8b4e2fa1c59aa6b85f97dd29652729f1c1e28805acdeb20"
+  }
+}
 ```
 
-Response:
+Response (datum found):
 ```
+{
+  methodname: 'GetDatumByHash',
+  result: { DatumFound: { value: [Object] } },
+  version: '1.0',
+  servicename: 'ogmios-datum-cache',
+  type: 'jsonwsp/response'
+}
+```
+
+```json
+{
+  "methodname": "GetDatumByHash",
+  "result": {
+    "DatumFound": {
+      "value": {
+        "constr": 3,
+        "fields": [
+          {
+            "constr": 0,
+            "fields": [
+              {
+                "constr": 0,
+                "fields": [
+                  "",
+                  ""
+                ]
+              },
+              {
+                "constr": 0,
+                "fields": [
+                  "648823ffdad1610b4162f4dbc87bd47f6f9cf45d772ddef661eff198",
+                  "76455448"
+                ]
+              }
+            ]
+          },
+          100000
+        ]
+      }
+    }
+  },
+  "version": "1.0",
+  "servicename": "ogmios-datum-cache",
+  "type": "jsonwsp/response"
+}
+
+```
+
+Response (datum not found):
+```
+{
+  methodname: 'GetDatumByHash',
+  result: { DatumNotFound: null },
+  version: '1.0',
+  servicename: 'ogmios-datum-cache',
+  type: 'jsonwsp/response'
+}
 ```
 
 Response (fault):
