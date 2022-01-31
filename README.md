@@ -238,7 +238,8 @@ Request:
   "methodname": "GetDatumsByHashes",
   "args": {
     "hashes": [
-      "abc"
+      "abc",
+      "04caaf1336b754e0b8b4e2fa1c59aa6b85f97dd29652729f1c1e28805acdeb20"
     ]
   }
 }
@@ -246,6 +247,56 @@ Request:
 
 Response:
 ```
+{
+  methodname: 'GetDatumsByHashes',
+  result: { DatumsFound: { value: [Array] } },
+  version: '1.0',
+  servicename: 'ogmios-datum-cache',
+  type: 'jsonwsp/response'
+}
+```
+
+```json
+{
+  "methodname": "GetDatumsByHashes",
+  "result": {
+    "DatumsFound": {
+      "value": [
+        {
+          "hash": "04caaf1336b754e0b8b4e2fa1c59aa6b85f97dd29652729f1c1e28805acdeb20",
+          "value": {
+            "constr": 3,
+            "fields": [
+              {
+                "constr": 0,
+                "fields": [
+                  {
+                    "constr": 0,
+                    "fields": [
+                      "",
+                      ""
+                    ]
+                  },
+                  {
+                    "constr": 0,
+                    "fields": [
+                      "648823ffdad1610b4162f4dbc87bd47f6f9cf45d772ddef661eff198",
+                      "76455448"
+                    ]
+                  }
+                ]
+              },
+              100000
+            ]
+          }
+        }
+      ]
+    }
+  },
+  "version": "1.0",
+  "servicename": "ogmios-datum-cache",
+  "type": "jsonwsp/response"
+}
 ```
 
 Response (fault)
