@@ -69,3 +69,7 @@ mkGetDatumsByHashesResponse = \case
       value = object [ "value" .= datumsWithValues ]
   Nothing ->
     JsonWspResponse "GetDatumsByHashes" (object [ "DatumsNotFound" .= Null ])
+
+mkGetDatumsByHashesFault :: Text -> JsonWspFault
+mkGetDatumsByHashesFault str =
+  JsonWspFault "GetDatumsByHashes" "client" str

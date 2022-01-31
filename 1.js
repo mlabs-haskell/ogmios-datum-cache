@@ -8,11 +8,13 @@ client.on('message', function(msg) {
 
 client.once('open', () => {
     console.log('opened');
-    client.send(JSON.stringify({
+    const req = JSON.stringify({
         type: "jsonwsp/request",
         version: "1.0",
         servicename: "ogmios",
-        methodname: "GetDatumByHash",
-        args: { hash: "abc" }
-    }));
+        methodname: "GetDatumsByHashes",
+        args: { hashes: ["abc"] }
+    });
+    console.log(req)
+    client.send(req);
 });

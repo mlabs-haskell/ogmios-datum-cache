@@ -7,11 +7,11 @@ import Control.Monad.IO.Class (liftIO)
 import Control.Monad (forever)
 import Data.Text (Text)
 import Control.Monad.Reader (ask)
-
+import qualified Data.Text as Text
 import qualified Hasql.Session as Session
 import qualified Data.ByteString.Lazy as BSL
 import qualified Codec.Serialise as Cbor
-import Data.Either (isLeft)
+import Data.Either (isLeft, fromLeft)
 import qualified Data.Vector as Vector
 
 import App
@@ -55,13 +55,18 @@ getDatumsByHashes conn hashes = do
       let resp = mkGetDatumsByHashesResponse Nothing
       sendTextData $ Json.encode resp
     Right datums -> do
-      case Vector.partition isLeft $ Vector.map (\dt -> case toPlutusData dt of
-                                      Left _ -> Left $ Db.hash dt
-                                      Right plutusData -> Right $ GetDatumsByHashesDatum (Db.hash dt) plutusData) datums of
-        (invalidDatums, validDatums) | Vector.null invalidDatums -> do
+      let toPlutusDataOrErr :: Db.Datum -> Either Text GetDatumsByHashesDatum
+          toPlutusDataOrErr dt =
+            case toPlutusData dt of
+              Left _ -> Left $ Db.hash dt
+              Right plutusData -> Right $ GetDatumsByHashesDatum (Db.hash dt) plutusData
+
+      case Vector.partition isLeft $ Vector.map toPlutusDataOrErr datums of
+        (linvalidDatums, rvalidDatums) | Vector.null linvalidDatums -> do
           pure ()
-        (invalidDatums, _) -> do
-          pure ()
+        (linvalidDatums :: Vector.Vector (Either Text GetDatumsByHashesDatum), _) -> do
+          let resp = mkGetDatumsByHashesFault $ "Error deserializing plutus Data in: " <> Text.pack (show $ Vector.toList $ Vector.map (fromLeft "") linvalidDatums)
+          sendTextData $ Json.encode resp
  where
    sendTextData = liftIO . WS.sendTextData conn
 
