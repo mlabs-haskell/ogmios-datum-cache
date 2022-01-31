@@ -229,6 +229,8 @@ Response (fault):
 ```
 
 #### GetDatumsByHashes
+Datums missing in the db are omitted from the response, if none datums are found an empty array is returned.
+
 Request:
 ```json
 {
