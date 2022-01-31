@@ -141,6 +141,61 @@ Responses:
 * 422 `{"error": "No block fetcher running"}`
 
 ## WebSocket API
+### Examples from ogmios-datum-cache
+#### GetDatumByHash
+Request:
+```
+```
+
+Response:
+```
+```
+
+Response (fault):
+```
+{
+  methodname: 'GetDatumByHash',
+  version: '1.0',
+  fault: { string: 'Error deserializing plutus Data', code: 'client' },
+  servicename: 'ogmios-datum-cache',
+  type: 'jsonwsp/fault'
+}
+```
+
+#### GetDatumsByHashes
+Request:
+```json
+{
+  "type": "jsonwsp/request",
+  "version": "1.0",
+  "servicename": "ogmios",
+  "methodname": "GetDatumsByHashes",
+  "args": {
+    "hashes": [
+      "abc"
+    ]
+  }
+}
+```
+
+Response:
+```
+```
+
+Response (fault)
+```
+{
+  methodname: 'GetDatumsByHashes',
+  version: '1.0',
+  fault: {
+    string: 'Error deserializing plutus Data in: ["abc"]',
+    code: 'client'
+  },
+  servicename: 'ogmios-datum-cache',
+  type: 'jsonwsp/fault'
+}
+```
+
 ### Examples from ogmios
 ```
 {
