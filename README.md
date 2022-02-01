@@ -356,6 +356,44 @@ Response (fault):
 }
 ```
 
+#### CancelFetchBlocks
+Request:
+```json
+{
+  "type": "jsonwsp/request",
+  "version": "1.0",
+  "servicename": "ogmios-datum-cache",
+  "methodname": "CancelFetchBlocks"
+}
+```
+
+Response:
+```json
+{
+  "methodname": "CancelFetchBlocks",
+  "result": {
+    "StoppedBlockFetcher": true
+  },
+  "version": "1.0",
+  "servicename": "ogmios-datum-cache",
+  "type": "jsonwsp/response"
+}
+```
+
+Response (fault):
+```json
+{
+  "methodname": "CancelFetchBlocks",
+  "version": "1.0",
+  "fault": {
+    "string": "No block fetcher running",
+    "code": "client"
+  },
+  "servicename": "ogmios-datum-cache",
+  "type": "jsonwsp/fault"
+}
+```
+
 ### Examples from ogmios
 ```
 {
