@@ -4,6 +4,8 @@ import Servant.API.Generic (Generic, ToServantApi, genericApi, (:-))
 import Servant
 import Data.Text (Text)
 
+import Servant.API.WebSocket (WebSocket)
+
 import Api.Types
 
 data DatumApi route = DatumApi
@@ -61,9 +63,17 @@ data ControlApi route = ControlApi
   }
   deriving stock Generic
 
+data WebSocketApi route = WebSocketApi
+  { websocketApi ::
+      route
+      :- WebSocket
+  }
+  deriving stock Generic
+
 data Routes route = Routes
   { datumRoutes :: route :- ToServantApi DatumApi
   , controlRoutes :: route :- "control" :> ToServantApi ControlApi
+  , websocketRoutes :: route :- "ws" :> ToServantApi WebSocketApi
   }
   deriving stock Generic
 

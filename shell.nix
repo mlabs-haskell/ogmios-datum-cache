@@ -10,9 +10,9 @@ let
       , hasql, http-types, lib, monad-logger, mtl, network
       , optparse-applicative, persistent, persistent-postgresql
       , resource-pool, serialise, servant, servant-multipart
-      , servant-server, text, time, tomland, unliftio, unliftio-core
-      , unordered-containers, vector, wai, wai-extra, wai-logger, warp
-      , websockets
+      , servant-server, servant-websockets, text, time, tomland, unliftio
+      , unliftio-core, unordered-containers, vector, wai, wai-extra
+      , wai-logger, warp, websockets
       }:
       mkDerivation {
         pname = "ogmios-datum-cache";
@@ -25,9 +25,10 @@ let
           conduit containers cryptohash-sha256 directory esqueleto exceptions
           filepath hasql http-types monad-logger mtl network
           optparse-applicative persistent persistent-postgresql resource-pool
-          serialise servant servant-multipart servant-server text time
-          tomland unliftio unliftio-core unordered-containers vector wai
-          wai-extra wai-logger warp websockets
+          serialise servant servant-multipart servant-server
+          servant-websockets text time tomland unliftio unliftio-core
+          unordered-containers vector wai wai-extra wai-logger warp
+          websockets
         ];
         license = "unknown";
         hydraPlatforms = lib.platforms.none;
