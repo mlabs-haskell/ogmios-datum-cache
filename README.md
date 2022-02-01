@@ -314,6 +314,47 @@ Response (fault)
   type: 'jsonwsp/fault'
 }
 ```
+#### StartFetchBlocks
+Request:
+```json
+{
+  "type": "jsonwsp/request",
+  "version": "1.0",
+  "servicename": "ogmios-datum-cache",
+  "methodname": "StartFetchBlocks",
+  "args": {
+    "slot": 1,
+    "id": "abc"
+  }
+}
+```
+
+Response:
+```json
+{
+  "methodname": "StartFetchBlocks",
+  "result": {
+    "StartedBlockFetcher": true
+  },
+  "version": "1.0",
+  "servicename": "ogmios-datum-cache",
+  "type": "jsonwsp/response"
+}
+```
+
+Response (fault):
+```json
+{
+  "methodname": "StartFetchBlocks",
+  "version": "1.0",
+  "fault": {
+    "string": "Block fetcher already running",
+    "code": "client"
+  },
+  "servicename": "ogmios-datum-cache",
+  "type": "jsonwsp/fault"
+}
+```
 
 ### Examples from ogmios
 ```
