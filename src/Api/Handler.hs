@@ -34,7 +34,7 @@ import App.Env
 import qualified App.RequestedDatumHashes as RequestedDatumHashes
 import qualified Database as Db
 import Api.Error (JsonError(..), throwJsonError)
-import Api.WebSocket
+import Api.WebSocket (websocketServer)
 
 import Block.Fetch (wsApp)
 
@@ -101,11 +101,10 @@ datumServiceHandlers = Routes{..}
 
       let runOgmiosClient =
             WS.runClient envOgmiosAddress envOgmiosPort "" $ \wsConn ->
-              runReaderT (unApp $ wsApp wsConn) env
+              runReaderT (unApp $ wsApp wsConn (Just (firstBlockSlot, firstBlockId))) env
 
       ogmiosWorker <- Async.async $ do
         logInfo "Starting ogmios client"
-        threadDelay 10000000
         (liftIO runOgmiosClient) `onException` (do
           logError $ "Error starting ogmios client"
           void $ tryTakeMVar envOgmiosWorker)
