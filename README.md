@@ -394,94 +394,122 @@ Response (fault):
 }
 ```
 
-### Examples from ogmios
-```
+#### DatumFilterAddHashes
+Request:
+```json
 {
-  type: 'jsonwsp/response',
-  version: '1.0',
-  servicename: 'ogmios',
-  methodname: 'FindIntersect',
-  result: { IntersectionFound: { point: [Object], tip: [Object] } },
-  reflection: null
+  "type": "jsonwsp/request",
+  "version": "1.0",
+  "servicename": "ogmios-datum-cache",
+  "methodname": "DatumFilterAddHashes",
+  "args": {
+    "hashes": [
+      "abc",
+      "04caaf1336b754e0b8b4e2fa1c59aa6b85f97dd29652729f1c1e28805acdeb20"
+    ]
+  }
 }
 ```
 
-```
+Response:
+```json
 {
-  type: 'jsonwsp/response',
-  version: '1.0',
-  servicename: 'ogmios',
-  methodname: 'FindIntersect',
-  result: { IntersectionNotFound: { tip: [Object] } },
-  reflection: null
-}
-```
-
-```
-{
-  type: 'jsonwsp/fault',
-  version: '1.0',
-  servicename: 'ogmios',
-  fault: {
-    code: 'client',
-    string: 'Invalid request: field "points" not found.'
+  "methodname": "DatumFilterAddHashes",
+  "result": {
+    "AddedHashes": true
   },
-  reflection: null
+  "version": "1.0",
+  "servicename": "ogmios-datum-cache",
+  "type": "jsonwsp/response"
 }
 ```
 
-```
+#### DatumFilterRemoveHashes
+Request:
+```json
 {
-  type: 'jsonwsp/fault',
-  version: '1.0',
-  servicename: 'ogmios',
-  fault: {
-    code: 'client',
-    string: "Invalid request: unknown method in 'methodname' (beware names are case-sensitive)."
-  },
-  reflection: null
+  "type": "jsonwsp/request",
+  "version": "1.0",
+  "servicename": "ogmios-datum-cache",
+  "methodname": "DatumFilterRemoveHashes",
+  "args": {
+    "hashes": [
+      "abc",
+      "04caaf1336b754e0b8b4e2fa1c59aa6b85f97dd29652729f1c1e28805acdeb20"
+    ]
+  }
 }
 ```
 
-```
+Response:
+```json
 {
-  type: 'jsonwsp/fault',
-  version: '1.0',
-  servicename: 'ogmios',
-  fault: {
-    code: 'client',
-    string: "Invalid request: invalid value for field 'version': should be '1.0'."
+  "methodname": "DatumFilterRemoveHashes",
+  "result": {
+    "RemovedHashes": true
   },
-  reflection: null
+  "version": "1.0",
+  "servicename": "ogmios-datum-cache",
+  "type": "jsonwsp/response"
 }
 ```
 
-```
+#### DatumFilterSetHashes
+Request:
+```json
 {
-  type: 'jsonwsp/fault',
-  version: '1.0',
-  servicename: 'ogmios',
-  fault: {
-    code: 'client',
-    string: "Invalid request: invalid value for field 'type': should be 'jsonwsp/request'."
-  },
-  reflection: null
+  "type": "jsonwsp/request",
+  "version": "1.0",
+  "servicename": "ogmios-datum-cache",
+  "methodname": "DatumFilterSetHashes",
+  "args": {
+    "hashes": [
+      "abc",
+      "04caaf1336b754e0b8b4e2fa1c59aa6b85f97dd29652729f1c1e28805acdeb20"
+    ]
+  }
 }
 ```
 
-```
+Response:
+```json
 {
-  type: 'jsonwsp/fault',
-  version: '1.0',
-  servicename: 'ogmios',
-  fault: {
-    code: 'client',
-    string: "Invalid request: missing required field 'version'."
+  "methodname": "DatumFilterSetHashes",
+  "result": {
+    "SetHashes": true
   },
-  reflection: null
+  "version": "1.0",
+  "servicename": "ogmios-datum-cache",
+  "type": "jsonwsp/response"
 }
 ```
 
+#### DatumFilterGetHashes
+Request:
+```json
+{
+  "type": "jsonwsp/request",
+  "version": "1.0",
+  "servicename": "ogmios-datum-cache",
+  "methodname": "DatumFilterGetHashes"
+}
+```
+
+Response:
+```json
+{
+  "methodname": "DatumFilterGetHashes",
+  "result": {
+    "hashes": [
+      "04caaf1336b754e0b8b4e2fa1c59aa6b85f97dd29652729f1c1e28805acdeb20",
+      "abc"
+    ]
+  },
+  "version": "1.0",
+  "servicename": "ogmios-datum-cache",
+  "type": "jsonwsp/response"
+}
+```
 
 ## Block data from ogmios local chain sync
 Structure:
