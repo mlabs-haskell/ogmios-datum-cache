@@ -73,3 +73,19 @@ mkGetDatumsByHashesResponse = \case
 mkGetDatumsByHashesFault :: Text -> JsonWspFault
 mkGetDatumsByHashesFault str =
   JsonWspFault "GetDatumsByHashes" "client" str
+
+mkStartFetchBlocksResponse :: JsonWspResponse
+mkStartFetchBlocksResponse =
+  JsonWspResponse "StartFetchBlocks" (object [ "StartedBlockFetcher" .= Bool True ])
+
+mkStartFetchBlocksFault :: Text -> JsonWspFault
+mkStartFetchBlocksFault str =
+  JsonWspFault "StartFetchBlocks" "client" str
+
+mkCancelFetchBlocksResponse :: JsonWspResponse
+mkCancelFetchBlocksResponse =
+  JsonWspResponse "CancelFetchBlocks" (object [ "StoppedBlockFetcher" .= Bool True ])
+
+mkCancelFetchBlocksFault :: Text -> JsonWspFault
+mkCancelFetchBlocksFault str =
+  JsonWspFault "CancelFetchBlocks" "client" str

@@ -27,6 +27,7 @@ import Block.Types
 import Database
 import App
 import App.Env
+import App.FirstFetchBlock
 import qualified App.RequestedDatumHashes as RequestedDatumHashes
 
 receiveLoop :: WS.Connection -> App ()
@@ -96,14 +97,19 @@ receiveBlocksLoop conn = forever $ do
           Right _ -> pure ()
           Left err -> logError $ "Error inserting datums: " <> (Text.pack $ show err)
 
-wsApp :: WS.Connection -> App ()
-wsApp conn = do
-    logWarning "wsApp"
+wsApp :: WS.Connection -> Maybe (Integer, Text) -> App ()
+wsApp conn mfirstFetchBlock = do
     Env{..} <- ask
     logInfo "Connected to ogmios websocket"
     Async.withAsync (receiveLoop conn) $ \receiveWorker -> do
       Async.link receiveWorker
-      let findIntersectRequest = mkFindIntersectRequest envFirstFetchBlock
+      let firstFetchBlock =
+            case mfirstFetchBlock of
+              Just (firstBlockSlot, firstBlockId) ->
+                FirstFetchBlock firstBlockSlot firstBlockId
+              Nothing ->
+                envFirstFetchBlock
+      let findIntersectRequest = mkFindIntersectRequest firstFetchBlock
       liftIO $ WS.sendTextData conn (Json.encode findIntersectRequest)
       debounce
       Async.wait receiveWorker
