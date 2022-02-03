@@ -46,10 +46,8 @@ executable ogmios-datum-cache
   import:         common-configs
   ghc-options:
     -Wall -Wcompat -Wincomplete-uni-patterns -Wredundant-constraints
-    -Wmissing-export-lists -Wmissing-deriving-strategies
-    -- -Werror
-    -O2
-
+    -Wmissing-export-lists -Wmissing-deriving-strategies -O2
+    -Werror
   main-is:        Main.hs
   other-modules:
     Api
@@ -68,10 +66,15 @@ executable ogmios-datum-cache
 
   hs-source-dirs: src
   build-depends:
-      aeson
+    , aeson
+    , async
     , base
     , base16
+    , base64
     , bytestring
+    , cborg
+    , cborg-json
+    , co-log
     , conduit
     , containers
     , cryptohash-sha256
@@ -79,36 +82,31 @@ executable ogmios-datum-cache
     , esqueleto
     , exceptions
     , filepath
+    , hasql
     , http-types
     , monad-logger
     , mtl
+    , network
     , optparse-applicative
     , persistent
     , persistent-postgresql
     , resource-pool
+    , serialise
     , servant
     , servant-multipart
     , servant-server
+    , servant-websockets
     , text
     , time
+    , tomland
+    , unliftio
+    , unliftio-core
+    , unordered-containers
+    , vector
     , wai
     , wai-extra
     , wai-logger
     , warp
     , websockets
-    , network
-    , unordered-containers
-    , hasql
-    , base64
-    -- , hasql-th
-    , cborg
-    , cborg-json
-    , serialise
-    , base16
-    , vector
-    , unliftio
-    , unliftio-core
-    , tomland
-    , async
-    , co-log
-    , servant-websockets
+
+-- , hasql-th
