@@ -31,11 +31,39 @@ client.once('open', () => {
     //     methodname: "StartFetchBlocks",
     //     args: { slot: 1, id: "abc" }
     // });
+    // const req = JSON.stringify({
+    //     type: "jsonwsp/request",
+    //     version: "1.0",
+    //     servicename: "ogmios-datum-cache",
+    //     methodname: "CancelFetchBlocks",
+    // });
+    // const req = JSON.stringify({
+    //     type: "jsonwsp/request",
+    //     version: "1.0",
+    //     servicename: "ogmios-datum-cache",
+    //     methodname: "DatumFilterAddHashes",
+    //     args: { hashes: ["abc", "04caaf1336b754e0b8b4e2fa1c59aa6b85f97dd29652729f1c1e28805acdeb20"] }
+    // });
+    // const req = JSON.stringify({
+    //     type: "jsonwsp/request",
+    //     version: "1.0",
+    //     servicename: "ogmios-datum-cache",
+    //     methodname: "DatumFilterRemoveHashes",
+    //     args: { hashes: ["abc", "04caaf1336b754e0b8b4e2fa1c59aa6b85f97dd29652729f1c1e28805acdeb20"] }
+    // });
+    // const req = JSON.stringify({
+    //     type: "jsonwsp/request",
+    //     version: "1.0",
+    //     servicename: "ogmios-datum-cache",
+    //     methodname: "DatumFilterSetHashes",
+    //     args: { hashes: ["04caaf1336b754e0b8b4e2fa1c59aa6b85f97dd29652729f1c1e28805acdeb20"] }
+    // });
     const req = JSON.stringify({
         type: "jsonwsp/request",
         version: "1.0",
         servicename: "ogmios-datum-cache",
-        methodname: "CancelFetchBlocks",
+        methodname: "DatumFilterGetHashes",
+        args: {}
     });
     console.log(req)
     client.send(req);
