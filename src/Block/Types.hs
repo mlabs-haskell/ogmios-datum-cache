@@ -1,10 +1,20 @@
 {-# LANGUAGE DuplicateRecordFields #-}
 
-module Block.Types where
+module Block.Types (
+    mkFindIntersectRequest,
+    mkRequestNextRequest,
+    OgmiosFindIntersectResponse,
+    OgmiosRequestNextResponse,
+    FindIntersectResult (..),
+    RequestNextResult (..),
+    Block (..),
+    AlonzoBlock (..),
+    AlonzoTransaction (..),
+    OgmiosResponse (..),
+) where
 
 import Data.Aeson (FromJSON, ToJSON, withObject, (.:))
 import Data.Aeson qualified as Json
-import Data.ByteString.Lazy qualified as BSL
 import Data.HashMap.Strict qualified as HM
 import Data.Map (Map)
 import Data.Map qualified as Map
@@ -193,8 +203,9 @@ instance FromJSON RequestNextResult where
                             [("alonzo" :: Text, blockValue)] -> do
                                 block <- Json.parseJSON @AlonzoBlock blockValue
                                 pure $ RollForward (MkAlonzoBlock block) tip
-                            [(_, blockObj)] ->
+                            [(_, _blockObj)] ->
                                 pure $ RollForward OtherBlock tip
+                            _ -> fail "Unexpected block value"
                     )
                     rollObj
             _ -> fail "Unexpected object key"

@@ -1,4 +1,4 @@
-module Api.WebSocket where
+module Api.WebSocket (websocketServer) where
 
 import Codec.Serialise qualified as Cbor
 import Colog (logError, logInfo, logWarning)

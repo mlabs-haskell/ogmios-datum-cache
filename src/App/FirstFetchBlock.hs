@@ -1,4 +1,4 @@
-module App.FirstFetchBlock where
+module App.FirstFetchBlock (FirstFetchBlock (..)) where
 
 import Data.Text (Text)
 

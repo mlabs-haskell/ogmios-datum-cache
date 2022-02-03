@@ -1,9 +1,14 @@
-module Api where
+module Api (
+    Routes (..),
+    datumCacheApi,
+    DatumApi (..),
+    ControlApi (..),
+    WebSocketApi (..),
+) where
 
 import Data.Text (Text)
 import Servant
 import Servant.API.Generic (Generic, ToServantApi, genericApi, (:-))
-
 import Servant.API.WebSocket (WebSocket)
 
 import Api.Types

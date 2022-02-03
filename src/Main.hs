@@ -4,7 +4,7 @@ module Main (
     main,
 ) where
 
-import Control.Concurrent (forkIO)
+import Colog qualified as Colog
 import Control.Concurrent.MVar (newEmptyMVar, newMVar)
 import Control.Monad.Catch (Exception, throwM, try)
 import Control.Monad.Except (ExceptT (..))
@@ -12,28 +12,18 @@ import Control.Monad.Reader (runReaderT)
 import Data.Set qualified as Set
 import Hasql.Connection qualified as Connection
 import Hasql.Connection qualified as Hasql
-import Network.Socket (withSocketsDo)
 import Network.Wai.Handler.Warp qualified as W
 import Network.Wai.Logger (withStdoutLogger)
-import Network.WebSockets qualified as WS
 import Servant.API.Generic (ToServantApi)
 import Servant.Server (Application, Handler (..), ServerT, hoistServer, serve)
 import Servant.Server.Generic (genericServerT)
-
-import Control.Concurrent.Async qualified as Async
-
-import Colog qualified as Colog
-import Control.Monad.IO.Class (liftIO)
 
 import Api (Routes, datumCacheApi)
 import Api.Handler (datumServiceHandlers)
 import App
 import App.Env
 import App.FirstFetchBlock
-import Block.Fetch (wsApp)
 import Config
-import Database (Datum (..), datumInsertSession, getDatumSession)
-import PlutusData qualified
 
 appService :: Env App -> Application
 appService env = serve datumCacheApi appServer

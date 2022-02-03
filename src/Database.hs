@@ -1,8 +1,13 @@
-module Database where
+module Database (
+    getDatumSession,
+    getDatumsSession,
+    Datum (..),
+    datumInsertSession,
+    insertDatumsSession,
+) where
 
 import Data.ByteString (ByteString)
 import Data.Functor.Contravariant ((>$<))
-import Data.Int (Int64)
 import Data.List (foldl')
 import Data.Text (Text)
 import Data.Vector (Vector)

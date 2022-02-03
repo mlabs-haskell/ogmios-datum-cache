@@ -1,4 +1,4 @@
-module Config where
+module Config (loadConfig, Config (..)) where
 
 import Control.Monad.IO.Class (MonadIO)
 import Data.ByteString (ByteString)

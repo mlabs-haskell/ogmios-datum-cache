@@ -1,11 +1,7 @@
-module Block.Fetch where
+module Block.Fetch (wsApp) where
 
 import Control.Exception (Exception)
-import Control.Monad.Catch (throwM)
-
--- import Control.Concurrent (forkIO, threadDelay)
-
-import Control.Monad (forM_, forever, unless)
+import Control.Monad (forever, unless)
 import Control.Monad.Reader (ask)
 import Control.Monad.Trans (liftIO)
 import Data.Aeson qualified as Json
@@ -15,11 +11,9 @@ import Data.Set qualified as Set
 import Data.Text (Text)
 import Data.Text qualified as Text
 import Data.Text.Encoding qualified as Text
-import Data.Text.IO qualified as Text
-import Hasql.Connection qualified as Hasql
 import Hasql.Session qualified as Session
 import Network.WebSockets qualified as WS
-import UnliftIO.Concurrent (forkIO, threadDelay)
+import UnliftIO.Concurrent (threadDelay)
 
 import UnliftIO.Async qualified as Async
 
@@ -50,8 +44,9 @@ receiveLoop conn = do
                 Async.wait receiveBlocksWorker
 
 debounce :: App ()
--- debounce = threadDelay 10
-debounce = threadDelay $ 10 ^ 6
+debounce = threadDelay 10
+
+-- debounce = threadDelay $ 10 ^ 6
 
 requestRemainingBlocks :: WS.Connection -> App ()
 requestRemainingBlocks conn = forever $ do

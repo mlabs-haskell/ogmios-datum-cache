@@ -1,6 +1,19 @@
 {-# LANGUAGE DuplicateRecordFields #-}
 
-module Api.WebSocket.Json where
+module Api.WebSocket.Json (
+    mkGetDatumByHashResponse,
+    mkGetDatumByHashFault,
+    mkGetDatumsByHashesResponse,
+    mkGetDatumsByHashesFault,
+    mkStartFetchBlocksResponse,
+    mkStartFetchBlocksFault,
+    mkCancelFetchBlocksResponse,
+    mkCancelFetchBlocksFault,
+    mkDatumFilterAddHashesResponse,
+    mkDatumFilterRemoveHashesResponse,
+    mkDatumFilterSetHashesResponse,
+    mkDatumFilterGetHashesResponse,
+) where
 
 import Data.Aeson qualified as Json
 import Data.Set (Set)
@@ -39,6 +52,7 @@ data JsonWspFault = JsonWspFault
     , faultCode :: Text
     , faultString :: Text
     }
+    deriving stock (Generic)
 
 instance ToJSON JsonWspFault where
     toJSON (JsonWspFault method code str) =

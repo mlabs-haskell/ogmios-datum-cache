@@ -1,30 +1,23 @@
-module Api.Handler where
+module Api.Handler (datumServiceHandlers) where
 
-import Codec.Serialise (Serialise, deserialiseOrFail)
+import Codec.Serialise (deserialiseOrFail)
+import Colog (logError, logInfo, logWarning)
+import Control.Monad (unless, void, when)
 import Control.Monad.Catch (throwM)
 import Control.Monad.IO.Class (liftIO)
-import Control.Monad.Reader (ask)
+import Control.Monad.Reader (ask, runReaderT)
 import Data.ByteString.Lazy qualified as BSL
 import Data.Function ((&))
 import Data.Text (Text)
-import Data.Text qualified as Text
 import Data.Vector qualified as Vector
-import Hasql.Connection qualified as Hasql
 import Hasql.Session qualified as Session
+import Network.WebSockets qualified as WS
 import Servant
 import Servant.API.Generic (ToServant)
 import Servant.Server.Generic (AsServerT, genericServerT)
-
-import Colog (logError, logInfo, logWarning)
-import Control.Monad (unless, void, when)
-import Control.Monad.Reader (runReaderT)
-import Network.WebSockets qualified as WS
 import UnliftIO.Async qualified as Async
-import UnliftIO.Concurrent (threadDelay)
 import UnliftIO.Exception (onException)
 import UnliftIO.MVar (isEmptyMVar, tryPutMVar, tryTakeMVar)
-
-import Data.Aeson qualified as Json
 
 import Api
 import Api.Error (JsonError (..), throwJsonError)

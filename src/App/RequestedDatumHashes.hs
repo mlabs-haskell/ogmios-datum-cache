@@ -1,4 +1,4 @@
-module App.RequestedDatumHashes where
+module App.RequestedDatumHashes (add, remove, set, get, RequestedDatumHashes) where
 
 import Control.Concurrent.MVar (MVar, modifyMVar_, readMVar)
 import Control.Monad.IO.Class (MonadIO, liftIO)
@@ -26,7 +26,7 @@ remove removedHashes = modifyRequestedHashes (`Set.difference` (Set.fromList rem
 
 set :: MonadIO m => [DatumHash] -> RequestedDatumHashes -> m ()
 set newHashes requestedHashes =
-    liftIO $ modifyMVar_ requestedHashes $ \hashSet -> pure (Set.fromList newHashes)
+    liftIO $ modifyMVar_ requestedHashes $ \_hashSet -> pure (Set.fromList newHashes)
 
 get :: MonadIO m => RequestedDatumHashes -> m DatumHashes
 get = liftIO . readMVar

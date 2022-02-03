@@ -1,6 +1,21 @@
 {-# LANGUAGE DuplicateRecordFields #-}
 
-module Api.Types where
+module Api.Types (
+    GetDatumByHashResponse (..),
+    GetDatumsByHashesRequest (..),
+    GetDatumsByHashesDatum (..),
+    GetDatumsByHashesResponse (..),
+    AddDatumHashesRequest (..),
+    AddDatumHashesResponse (..),
+    RemoveDatumHashesRequest (..),
+    RemoveDatumHashesResponse (..),
+    SetDatumHashesRequest (..),
+    SetDatumHashesResponse (..),
+    GetDatumHashesResponse (..),
+    StartBlockFetchingRequest (..),
+    StartBlockFetchingResponse (..),
+    CancelBlockFetchingResponse (..),
+) where
 
 import Data.Aeson (FromJSON, ToJSON)
 import Data.Set (Set)

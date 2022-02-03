@@ -1,6 +1,6 @@
 {-# LANGUAGE InstanceSigs #-}
 
-module App.Env where
+module App.Env (Env (..)) where
 
 import GHC.Generics (Generic)
 import Hasql.Connection qualified as Hasql

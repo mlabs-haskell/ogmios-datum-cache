@@ -1,9 +1,8 @@
-module Api.WebSocket.Types where
-
-import Data.Text (Text)
-import GHC.Generics (Generic)
+module Api.WebSocket.Types (Method (..), GetDatumsByHashesDatum (..)) where
 
 import Data.Aeson (FromJSON, ToJSON, parseJSON, withObject, (.:))
+import Data.Text (Text)
+import GHC.Generics (Generic)
 
 import PlutusData qualified
 
