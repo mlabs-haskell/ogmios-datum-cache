@@ -46,17 +46,20 @@ executable ogmios-datum-cache
   import:         common-configs
   ghc-options:
     -Wall -Wcompat -Wincomplete-uni-patterns -Wredundant-constraints
-    -Wmissing-export-lists -Wmissing-deriving-strategies -O2
-    -Werror
+    -Wmissing-export-lists -Wmissing-deriving-strategies -O2 -Werror
+
   main-is:        Main.hs
   other-modules:
     Api
+    Api.Error
     Api.Handler
     Api.Types
     Api.WebSocket
+    Api.WebSocket.Json
     Api.WebSocket.Types
     App
     App.Env
+    App.FirstFetchBlock
     App.RequestedDatumHashes
     Block.Fetch
     Block.Types
