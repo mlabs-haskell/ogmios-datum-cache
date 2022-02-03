@@ -1,40 +1,40 @@
 module Api.Handler where
 
+import Codec.Serialise (Serialise, deserialiseOrFail)
+import Control.Monad.Catch (throwM)
+import Control.Monad.IO.Class (liftIO)
+import Control.Monad.Reader (ask)
+import Data.ByteString.Lazy qualified as BSL
+import Data.Function ((&))
+import Data.Text (Text)
+import Data.Text qualified as Text
+import Data.Vector qualified as Vector
+import Hasql.Connection qualified as Hasql
+import Hasql.Session qualified as Session
 import Servant
 import Servant.API.Generic (ToServant)
 import Servant.Server.Generic (AsServerT, genericServerT)
-import Data.Text (Text)
-import qualified Hasql.Connection as Hasql
-import qualified Hasql.Session as Session
-import qualified Data.ByteString.Lazy as BSL
-import Codec.Serialise (Serialise, deserialiseOrFail)
-import Data.Function ((&))
-import Control.Monad.IO.Class (liftIO)
-import qualified Data.Vector as Vector
-import Control.Monad.Reader (ask)
-import Control.Monad.Catch (throwM)
-import qualified Data.Text as Text
 
-import qualified Network.WebSockets  as WS
-import qualified UnliftIO.Async as Async
-import UnliftIO.Exception (onException)
+import Colog (logError, logInfo, logWarning)
+import Control.Monad (unless, void, when)
 import Control.Monad.Reader (runReaderT)
-import Colog (logWarning, logInfo, logError)
-import UnliftIO.MVar (tryTakeMVar, isEmptyMVar, tryPutMVar)
+import Network.WebSockets qualified as WS
+import UnliftIO.Async qualified as Async
 import UnliftIO.Concurrent (threadDelay)
-import Control.Monad (when, unless, void)
+import UnliftIO.Exception (onException)
+import UnliftIO.MVar (isEmptyMVar, tryPutMVar, tryTakeMVar)
 
-import qualified Data.Aeson as Json
+import Data.Aeson qualified as Json
 
-import qualified PlutusData
 import Api
+import Api.Error (JsonError (..), throwJsonError)
 import Api.Types
+import Api.WebSocket (websocketServer)
 import App
 import App.Env
-import qualified App.RequestedDatumHashes as RequestedDatumHashes
-import qualified Database as Db
-import Api.Error (JsonError(..), throwJsonError)
-import Api.WebSocket (websocketServer)
+import App.RequestedDatumHashes qualified as RequestedDatumHashes
+import Database qualified as Db
+import PlutusData qualified
 
 import Block.Fetch (wsApp)
 
@@ -46,22 +46,22 @@ datumServiceHandlers = Routes{..}
 
     toPlutusData :: Db.Datum -> App PlutusData.Data
     toPlutusData datumRes =
-      deserialiseOrFail @PlutusData.Data (BSL.fromStrict $ Db.value datumRes) & either (const $ throwM err500) pure
+        deserialiseOrFail @PlutusData.Data (BSL.fromStrict $ Db.value datumRes) & either (const $ throwM err500) pure
 
     getDatumByHash :: Text -> App GetDatumByHashResponse
     getDatumByHash hash = do
-      Env{..} <- ask
-      datumRes <- liftIO (Session.run (Db.getDatumSession hash) envDbConnection) >>= either (const $ throwM err404) pure
-      plutusData <- toPlutusData datumRes
+        Env{..} <- ask
+        datumRes <- liftIO (Session.run (Db.getDatumSession hash) envDbConnection) >>= either (const $ throwM err404) pure
+        plutusData <- toPlutusData datumRes
 
-      pure $ GetDatumByHashResponse plutusData
+        pure $ GetDatumByHashResponse plutusData
 
     getDatumsByHashes :: GetDatumsByHashesRequest -> App GetDatumsByHashesResponse
     getDatumsByHashes (GetDatumsByHashesRequest hashes) = do
-      Env{..} <- ask
-      datums <- liftIO (Session.run (Db.getDatumsSession hashes) envDbConnection) >>= either (const $ throwM err404) pure
-      plutusDatums <- Vector.mapM (\dt -> GetDatumsByHashesDatum (Db.hash dt) <$> (toPlutusData dt)) datums
-      pure $ GetDatumsByHashesResponse plutusDatums
+        Env{..} <- ask
+        datums <- liftIO (Session.run (Db.getDatumsSession hashes) envDbConnection) >>= either (const $ throwM err404) pure
+        plutusDatums <- Vector.mapM (\dt -> GetDatumsByHashesDatum (Db.hash dt) <$> (toPlutusData dt)) datums
+        pure $ GetDatumsByHashesResponse plutusDatums
 
     -- control api
     controlRoutes :: ToServant ControlApi (AsServerT App)
@@ -69,66 +69,69 @@ datumServiceHandlers = Routes{..}
 
     addDatumHashes :: AddDatumHashesRequest -> App AddDatumHashesResponse
     addDatumHashes (AddDatumHashesRequest hashes) = do
-      Env{..} <- ask
-      RequestedDatumHashes.add hashes envRequestedDatumHashes
-      pure $ AddDatumHashesResponse "Successfully added hashes"
+        Env{..} <- ask
+        RequestedDatumHashes.add hashes envRequestedDatumHashes
+        pure $ AddDatumHashesResponse "Successfully added hashes"
 
     removeDatumHashes :: RemoveDatumHashesRequest -> App RemoveDatumHashesResponse
     removeDatumHashes (RemoveDatumHashesRequest hashes) = do
-      Env{..} <- ask
-      RequestedDatumHashes.remove hashes envRequestedDatumHashes
-      pure $ RemoveDatumHashesResponse "Successfully removed hashes"
+        Env{..} <- ask
+        RequestedDatumHashes.remove hashes envRequestedDatumHashes
+        pure $ RemoveDatumHashesResponse "Successfully removed hashes"
 
     setDatumHashes :: SetDatumHashesRequest -> App SetDatumHashesResponse
     setDatumHashes (SetDatumHashesRequest hashes) = do
-      Env{..} <- ask
-      RequestedDatumHashes.set hashes envRequestedDatumHashes
-      pure $ SetDatumHashesResponse "Successfully set hashes"
+        Env{..} <- ask
+        RequestedDatumHashes.set hashes envRequestedDatumHashes
+        pure $ SetDatumHashesResponse "Successfully set hashes"
 
     getDatumHashes :: App GetDatumHashesResponse
     getDatumHashes = do
-      Env{..} <- ask
-      hashSet <- RequestedDatumHashes.get envRequestedDatumHashes
-      pure $ GetDatumHashesResponse hashSet
+        Env{..} <- ask
+        hashSet <- RequestedDatumHashes.get envRequestedDatumHashes
+        pure $ GetDatumHashesResponse hashSet
 
     startBlockFetching :: StartBlockFetchingRequest -> App StartBlockFetchingResponse
     startBlockFetching (StartBlockFetchingRequest firstBlockSlot firstBlockId) = do
-      env@Env{..} <- ask
+        env@Env{..} <- ask
 
-      isOgmiosWorkerRunning <- not <$> isEmptyMVar envOgmiosWorker
-      when isOgmiosWorkerRunning $ do
-        throwJsonError err422 (JsonError "Block fetcher already running")
+        isOgmiosWorkerRunning <- not <$> isEmptyMVar envOgmiosWorker
+        when isOgmiosWorkerRunning $ do
+            throwJsonError err422 (JsonError "Block fetcher already running")
 
-      let runOgmiosClient =
-            WS.runClient envOgmiosAddress envOgmiosPort "" $ \wsConn ->
-              runReaderT (unApp $ wsApp wsConn (Just (firstBlockSlot, firstBlockId))) env
+        let runOgmiosClient =
+                WS.runClient envOgmiosAddress envOgmiosPort "" $ \wsConn ->
+                    runReaderT (unApp $ wsApp wsConn (Just (firstBlockSlot, firstBlockId))) env
 
-      ogmiosWorker <- Async.async $ do
-        logInfo "Starting ogmios client"
-        (liftIO runOgmiosClient) `onException` (do
-          logError $ "Error starting ogmios client"
-          void $ tryTakeMVar envOgmiosWorker)
+        ogmiosWorker <- Async.async $ do
+            logInfo "Starting ogmios client"
+            (liftIO runOgmiosClient)
+                `onException` ( do
+                                    logError $ "Error starting ogmios client"
+                                    void $ tryTakeMVar envOgmiosWorker
+                              )
 
-      putSuccessful <- tryPutMVar envOgmiosWorker ogmiosWorker
-      unless putSuccessful $ do
-        Async.cancel ogmiosWorker
-        logWarning "Another block fetcher was already running, cancelling worker thread"
-        throwJsonError err422 (JsonError "Another block fetcher was already running, cancelling worker thread")
+        putSuccessful <- tryPutMVar envOgmiosWorker ogmiosWorker
+        unless putSuccessful $ do
+            Async.cancel ogmiosWorker
+            logWarning "Another block fetcher was already running, cancelling worker thread"
+            throwJsonError err422 (JsonError "Another block fetcher was already running, cancelling worker thread")
 
-      pure $ StartBlockFetchingResponse "Started block fetcher"
+        pure $ StartBlockFetchingResponse "Started block fetcher"
 
     cancelBlockFetching :: App CancelBlockFetchingResponse
     cancelBlockFetching = do
-      Env{..} <- ask
-      ogmiosWorker <- tryTakeMVar envOgmiosWorker >>=
-        maybe (throwJsonError err422 (JsonError "No block fetcher running")) pure
-      Async.cancel ogmiosWorker
-      pure $ CancelBlockFetchingResponse "Stopped block fetcher"
+        Env{..} <- ask
+        ogmiosWorker <-
+            tryTakeMVar envOgmiosWorker
+                >>= maybe (throwJsonError err422 (JsonError "No block fetcher running")) pure
+        Async.cancel ogmiosWorker
+        pure $ CancelBlockFetchingResponse "Stopped block fetcher"
 
     websocketRoutes :: ToServant WebSocketApi (AsServerT App)
     websocketRoutes = genericServerT WebSocketApi{..}
 
     websocketApi :: WS.Connection -> App ()
     websocketApi conn = do
-      logInfo "New WS connection established"
-      websocketServer conn
+        logInfo "New WS connection established"
+        websocketServer conn
