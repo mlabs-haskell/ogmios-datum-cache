@@ -19,10 +19,10 @@ modifyRequestedHashes f requestedHashes =
             pure $ f hashSet
 
 add :: MonadIO m => [DatumHash] -> RequestedDatumHashes -> m ()
-add newHashes = modifyRequestedHashes (`Set.union` (Set.fromList newHashes))
+add newHashes = modifyRequestedHashes (`Set.union` Set.fromList newHashes)
 
 remove :: MonadIO m => [DatumHash] -> RequestedDatumHashes -> m ()
-remove removedHashes = modifyRequestedHashes (`Set.difference` (Set.fromList removedHashes))
+remove removedHashes = modifyRequestedHashes (`Set.difference` Set.fromList removedHashes)
 
 set :: MonadIO m => [DatumHash] -> RequestedDatumHashes -> m ()
 set newHashes requestedHashes =

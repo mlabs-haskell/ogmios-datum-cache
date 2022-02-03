@@ -4,7 +4,7 @@ module Main (
     main,
 ) where
 
-import Colog qualified as Colog
+import Colog qualified
 import Control.Concurrent.MVar (newEmptyMVar, newMVar)
 import Control.Monad.Catch (Exception, throwM, try)
 import Control.Monad.Except (ExceptT (..))
@@ -37,7 +37,7 @@ appService env = serve datumCacheApi appServer
     appServerT :: ServerT (ToServantApi Routes) App
     appServerT = genericServerT datumServiceHandlers
 
-data DbConnectionAcquireException = DbConnectionAcquireException Hasql.ConnectionError
+newtype DbConnectionAcquireException = DbConnectionAcquireException Hasql.ConnectionError
     deriving stock (Eq, Show)
     deriving anyclass (Exception)
 

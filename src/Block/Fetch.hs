@@ -82,16 +82,16 @@ receiveBlocksLoop conn = forever $ do
 
             let (failedDecodings, requestedDatumsWithDecodedValues) = Map.mapEither decodeDatumValue requestedDatums
             unless (null failedDecodings) $ do
-                logError $ "Error decoding values for datums: " <> (Text.intercalate ", " $ Map.keys failedDecodings)
+                logError $ "Error decoding values for datums: " <> Text.intercalate ", " (Map.keys failedDecodings)
 
             let savedHashes = Map.keys requestedDatums
             let savedValues = Map.elems requestedDatumsWithDecodedValues
             unless (null savedHashes) $ do
-                logInfo $ "Inserting datums: " <> (Text.intercalate ", " savedHashes)
+                logInfo $ "Inserting datums: " <> Text.intercalate ", " savedHashes
                 res <- liftIO $ Session.run (insertDatumsSession savedHashes savedValues) envDbConnection
                 case res of
                     Right _ -> pure ()
-                    Left err -> logError $ "Error inserting datums: " <> (Text.pack $ show err)
+                    Left err -> logError $ "Error inserting datums: " <> Text.pack (show err)
 
 wsApp :: WS.Connection -> Maybe (Integer, Text) -> App ()
 wsApp conn mfirstFetchBlock = do
@@ -111,6 +111,6 @@ wsApp conn mfirstFetchBlock = do
         Async.wait receiveWorker
         liftIO $ WS.sendClose conn ("Fin" :: Text)
 
-data FindIntersectException = FindIntersectException Text
+newtype FindIntersectException = FindIntersectException Text
     deriving stock (Eq, Show)
     deriving anyclass (Exception)

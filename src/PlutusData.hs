@@ -1,5 +1,4 @@
 {-# LANGUAGE BangPatterns #-}
-{-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE DerivingStrategies #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedStrings #-}
@@ -139,7 +138,7 @@ encodeInteger i
 -- get chunked up if it's too big.
 -- See Note [Evading the 64-byte limit]
 encodeInteger i | i >= 0 = CBOR.encodeTag 2 <> encodeBs (integerToBytes i)
-encodeInteger i | otherwise = CBOR.encodeTag 3 <> encodeBs (integerToBytes (-1 - i))
+encodeInteger i = CBOR.encodeTag 3 <> encodeBs (integerToBytes (-1 - i))
 
 -- Taken exactly from Codec.CBOR.Write
 integerToBytes :: Integer -> BS.ByteString

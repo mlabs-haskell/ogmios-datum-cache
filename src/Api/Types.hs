@@ -25,11 +25,11 @@ import Servant.API.Generic (Generic)
 
 import PlutusData qualified
 
-data GetDatumByHashResponse = GetDatumByHashResponse PlutusData.Data
+newtype GetDatumByHashResponse = GetDatumByHashResponse PlutusData.Data
     deriving stock (Generic)
     deriving anyclass (ToJSON)
 
-data GetDatumsByHashesRequest = GetDatumsByHashesRequest
+newtype GetDatumsByHashesRequest = GetDatumsByHashesRequest
     { hashes :: [Text]
     }
     deriving stock (Generic)
@@ -42,49 +42,49 @@ data GetDatumsByHashesDatum = GetDatumsByHashesDatum
     deriving stock (Generic)
     deriving anyclass (ToJSON)
 
-data GetDatumsByHashesResponse = GetDatumsByHashesResponse
+newtype GetDatumsByHashesResponse = GetDatumsByHashesResponse
     { datums :: Vector GetDatumsByHashesDatum
     }
     deriving stock (Generic)
     deriving anyclass (ToJSON)
 
-data AddDatumHashesRequest = AddDatumHashesRequest
+newtype AddDatumHashesRequest = AddDatumHashesRequest
     { hashes :: [Text]
     }
     deriving stock (Generic)
     deriving anyclass (FromJSON)
 
-data AddDatumHashesResponse = AddDatumHashesResponse
+newtype AddDatumHashesResponse = AddDatumHashesResponse
     { message :: Text
     }
     deriving stock (Generic)
     deriving anyclass (ToJSON)
 
-data RemoveDatumHashesRequest = RemoveDatumHashesRequest
+newtype RemoveDatumHashesRequest = RemoveDatumHashesRequest
     { hashes :: [Text]
     }
     deriving stock (Generic)
     deriving anyclass (FromJSON)
 
-data RemoveDatumHashesResponse = RemoveDatumHashesResponse
+newtype RemoveDatumHashesResponse = RemoveDatumHashesResponse
     { message :: Text
     }
     deriving stock (Generic)
     deriving anyclass (ToJSON)
 
-data SetDatumHashesRequest = SetDatumHashesRequest
+newtype SetDatumHashesRequest = SetDatumHashesRequest
     { hashes :: [Text]
     }
     deriving stock (Generic)
     deriving anyclass (FromJSON)
 
-data SetDatumHashesResponse = SetDatumHashesResponse
+newtype SetDatumHashesResponse = SetDatumHashesResponse
     { message :: Text
     }
     deriving stock (Generic)
     deriving anyclass (ToJSON)
 
-data GetDatumHashesResponse = GetDatumHashesResponse
+newtype GetDatumHashesResponse = GetDatumHashesResponse
     { hashes :: Set Text
     }
     deriving stock (Generic)
@@ -97,13 +97,13 @@ data StartBlockFetchingRequest = StartBlockFetchingRequest
     deriving stock (Generic)
     deriving anyclass (FromJSON)
 
-data StartBlockFetchingResponse = StartBlockFetchingResponse
+newtype StartBlockFetchingResponse = StartBlockFetchingResponse
     { message :: Text
     }
     deriving stock (Generic)
     deriving anyclass (ToJSON)
 
-data CancelBlockFetchingResponse = CancelBlockFetchingResponse
+newtype CancelBlockFetchingResponse = CancelBlockFetchingResponse
     { message :: Text
     }
     deriving stock (Generic)

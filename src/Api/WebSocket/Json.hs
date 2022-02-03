@@ -78,8 +78,8 @@ mkGetDatumByHashResponse = \case
         JsonWspResponse "GetDatumByHash" (object ["DatumNotFound" .= Null])
 
 mkGetDatumByHashFault :: Text -> JsonWspFault
-mkGetDatumByHashFault str =
-    JsonWspFault "GetDatumByHash" "client" str
+mkGetDatumByHashFault =
+    JsonWspFault "GetDatumByHash" "client"
 
 mkGetDatumsByHashesResponse :: Maybe [Json.Value] -> JsonWspResponse
 mkGetDatumsByHashesResponse = \case
@@ -91,24 +91,24 @@ mkGetDatumsByHashesResponse = \case
         JsonWspResponse "GetDatumsByHashes" (object ["DatumsNotFound" .= Null])
 
 mkGetDatumsByHashesFault :: Text -> JsonWspFault
-mkGetDatumsByHashesFault str =
-    JsonWspFault "GetDatumsByHashes" "client" str
+mkGetDatumsByHashesFault =
+    JsonWspFault "GetDatumsByHashes" "client"
 
 mkStartFetchBlocksResponse :: JsonWspResponse
 mkStartFetchBlocksResponse =
     JsonWspResponse "StartFetchBlocks" (object ["StartedBlockFetcher" .= Bool True])
 
 mkStartFetchBlocksFault :: Text -> JsonWspFault
-mkStartFetchBlocksFault str =
-    JsonWspFault "StartFetchBlocks" "client" str
+mkStartFetchBlocksFault =
+    JsonWspFault "StartFetchBlocks" "client"
 
 mkCancelFetchBlocksResponse :: JsonWspResponse
 mkCancelFetchBlocksResponse =
     JsonWspResponse "CancelFetchBlocks" (object ["StoppedBlockFetcher" .= Bool True])
 
 mkCancelFetchBlocksFault :: Text -> JsonWspFault
-mkCancelFetchBlocksFault str =
-    JsonWspFault "CancelFetchBlocks" "client" str
+mkCancelFetchBlocksFault =
+    JsonWspFault "CancelFetchBlocks" "client"
 
 mkDatumFilterAddHashesResponse :: JsonWspResponse
 mkDatumFilterAddHashesResponse =

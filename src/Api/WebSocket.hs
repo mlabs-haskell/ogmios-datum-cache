@@ -92,9 +92,9 @@ startFetchBlocks conn firstBlockSlot firstBlockId = do
 
             ogmiosWorker <- Async.async $ do
                 logInfo "Starting ogmios client"
-                (liftIO runOgmiosClient)
+                liftIO runOgmiosClient
                     `onException` ( do
-                                        logWarning $ "Received exception while running ogmios client"
+                                        logWarning "Received exception while running ogmios client"
                                         void $ tryTakeMVar envOgmiosWorker
                                   )
 

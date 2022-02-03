@@ -32,7 +32,7 @@ data CursorPoint = CursorPoint
     deriving stock (Eq, Show, Generic)
     deriving anyclass (ToJSON, FromJSON)
 
-data CursorPoints = CursorPoints
+newtype CursorPoints = CursorPoints
     { points :: [CursorPoint]
     }
     deriving stock (Eq, Show, Generic)
@@ -150,7 +150,7 @@ data Block
     | MkAlonzoBlock AlonzoBlock
     deriving stock (Eq, Show, Generic)
 
-data AlonzoTransaction = AlonzoTransaction
+newtype AlonzoTransaction = AlonzoTransaction
     { datums :: Map Text Text
     }
     deriving stock (Eq, Show, Generic)

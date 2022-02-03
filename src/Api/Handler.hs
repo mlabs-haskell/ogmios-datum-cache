@@ -53,7 +53,7 @@ datumServiceHandlers = Routes{..}
     getDatumsByHashes (GetDatumsByHashesRequest hashes) = do
         Env{..} <- ask
         datums <- liftIO (Session.run (Db.getDatumsSession hashes) envDbConnection) >>= either (const $ throwM err404) pure
-        plutusDatums <- Vector.mapM (\dt -> GetDatumsByHashesDatum (Db.hash dt) <$> (toPlutusData dt)) datums
+        plutusDatums <- Vector.mapM (\dt -> GetDatumsByHashesDatum (Db.hash dt) <$> toPlutusData dt) datums
         pure $ GetDatumsByHashesResponse plutusDatums
 
     -- control api
@@ -98,9 +98,9 @@ datumServiceHandlers = Routes{..}
 
         ogmiosWorker <- Async.async $ do
             logInfo "Starting ogmios client"
-            (liftIO runOgmiosClient)
+            liftIO runOgmiosClient
                 `onException` ( do
-                                    logError $ "Error starting ogmios client"
+                                    logError "Error starting ogmios client"
                                     void $ tryTakeMVar envOgmiosWorker
                               )
 

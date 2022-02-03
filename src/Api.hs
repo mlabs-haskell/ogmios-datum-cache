@@ -68,7 +68,7 @@ data ControlApi route = ControlApi
     }
     deriving stock (Generic)
 
-data WebSocketApi route = WebSocketApi
+newtype WebSocketApi route = WebSocketApi
     { websocketApi ::
         route
             :- WebSocket
