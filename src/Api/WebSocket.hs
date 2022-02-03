@@ -23,6 +23,7 @@ import App
 import App.Env
 import Api.WebSocket.Json
 import Api.WebSocket.Types
+import qualified App.RequestedDatumHashes as RequestedDatumHashes
 import qualified Database as Db
 import qualified PlutusData
 import Block.Fetch (wsApp)
@@ -125,6 +126,42 @@ cancelFetchBlocks conn = do
   where
     sendTextData = liftIO . WS.sendTextData conn
 
+datumFilterAddHashes :: WS.Connection -> [Text] -> App ()
+datumFilterAddHashes conn hashes = do
+  Env{..} <- ask
+  RequestedDatumHashes.add hashes envRequestedDatumHashes
+  let resp = mkDatumFilterAddHashesResponse
+  sendTextData $ Json.encode resp
+  where
+    sendTextData = liftIO . WS.sendTextData conn
+
+datumFilterRemoveHashes :: WS.Connection -> [Text] -> App ()
+datumFilterRemoveHashes conn hashes = do
+  Env{..} <- ask
+  RequestedDatumHashes.remove hashes envRequestedDatumHashes
+  let resp = mkDatumFilterRemoveHashesResponse
+  sendTextData $ Json.encode resp
+  where
+    sendTextData = liftIO . WS.sendTextData conn
+
+datumFilterSetHashes :: WS.Connection -> [Text] -> App ()
+datumFilterSetHashes conn hashes = do
+  Env{..} <- ask
+  RequestedDatumHashes.set hashes envRequestedDatumHashes
+  let resp = mkDatumFilterSetHashesResponse
+  sendTextData $ Json.encode resp
+  where
+    sendTextData = liftIO . WS.sendTextData conn
+
+datumFilterGetHashes :: WS.Connection -> App ()
+datumFilterGetHashes conn = do
+  Env{..} <- ask
+  hashSet <- RequestedDatumHashes.get envRequestedDatumHashes
+  let resp = mkDatumFilterGetHashesResponse hashSet
+  sendTextData $ Json.encode resp
+  where
+    sendTextData = liftIO . WS.sendTextData conn
+
 websocketServer :: WS.Connection -> App ()
 websocketServer conn = forever $ do
   jsonMsg <- receiveData
@@ -142,5 +179,13 @@ websocketServer conn = forever $ do
           startFetchBlocks conn firstBlockSlot firstBlockId
         CancelFetchBlocks ->
           cancelFetchBlocks conn
+        DatumFilterAddHashes hashes ->
+          datumFilterAddHashes conn hashes
+        DatumFilterRemoveHashes hashes ->
+          datumFilterRemoveHashes conn hashes
+        DatumFilterSetHashes hashes ->
+          datumFilterSetHashes conn hashes
+        DatumFilterGetHashes ->
+          datumFilterGetHashes conn
   where
     receiveData = liftIO $ WS.receiveData conn

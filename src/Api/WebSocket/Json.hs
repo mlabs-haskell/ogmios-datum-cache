@@ -4,6 +4,7 @@ module Api.WebSocket.Json where
 import GHC.Generics (Generic)
 import qualified Data.Aeson as Json
 import Data.Text (Text)
+import Data.Set (Set)
 
 import Data.Aeson
 
@@ -89,3 +90,19 @@ mkCancelFetchBlocksResponse =
 mkCancelFetchBlocksFault :: Text -> JsonWspFault
 mkCancelFetchBlocksFault str =
   JsonWspFault "CancelFetchBlocks" "client" str
+
+mkDatumFilterAddHashesResponse :: JsonWspResponse
+mkDatumFilterAddHashesResponse =
+  JsonWspResponse "DatumFilterAddHashes" (object [ "AddedHashes" .= Bool True ])
+
+mkDatumFilterRemoveHashesResponse :: JsonWspResponse
+mkDatumFilterRemoveHashesResponse =
+  JsonWspResponse "DatumFilterRemoveHashes" (object [ "RemovedHashes" .= Bool True ])
+
+mkDatumFilterSetHashesResponse :: JsonWspResponse
+mkDatumFilterSetHashesResponse =
+  JsonWspResponse "DatumFilterSetHashes" (object [ "SetHashes" .= Bool True ])
+
+mkDatumFilterGetHashesResponse :: Set Text -> JsonWspResponse
+mkDatumFilterGetHashesResponse hashes =
+  JsonWspResponse "DatumFilterGetHashes" (object [ "hashes" .= hashes ])
