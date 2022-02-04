@@ -1,10 +1,10 @@
-module Config where
+module Config (loadConfig, Config (..)) where
 
-import Data.ByteString (ByteString)
-import Toml (TomlCodec, (.=))
-import qualified Toml
 import Control.Monad.IO.Class (MonadIO)
+import Data.ByteString (ByteString)
 import Data.Text (Text)
+import Toml (TomlCodec, (.=))
+import Toml qualified
 
 data Config = Config
     { cfgDbConnectionString :: ByteString
@@ -17,14 +17,15 @@ data Config = Config
     }
 
 configT :: TomlCodec Config
-configT = Config
-    <$> Toml.byteString "dbConnectionString" .= cfgDbConnectionString
-    <*> Toml.bool "saveAllDatums" .= cfgSaveAllDatums
-    <*> Toml.int "server.port" .= cfgServerPort
-    <*> Toml.string "ogmios.address" .= cfgOgmiosAddress
-    <*> Toml.int "ogmios.port" .= cfgOgmiosPort
-    <*> Toml.integer "firstFetchBlock.slot" .= cfgFirstFetchBlockSlot
-    <*> Toml.text "firstFetchBlock.id" .= cfgFirstFetchBlockId
+configT =
+    Config
+        <$> Toml.byteString "dbConnectionString" .= cfgDbConnectionString
+        <*> Toml.bool "saveAllDatums" .= cfgSaveAllDatums
+        <*> Toml.int "server.port" .= cfgServerPort
+        <*> Toml.string "ogmios.address" .= cfgOgmiosAddress
+        <*> Toml.int "ogmios.port" .= cfgOgmiosPort
+        <*> Toml.integer "firstFetchBlock.slot" .= cfgFirstFetchBlockSlot
+        <*> Toml.text "firstFetchBlock.id" .= cfgFirstFetchBlockId
 
 loadConfig :: MonadIO m => m Config
 loadConfig = Toml.decodeFile configT "config.toml"
