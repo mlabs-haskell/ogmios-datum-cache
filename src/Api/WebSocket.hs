@@ -17,10 +17,26 @@ import UnliftIO.Async qualified as Async
 import UnliftIO.Exception (onException)
 import UnliftIO.MVar (isEmptyMVar, tryPutMVar, tryTakeMVar)
 
-import Api.WebSocket.Json
-import Api.WebSocket.Types
-import App
-import App.Env
+import Api.WebSocket.Json (
+    mkCancelFetchBlocksFault,
+    mkCancelFetchBlocksResponse,
+    mkDatumFilterAddHashesResponse,
+    mkDatumFilterGetHashesResponse,
+    mkDatumFilterRemoveHashesResponse,
+    mkDatumFilterSetHashesResponse,
+    mkGetDatumByHashFault,
+    mkGetDatumByHashResponse,
+    mkGetDatumsByHashesFault,
+    mkGetDatumsByHashesResponse,
+    mkStartFetchBlocksFault,
+    mkStartFetchBlocksResponse,
+ )
+import Api.WebSocket.Types (
+    GetDatumsByHashesDatum (..),
+    Method (..),
+ )
+import App (App (..))
+import App.Env (Env (..))
 import App.RequestedDatumHashes qualified as RequestedDatumHashes
 import Block.Fetch (wsApp)
 import Database qualified as Db

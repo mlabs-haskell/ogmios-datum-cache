@@ -1,5 +1,6 @@
 module Block.Fetch (wsApp) where
 
+import Colog (logError, logInfo, logWarning)
 import Control.Exception (Exception)
 import Control.Monad (forever, unless)
 import Control.Monad.Reader (ask)
@@ -13,18 +14,15 @@ import Data.Text qualified as Text
 import Data.Text.Encoding qualified as Text
 import Hasql.Session qualified as Session
 import Network.WebSockets qualified as WS
+import UnliftIO.Async qualified as Async
 import UnliftIO.Concurrent (threadDelay)
 
-import UnliftIO.Async qualified as Async
-
-import Colog (logError, logInfo, logWarning)
-
-import App
-import App.Env
+import App (App)
+import App.Env (Env (..))
 import App.FirstFetchBlock
 import App.RequestedDatumHashes qualified as RequestedDatumHashes
-import Block.Types
-import Database
+import Block.Types (AlonzoBlock (..), AlonzoTransaction (..), Block (..), FindIntersectResult (..), OgmiosFindIntersectResponse, OgmiosRequestNextResponse, OgmiosResponse (..), RequestNextResult (..), mkFindIntersectRequest, mkRequestNextRequest)
+import Database (insertDatumsSession)
 
 receiveLoop :: WS.Connection -> App ()
 receiveLoop conn = do

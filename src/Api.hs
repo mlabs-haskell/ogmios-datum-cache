@@ -7,11 +7,26 @@ module Api (
 ) where
 
 import Data.Text (Text)
-import Servant
+import Servant (Capture, Get, JSON, Post, Proxy (..), ReqBody, Summary, (:>))
 import Servant.API.Generic (Generic, ToServantApi, genericApi, (:-))
 import Servant.API.WebSocket (WebSocket)
 
-import Api.Types
+import Api.Types (
+    AddDatumHashesRequest,
+    AddDatumHashesResponse,
+    CancelBlockFetchingResponse,
+    GetDatumByHashResponse,
+    GetDatumHashesResponse,
+    GetDatumsByHashesDatum,
+    GetDatumsByHashesRequest,
+    GetDatumsByHashesResponse,
+    RemoveDatumHashesRequest,
+    RemoveDatumHashesResponse,
+    SetDatumHashesRequest,
+    SetDatumHashesResponse,
+    StartBlockFetchingRequest,
+    StartBlockFetchingResponse,
+ )
 
 data DatumApi route = DatumApi
     { getDatumByHash ::

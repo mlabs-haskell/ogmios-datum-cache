@@ -2,16 +2,15 @@
 
 module App.Env (Env (..)) where
 
-import GHC.Generics (Generic)
-import Hasql.Connection qualified as Hasql
-
 import Colog (HasLog, LogAction, Message)
 import Colog qualified
 import Control.Concurrent.MVar (MVar)
+import GHC.Generics (Generic)
+import Hasql.Connection qualified as Hasql
 import UnliftIO.Async (Async)
 
-import App.FirstFetchBlock
-import App.RequestedDatumHashes
+import App.FirstFetchBlock (FirstFetchBlock)
+import App.RequestedDatumHashes (RequestedDatumHashes)
 
 data Env m = Env
     { envRequestedDatumHashes :: RequestedDatumHashes

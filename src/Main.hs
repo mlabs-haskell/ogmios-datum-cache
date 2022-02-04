@@ -20,10 +20,10 @@ import Servant.Server.Generic (genericServerT)
 
 import Api (Routes, datumCacheApi)
 import Api.Handler (datumServiceHandlers)
-import App
-import App.Env
-import App.FirstFetchBlock
-import Config
+import App (App (..))
+import App.Env (Env (..))
+import App.FirstFetchBlock (FirstFetchBlock (..))
+import Config (Config (..), loadConfig)
 
 appService :: Env App -> Application
 appService env = serve datumCacheApi appServer
@@ -56,13 +56,6 @@ main = do
     -- CREATE TABLE datums (hash text, value bytea);
     -- CREATE UNIQUE INDEX CONCURRENTLY IF NOT EXISTS datums_hash_index ON datums (hash);
     env <- mkAppEnv cfg
-
-    -- let runOgmiosClient = withSocketsDo $ WS.runClient cfgOgmiosAddress cfgOgmiosPort "" $
-    --       (\wsConn -> runReaderT (unApp $ wsApp wsConn) env)
-
-    -- Async.withAsync runOgmiosClient $ \ogmiosWorker -> do
-    --   Async.link ogmiosWorker
-
     withStdoutLogger $ \logger -> do
         let warpSettings = W.setPort cfgServerPort $ W.setLogger logger W.defaultSettings
         W.runSettings warpSettings (appService env)

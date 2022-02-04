@@ -19,12 +19,27 @@ import UnliftIO.Async qualified as Async
 import UnliftIO.Exception (onException)
 import UnliftIO.MVar (isEmptyMVar, tryPutMVar, tryTakeMVar)
 
-import Api
+import Api (ControlApi (..), DatumApi (..), Routes (..), WebSocketApi (..))
 import Api.Error (JsonError (..), throwJsonError)
-import Api.Types
+import Api.Types (
+    AddDatumHashesRequest (..),
+    AddDatumHashesResponse (..),
+    CancelBlockFetchingResponse (..),
+    GetDatumByHashResponse (..),
+    GetDatumHashesResponse (..),
+    GetDatumsByHashesDatum (..),
+    GetDatumsByHashesRequest (..),
+    GetDatumsByHashesResponse (..),
+    RemoveDatumHashesRequest (..),
+    RemoveDatumHashesResponse (..),
+    SetDatumHashesRequest (..),
+    SetDatumHashesResponse (..),
+    StartBlockFetchingRequest (..),
+    StartBlockFetchingResponse (..),
+ )
 import Api.WebSocket (websocketServer)
-import App
-import App.Env
+import App (App (..))
+import App.Env (Env (..))
 import App.RequestedDatumHashes qualified as RequestedDatumHashes
 import Database qualified as Db
 import PlutusData qualified

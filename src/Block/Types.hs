@@ -21,7 +21,7 @@ import Data.Map qualified as Map
 import Data.Text (Text)
 import GHC.Generics (Generic)
 
-import App.FirstFetchBlock
+import App.FirstFetchBlock (FirstFetchBlock (..))
 
 type OgmiosMirror = Int
 

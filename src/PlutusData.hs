@@ -13,13 +13,12 @@ import Codec.CBOR.Encoding qualified as CBOR
 import Codec.CBOR.Magic qualified as CBOR
 import Codec.Serialise (Serialise (decode, encode))
 import Codec.Serialise.Decoding (decodeSequenceLenIndef, decodeSequenceLenN)
-import Control.Monad.Except
+import Control.Monad.Except (unless)
 import Data.Bits (shiftR)
 import Data.ByteString qualified as BS
 import Data.ByteString.Lazy qualified as BSL
 import Data.Word (Word64, Word8)
-import GHC.Generics
-import Prelude
+import GHC.Generics (Generic)
 
 import Data.Aeson (ToJSON, object, toJSON, (.=))
 import Data.ByteString.Base16 qualified as BSBase16
