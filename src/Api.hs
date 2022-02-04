@@ -17,7 +17,6 @@ import Api.Types (
     CancelBlockFetchingResponse,
     GetDatumByHashResponse,
     GetDatumHashesResponse,
-    GetDatumsByHashesDatum,
     GetDatumsByHashesRequest,
     GetDatumsByHashesResponse,
     RemoveDatumHashesRequest,
