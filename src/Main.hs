@@ -14,10 +14,10 @@ import Hasql.Connection qualified as Connection
 import Hasql.Connection qualified as Hasql
 import Network.Wai.Handler.Warp qualified as W
 import Network.Wai.Logger (withStdoutLogger)
+import Network.Wai.Middleware.Cors (simpleCors)
 import Servant.API.Generic (ToServantApi)
 import Servant.Server (Application, Handler (..), ServerT, hoistServer, serve)
 import Servant.Server.Generic (genericServerT)
-import Network.Wai.Middleware.Cors (simpleCors)
 
 import Api (Routes, datumCacheApi)
 import Api.Handler (datumServiceHandlers)
