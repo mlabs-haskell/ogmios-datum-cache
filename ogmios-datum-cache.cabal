@@ -107,9 +107,8 @@ executable ogmios-datum-cache
     , unordered-containers
     , vector
     , wai
+    , wai-cors
     , wai-extra
     , wai-logger
     , warp
     , websockets
-
--- , hasql-th

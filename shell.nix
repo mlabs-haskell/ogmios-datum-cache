@@ -11,8 +11,8 @@ let
       , optparse-applicative, persistent, persistent-postgresql
       , resource-pool, serialise, servant, servant-multipart
       , servant-server, servant-websockets, text, time, tomland, unliftio
-      , unliftio-core, unordered-containers, vector, wai, wai-extra
-      , wai-logger, warp, websockets
+      , unliftio-core, unordered-containers, vector, wai, wai-cors
+      , wai-extra, wai-logger, warp, websockets
       }:
       mkDerivation {
         pname = "ogmios-datum-cache";
@@ -27,7 +27,7 @@ let
           optparse-applicative persistent persistent-postgresql resource-pool
           serialise servant servant-multipart servant-server
           servant-websockets text time tomland unliftio unliftio-core
-          unordered-containers vector wai wai-extra wai-logger warp
+          unordered-containers vector wai wai-cors wai-extra wai-logger warp
           websockets
         ];
         license = "unknown";

@@ -17,6 +17,7 @@ import Network.Wai.Logger (withStdoutLogger)
 import Servant.API.Generic (ToServantApi)
 import Servant.Server (Application, Handler (..), ServerT, hoistServer, serve)
 import Servant.Server.Generic (genericServerT)
+import Network.Wai.Middleware.Cors (simpleCors)
 
 import Api (Routes, datumCacheApi)
 import Api.Handler (datumServiceHandlers)
@@ -58,4 +59,4 @@ main = do
     env <- mkAppEnv cfg
     withStdoutLogger $ \logger -> do
         let warpSettings = W.setPort cfgServerPort $ W.setLogger logger W.defaultSettings
-        W.runSettings warpSettings (appService env)
+        W.runSettings warpSettings $ simpleCors $ (appService env)
