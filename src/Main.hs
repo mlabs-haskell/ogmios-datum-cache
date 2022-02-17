@@ -59,4 +59,4 @@ main = do
     env <- mkAppEnv cfg
     withStdoutLogger $ \logger -> do
         let warpSettings = W.setPort cfgServerPort $ W.setLogger logger W.defaultSettings
-        W.runSettings warpSettings $ simpleCors $ (appService env)
+        W.runSettings warpSettings $ simpleCors (appService env)
