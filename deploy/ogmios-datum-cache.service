@@ -1,0 +1,9 @@
+[Unit]
+Description=ogmios-datum-cache
+
+[Service]
+Type=simple
+Restart=always
+User=ubuntu
+WorkingDirectory=/home/ubuntu/seabug/ogmios-datum-cache
+ExecStart=/bin/bash -c '/home/ubuntu/seabug/ogmios-datum-cache/result/bin/ogmios-datum-cache'
