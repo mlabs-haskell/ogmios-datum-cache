@@ -5,9 +5,12 @@ import Colog (logError, logInfo, logWarning)
 import Control.Monad (forever, void)
 import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Reader (ask, runReaderT)
+import Data.Aeson (Value(Null))
 import Data.Aeson qualified as Json
 import Data.ByteString.Lazy qualified as BSL
 import Data.Either (fromLeft, fromRight, isLeft)
+import Data.HashMap.Strict qualified as HM
+import Data.Maybe (fromMaybe)
 import Data.Text (Text)
 import Data.Text qualified as Text
 import Data.Vector qualified as Vector
@@ -18,6 +21,8 @@ import UnliftIO.Exception (onException)
 import UnliftIO.MVar (isEmptyMVar, tryPutMVar, tryTakeMVar)
 
 import Api.WebSocket.Json (
+    JsonWspResponse,
+    JsonWspFault,
     mkCancelFetchBlocksFault,
     mkCancelFetchBlocksResponse,
     mkDatumFilterAddHashesResponse,
@@ -33,7 +38,8 @@ import Api.WebSocket.Json (
  )
 import Api.WebSocket.Types (
     GetDatumsByHashesDatum (..),
-    Method (..),
+    JsonWspRequest (..),
+    Method(..)
  )
 import App (App (..))
 import App.Env (Env (..))
@@ -45,36 +51,30 @@ import PlutusData qualified
 toPlutusData :: Db.Datum -> Either Cbor.DeserialiseFailure PlutusData.Data
 toPlutusData dt = Cbor.deserialiseOrFail @PlutusData.Data (BSL.fromStrict $ Db.value dt)
 
-getDatumByHash :: WS.Connection -> Text -> App ()
-getDatumByHash conn hash = do
+getDatumByHash :: Text -> App (Either JsonWspFault JsonWspResponse)
+getDatumByHash hash = do
     Env{..} <- ask
     datumRes <- liftIO (Session.run (Db.getDatumSession hash) envDbConnection)
     case datumRes of
         Left _ -> do
             -- TODO: different response?
-            let resp = mkGetDatumByHashResponse Nothing
-            sendTextData $ Json.encode resp
+            pure $ Right $ mkGetDatumByHashResponse Nothing
         Right datum ->
             case toPlutusData datum of
                 Left _ -> do
-                    let resp = mkGetDatumByHashFault "Error deserializing plutus Data"
-                    sendTextData $ Json.encode resp
+                    pure $ Left $ mkGetDatumByHashFault "Error deserializing plutus Data"
                 Right plutusData -> do
                     let plutusDataJson = Json.toJSON plutusData
-                    let resp = mkGetDatumByHashResponse (Just plutusDataJson)
-                    sendTextData $ Json.encode resp
-  where
-    sendTextData = liftIO . WS.sendTextData conn
+                    pure $ Right $ mkGetDatumByHashResponse (Just plutusDataJson)
 
-getDatumsByHashes :: WS.Connection -> [Text] -> App ()
-getDatumsByHashes conn hashes = do
+getDatumsByHashes :: [Text] -> App (Either JsonWspFault JsonWspResponse)
+getDatumsByHashes hashes = do
     Env{..} <- ask
     datumsRes <- liftIO (Session.run (Db.getDatumsSession hashes) envDbConnection)
     case datumsRes of
         Left _ -> do
             -- TODO: different response?
-            let resp = mkGetDatumsByHashesResponse Nothing
-            sendTextData $ Json.encode resp
+            pure $ Right $ mkGetDatumsByHashesResponse Nothing
         Right datums -> do
             let toPlutusDataOrErr :: Db.Datum -> Either Text GetDatumsByHashesDatum
                 toPlutusDataOrErr dt =
@@ -85,22 +85,17 @@ getDatumsByHashes conn hashes = do
             case Vector.partition isLeft $ Vector.map toPlutusDataOrErr datums of
                 (linvalidDatums, rvalidDatums) | Vector.null linvalidDatums -> do
                     let plutusDataJson = Vector.toList $ Vector.map (fromRight Json.Null . (Json.toJSON <$>)) rvalidDatums
-                    let resp = mkGetDatumsByHashesResponse (Just plutusDataJson)
-                    sendTextData $ Json.encode resp
+                    pure $ Right $ mkGetDatumsByHashesResponse (Just plutusDataJson)
                 (linvalidDatums :: Vector.Vector (Either Text GetDatumsByHashesDatum), _) -> do
-                    let resp = mkGetDatumsByHashesFault $ "Error deserializing plutus Data in: " <> Text.pack (show $ Vector.toList $ Vector.map (fromLeft "") linvalidDatums)
-                    sendTextData $ Json.encode resp
-  where
-    sendTextData = liftIO . WS.sendTextData conn
+                    pure $ Left $ mkGetDatumsByHashesFault $ "Error deserializing plutus Data in: " <> Text.pack (show $ Vector.toList $ Vector.map (fromLeft "") linvalidDatums)
 
-startFetchBlocks :: WS.Connection -> Integer -> Text -> App ()
-startFetchBlocks conn firstBlockSlot firstBlockId = do
+startFetchBlocks :: Integer -> Text -> App (Either JsonWspFault JsonWspResponse)
+startFetchBlocks firstBlockSlot firstBlockId = do
     env@Env{..} <- ask
     isOgmiosWorkerRunning <- not <$> isEmptyMVar envOgmiosWorker
     if isOgmiosWorkerRunning
         then do
-            let resp = mkStartFetchBlocksFault "Block fetcher already running"
-            sendTextData $ Json.encode resp
+            pure $ Left $ mkStartFetchBlocksFault "Block fetcher already running"
         else do
             let runOgmiosClient =
                     WS.runClient envOgmiosAddress envOgmiosPort "" $ \wsConn ->
@@ -117,90 +112,81 @@ startFetchBlocks conn firstBlockSlot firstBlockId = do
             putSuccessful <- tryPutMVar envOgmiosWorker ogmiosWorker
             if putSuccessful
                 then do
-                    let resp = mkStartFetchBlocksResponse
-                    sendTextData $ Json.encode resp
+                    pure $ Right mkStartFetchBlocksResponse
                 else do
                     Async.cancel ogmiosWorker
                     logWarning "Another block fetcher was already running, cancelling worker thread"
-                    let resp = mkStartFetchBlocksFault "Another block fetcher was already running, cancelling worker thread"
-                    sendTextData $ Json.encode resp
-  where
-    sendTextData = liftIO . WS.sendTextData conn
+                    pure $ Left $ mkStartFetchBlocksFault "Another block fetcher was already running, cancelling worker thread"
 
-cancelFetchBlocks :: WS.Connection -> App ()
-cancelFetchBlocks conn = do
+cancelFetchBlocks :: App (Either JsonWspFault JsonWspResponse)
+cancelFetchBlocks = do
     Env{..} <- ask
     mogmiosWorker <- tryTakeMVar envOgmiosWorker
     case mogmiosWorker of
         Just ogmiosWorker -> do
             Async.cancel ogmiosWorker
-            let resp = mkCancelFetchBlocksResponse
-            sendTextData $ Json.encode resp
-        Nothing -> do
-            let resp = mkCancelFetchBlocksFault "No block fetcher running"
-            sendTextData $ Json.encode resp
-  where
-    sendTextData = liftIO . WS.sendTextData conn
+            pure $ Right mkCancelFetchBlocksResponse
+        Nothing ->
+            pure $ Left $ mkCancelFetchBlocksFault "No block fetcher running"
 
-datumFilterAddHashes :: WS.Connection -> [Text] -> App ()
-datumFilterAddHashes conn hashes = do
+datumFilterAddHashes :: [Text] -> App (Either JsonWspFault JsonWspResponse)
+datumFilterAddHashes hashes = do
     Env{..} <- ask
     RequestedDatumHashes.add hashes envRequestedDatumHashes
-    let resp = mkDatumFilterAddHashesResponse
-    sendTextData $ Json.encode resp
-  where
-    sendTextData = liftIO . WS.sendTextData conn
+    pure $ Right $ mkDatumFilterAddHashesResponse
 
-datumFilterRemoveHashes :: WS.Connection -> [Text] -> App ()
-datumFilterRemoveHashes conn hashes = do
+datumFilterRemoveHashes :: [Text] -> App (Either JsonWspFault JsonWspResponse)
+datumFilterRemoveHashes hashes = do
     Env{..} <- ask
     RequestedDatumHashes.remove hashes envRequestedDatumHashes
-    let resp = mkDatumFilterRemoveHashesResponse
-    sendTextData $ Json.encode resp
-  where
-    sendTextData = liftIO . WS.sendTextData conn
+    pure $ Right $ mkDatumFilterRemoveHashesResponse
 
-datumFilterSetHashes :: WS.Connection -> [Text] -> App ()
-datumFilterSetHashes conn hashes = do
+datumFilterSetHashes :: [Text] -> App (Either JsonWspFault JsonWspResponse)
+datumFilterSetHashes hashes = do
     Env{..} <- ask
     RequestedDatumHashes.set hashes envRequestedDatumHashes
-    let resp = mkDatumFilterSetHashesResponse
-    sendTextData $ Json.encode resp
-  where
-    sendTextData = liftIO . WS.sendTextData conn
+    pure $ Right $ mkDatumFilterSetHashesResponse
 
-datumFilterGetHashes :: WS.Connection -> App ()
-datumFilterGetHashes conn = do
+datumFilterGetHashes :: App (Either JsonWspFault JsonWspResponse)
+datumFilterGetHashes = do
     Env{..} <- ask
     hashSet <- RequestedDatumHashes.get envRequestedDatumHashes
-    let resp = mkDatumFilterGetHashesResponse hashSet
-    sendTextData $ Json.encode resp
-  where
-    sendTextData = liftIO . WS.sendTextData conn
+    pure $ Right $ mkDatumFilterGetHashesResponse hashSet
 
 websocketServer :: WS.Connection -> App ()
 websocketServer conn = forever $ do
     jsonMsg <- receiveData
-    case Json.decode @Method jsonMsg of
+    case Json.decode @JsonWspRequest jsonMsg of
         Nothing -> do
             logError "Error parsing action"
-        Just action ->
-            case action of
+        Just (JsonWspRequest mirror method) -> do
+            response <- case method of
                 GetDatumByHash hash ->
-                    getDatumByHash conn hash
+                    getDatumByHash hash
                 GetDatumsByHashes hashes ->
-                    getDatumsByHashes conn hashes
+                    getDatumsByHashes hashes
                 StartFetchBlocks firstBlockSlot firstBlockId ->
-                    startFetchBlocks conn firstBlockSlot firstBlockId
+                    startFetchBlocks firstBlockSlot firstBlockId
                 CancelFetchBlocks ->
-                    cancelFetchBlocks conn
+                    cancelFetchBlocks
                 DatumFilterAddHashes hashes ->
-                    datumFilterAddHashes conn hashes
+                    datumFilterAddHashes hashes
                 DatumFilterRemoveHashes hashes ->
-                    datumFilterRemoveHashes conn hashes
+                    datumFilterRemoveHashes hashes
                 DatumFilterSetHashes hashes ->
-                    datumFilterSetHashes conn hashes
+                    datumFilterSetHashes hashes
                 DatumFilterGetHashes ->
-                    datumFilterGetHashes conn
+                    datumFilterGetHashes
+
+            let jsonResp = either Json.toJSON Json.toJSON response
+            sendTextData $ appendJsonWspReflection (mirror, jsonResp)
   where
+    sendTextData = liftIO . WS.sendTextData conn . Json.encode
+
     receiveData = liftIO $ WS.receiveData conn
+
+    appendJsonWspReflection = \case
+      (mirror, Json.Object jsonWspResponseObject) ->
+        Json.Object $ HM.insert "reflection" (fromMaybe Null mirror) jsonWspResponseObject
+      -- this should not be the case anyway
+      (_, nonObject) -> nonObject

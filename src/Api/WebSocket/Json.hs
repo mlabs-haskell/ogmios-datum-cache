@@ -1,6 +1,8 @@
 {-# LANGUAGE DuplicateRecordFields #-}
 
 module Api.WebSocket.Json (
+    JsonWspResponse,
+    JsonWspFault,
     mkGetDatumByHashResponse,
     mkGetDatumByHashFault,
     mkGetDatumsByHashesResponse,
