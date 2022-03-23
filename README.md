@@ -626,3 +626,10 @@ Example of an Alonzo block returned during local chain sync:
   },
   "headerHash": "aa03bbdd33659be6ece4d73acff51fd875b3dcc4e8c19a58ba94ca7e7b52ec3b"
 }
+```
+
+## Deployment v1
+Modify `config.toml` in the app working directory (currently `/home/ubuntu/seabug/ogmios-datum-cache`).
+
+* `dbConnectionString` (postgres libpq connection string) — "host=localhost port=5432 user=<user> password=<pass>"
+* `saveAllDatums` (save all datums regardless of filter settings) — you likely want this set to `false`
