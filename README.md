@@ -629,7 +629,21 @@ Example of an Alonzo block returned during local chain sync:
 ```
 
 ## Deployment v1
+### Step 1
+Run local ogmios instance:
+```
+docker-compose up -f deploy/docker-compose.yml -d
+```
+
+### Step 2
+Prepare a postgres db.
+1. Connect to the one created for `nft-marketplace-server` (`psql -h localhost -U seadebug`)
+2. Execute `CREATE TABLE datums (hash text, value bytea);`
+3. Execute `CREATE UNIQUE INDEX CONCURRENTLY IF NOT EXISTS datums_hash_index ON datums (hash);`
+
+### Step 3
 Modify `config.toml` in the app working directory (currently `/home/ubuntu/seabug/ogmios-datum-cache`).
 
 * `dbConnectionString` (postgres libpq connection string) — "host=localhost port=5432 user=<user> password=<pass>"
 * `saveAllDatums` (save all datums regardless of filter settings) — you likely want this set to `false`
+
