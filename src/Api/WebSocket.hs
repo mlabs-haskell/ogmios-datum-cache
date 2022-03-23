@@ -5,7 +5,7 @@ import Colog (logError, logInfo, logWarning)
 import Control.Monad (forever, void)
 import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Reader (ask, runReaderT)
-import Data.Aeson (Value(Null))
+import Data.Aeson (Value (Null))
 import Data.Aeson qualified as Json
 import Data.ByteString.Lazy qualified as BSL
 import Data.Either (fromLeft, fromRight, isLeft)
@@ -21,8 +21,8 @@ import UnliftIO.Exception (onException)
 import UnliftIO.MVar (isEmptyMVar, tryPutMVar, tryTakeMVar)
 
 import Api.WebSocket.Json (
-    JsonWspResponse,
     JsonWspFault,
+    JsonWspResponse,
     mkCancelFetchBlocksFault,
     mkCancelFetchBlocksResponse,
     mkDatumFilterAddHashesResponse,
@@ -39,7 +39,7 @@ import Api.WebSocket.Json (
 import Api.WebSocket.Types (
     GetDatumsByHashesDatum (..),
     JsonWspRequest (..),
-    Method(..)
+    Method (..),
  )
 import App (App (..))
 import App.Env (Env (..))
@@ -133,19 +133,19 @@ datumFilterAddHashes :: [Text] -> App (Either JsonWspFault JsonWspResponse)
 datumFilterAddHashes hashes = do
     Env{..} <- ask
     RequestedDatumHashes.add hashes envRequestedDatumHashes
-    pure $ Right $ mkDatumFilterAddHashesResponse
+    pure $ Right mkDatumFilterAddHashesResponse
 
 datumFilterRemoveHashes :: [Text] -> App (Either JsonWspFault JsonWspResponse)
 datumFilterRemoveHashes hashes = do
     Env{..} <- ask
     RequestedDatumHashes.remove hashes envRequestedDatumHashes
-    pure $ Right $ mkDatumFilterRemoveHashesResponse
+    pure $ Right mkDatumFilterRemoveHashesResponse
 
 datumFilterSetHashes :: [Text] -> App (Either JsonWspFault JsonWspResponse)
 datumFilterSetHashes hashes = do
     Env{..} <- ask
     RequestedDatumHashes.set hashes envRequestedDatumHashes
-    pure $ Right $ mkDatumFilterSetHashesResponse
+    pure $ Right mkDatumFilterSetHashesResponse
 
 datumFilterGetHashes :: App (Either JsonWspFault JsonWspResponse)
 datumFilterGetHashes = do
@@ -186,7 +186,7 @@ websocketServer conn = forever $ do
     receiveData = liftIO $ WS.receiveData conn
 
     appendJsonWspReflection = \case
-      (mirror, Json.Object jsonWspResponseObject) ->
-        Json.Object $ HM.insert "reflection" (fromMaybe Null mirror) jsonWspResponseObject
-      -- this should not be the case anyway
-      (_, nonObject) -> nonObject
+        (mirror, Json.Object jsonWspResponseObject) ->
+            Json.Object $ HM.insert "reflection" (fromMaybe Null mirror) jsonWspResponseObject
+        -- this should not be the case anyway
+        (_, nonObject) -> nonObject
