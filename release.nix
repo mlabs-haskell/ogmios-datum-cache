@@ -24,5 +24,5 @@ in
 
 with _nixpkgs;
 {
-  nft-marketplace-server = haskellPackages.callPackage ./default.nix {};
+  ogmios-datum-cache = haskellPackages.callPackage ./default.nix {};
 }
