@@ -4,6 +4,7 @@ module Database (
     Datum (..),
     datumInsertSession,
     insertDatumsSession,
+    initTables,
 ) where
 
 import Data.ByteString (ByteString)
@@ -90,3 +91,8 @@ insertDatumsStatement = Statement sql enc dec True
             <> (snd >$< encArray Encoders.bytea)
 
     dec = Decoders.noResult
+
+initTables :: Session ()
+initTables = do
+    Session.sql "CREATE TABLE IF NOT EXISTS datums (hash text, value bytea);"
+    Session.sql "CREATE UNIQUE INDEX CONCURRENTLY IF NOT EXISTS datums_hash_index ON datums (hash);"

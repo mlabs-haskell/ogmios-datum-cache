@@ -1,5 +1,3 @@
-{-# LANGUAGE OverloadedStrings #-}
-
 module Main (
     main,
 ) where
@@ -12,6 +10,7 @@ import Control.Monad.Reader (runReaderT)
 import Data.Set qualified as Set
 import Hasql.Connection qualified as Connection
 import Hasql.Connection qualified as Hasql
+import Hasql.Session qualified as Session
 import Network.Wai.Handler.Warp qualified as W
 import Network.Wai.Logger (withStdoutLogger)
 import Network.Wai.Middleware.Cors (simpleCors)
@@ -25,6 +24,7 @@ import App (App (..))
 import App.Env (Env (..))
 import App.FirstFetchBlock (FirstFetchBlock (..))
 import Config (Config (..), loadConfig)
+import Database (initTables)
 
 appService :: Env App -> Application
 appService env = serve datumCacheApi appServer
@@ -54,9 +54,8 @@ mkAppEnv Config{..} = do
 main :: IO ()
 main = do
     cfg@Config{..} <- loadConfig
-    -- CREATE TABLE datums (hash text, value bytea);
-    -- CREATE UNIQUE INDEX CONCURRENTLY IF NOT EXISTS datums_hash_index ON datums (hash);
     env <- mkAppEnv cfg
+    _ <- Session.run initTables $ envDbConnection env
     withStdoutLogger $ \logger -> do
         let warpSettings = W.setPort cfgServerPort $ W.setLogger logger W.defaultSettings
         W.runSettings warpSettings $ simpleCors (appService env)
