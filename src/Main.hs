@@ -7,6 +7,7 @@ import Control.Concurrent.MVar (newEmptyMVar, newMVar)
 import Control.Monad.Catch (Exception, throwM, try)
 import Control.Monad.Except (ExceptT (..))
 import Control.Monad.Reader (runReaderT)
+import Data.Aeson (eitherDecodeFileStrict)
 import Data.Set qualified as Set
 import Hasql.Connection qualified as Connection
 import Hasql.Connection qualified as Hasql
@@ -23,6 +24,7 @@ import Api.Handler (datumServiceHandlers)
 import App (App (..))
 import App.Env (Env (..))
 import App.FirstFetchBlock (FirstFetchBlock (..))
+import Block.Filter (DatumFilter (ConstFilter))
 import Config (Config (..), loadConfig)
 import Database (initTables)
 
@@ -48,7 +50,15 @@ mkAppEnv Config{..} = do
     requestedDatumHashes <- newMVar Set.empty
     let firstFetchBlock = FirstFetchBlock cfgFirstFetchBlockSlot cfgFirstFetchBlockId
     ogmiosWorker <- newEmptyMVar
-    let env = Env requestedDatumHashes cfgSaveAllDatums firstFetchBlock pgConn Colog.richMessageAction cfgOgmiosAddress cfgOgmiosPort ogmiosWorker
+    datumFilter <- case cfgDatumFilterPath of
+        Nothing -> pure $ ConstFilter True
+        Just path -> do
+            datumFilter' <- eitherDecodeFileStrict @DatumFilter path
+            case datumFilter' of
+                Left e -> error e
+                Right x -> pure x
+    let env = Env requestedDatumHashes datumFilter firstFetchBlock pgConn Colog.richMessageAction cfgOgmiosAddress cfgOgmiosPort ogmiosWorker
+    print datumFilter
     pure env
 
 main :: IO ()

@@ -11,10 +11,11 @@ import UnliftIO.Async (Async)
 
 import App.FirstFetchBlock (FirstFetchBlock)
 import App.RequestedDatumHashes (RequestedDatumHashes)
+import Block.Filter (DatumFilter)
 
 data Env m = Env
     { envRequestedDatumHashes :: RequestedDatumHashes
-    , envSaveAllDatums :: Bool
+    , envDatumFilter :: DatumFilter
     , envFirstFetchBlock :: FirstFetchBlock
     , -- TODO: (?) pool
       envDbConnection :: Hasql.Connection
