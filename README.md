@@ -95,6 +95,18 @@ Response
 }
 ```
 
+### `GET /block`
+
+Returns block that was recently processed.
+
+Response
+```json
+{
+  "blockId": "073f35fab0800201698628ef9e6bc85d05dcc78fc87c1f0633a8c4bd93a804d8",
+  "blockSlot": 47189428
+}
+```
+
 ## Control API
 
 ### `POST /control/fetch_blocks`
@@ -289,6 +301,35 @@ Response (fault)
   type: 'jsonwsp/fault'
 }
 ```
+
+#### GetBlock
+
+Request:
+```json
+{
+  "type": "jsonwsp/request",
+  "version": "1.0",
+  "servicename": "ogmios",
+  "methodname": "GetBlock"
+}
+```
+
+Response:
+```json
+{
+  "methodname":"GetBlock",
+  "result":{
+    "block":{
+      "blockId":"a3a4b401629e2f72fc754abf1554f3ca12616581c41450fdb5d15f51daf6c8db",
+      "blockSlot":51779970
+    }
+  },
+  "version":"1.0",
+  "servicename":"ogmios-datum-cache",
+  "type":"jsonwsp/response"
+}
+```
+
 #### StartFetchBlocks
 Request:
 ```json
@@ -497,9 +538,16 @@ docker-compose up -f deploy/docker-compose.yml -d
 Modify `config.toml` in the app working directory (currently `/home/ubuntu/seabug/ogmios-datum-cache`).
 
 * `dbConnectionString` (postgres libpq connection string) — `host=localhost port=5432 user=<user> password=<pass>`
+
 * `datumFilterPath` defines path to [filter file](#filter-file). If path is not defined all datums will be saved.
 
-* block id is hash of HEADER not of a block.
+* `firstFetchBlock.slot` slot of first block to fetch.
+
+* `firstFetchBlock.id` hash of block's HEADER not hash of a block itself.
+
+* `blockFetcher.autoStart` defines if block fetcher should start automatically.
+
+* `blockFetcher.startFromLast` defines if block fetcher, if started automatically, should start from last block that was proccessed rather than from block defined in `firstFetchBlock`.
 
 ### Filter file
 

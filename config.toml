@@ -1,7 +1,5 @@
 dbConnectionString = "host=localhost port=5432 user=aske dbname=ogmios-datum-cache"
 
-saveAllDatums = true
-
 server.port = 9999
 
 ogmios.address = "127.0.0.1"
