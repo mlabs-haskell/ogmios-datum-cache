@@ -13,6 +13,7 @@ import Servant.API.WebSocket (WebSocket)
 
 import Api.Types (
     CancelBlockFetchingResponse,
+    FirstFetchBlock,
     GetDatumByHashResponse,
     GetDatumsByHashesRequest,
     GetDatumsByHashesResponse,
@@ -34,6 +35,11 @@ data DatumApi route = DatumApi
             -- TODO: change to JSON request
             :> ReqBody '[JSON] GetDatumsByHashesRequest
             :> Get '[JSON] GetDatumsByHashesResponse
+    , getLastBlock ::
+        route
+            :- "block"
+            :> Summary "Get currenctly processed block"
+            :> Get '[JSON] FirstFetchBlock
     }
     deriving stock (Generic)
 

@@ -57,6 +57,9 @@ datumServiceHandlers = Routes{..}
         datums <- Db.getDatumsByHashes hashes >>= catchDatabaseError
         pure $ GetDatumsByHashesResponse $ fmap (uncurry GetDatumsByHashesDatum) datums
 
+    getLastBlock :: App FirstFetchBlock
+    getLastBlock = Db.getLastBlock
+
     -- control api
     controlRoutes :: ToServant ControlApi (AsServerT App)
     controlRoutes = genericServerT ControlApi{..}

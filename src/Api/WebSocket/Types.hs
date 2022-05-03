@@ -10,6 +10,7 @@ import PlutusData qualified
 data Method
     = GetDatumByHash Text
     | GetDatumsByHashes [Text]
+    | GetBlock
     | StartFetchBlocks Int64 Text
     | CancelFetchBlocks
     deriving stock (Show)
@@ -26,6 +27,7 @@ instance FromJSON Method where
                 args <- o .: "args"
                 hashes <- args .: "hashes"
                 pure $ GetDatumsByHashes hashes
+            "GetBlock" -> pure GetBlock
             "StartFetchBlocks" -> do
                 args <- o .: "args"
                 slot <- args .: "slot"

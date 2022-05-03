@@ -13,6 +13,7 @@ import Api.Types (FirstFetchBlock (FirstFetchBlock))
 import Api.WebSocket.Json (
     mkCancelFetchBlocksFault,
     mkCancelFetchBlocksResponse,
+    mkGetBlockResponse,
     mkGetDatumByHashFault,
     mkGetDatumByHashResponse,
     mkGetDatumsByHashesFault,
@@ -67,6 +68,11 @@ getDatumsByHashes conn hashes = do
             let datums' = Vector.toList $ Vector.map (Json.toJSON . uncurry GetDatumsByHashesDatum) datums
             sendTextData conn $ mkGetDatumsByHashesResponse (Just datums')
 
+getLastBlock :: WS.Connection -> App ()
+getLastBlock conn = do
+    block <- Db.getLastBlock
+    sendTextData conn $ mkGetBlockResponse block
+
 startFetchBlocks ::
     WS.Connection ->
     Int64 ->
@@ -109,6 +115,8 @@ websocketServer conn = forever $ do
                     getDatumByHash conn hash
                 GetDatumsByHashes hashes ->
                     getDatumsByHashes conn hashes
+                GetBlock ->
+                    getLastBlock conn
                 StartFetchBlocks firstBlockSlot firstBlockId ->
                     startFetchBlocks conn firstBlockSlot firstBlockId
                 CancelFetchBlocks ->

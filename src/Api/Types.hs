@@ -23,6 +23,8 @@ data FirstFetchBlock = FirstFetchBlock
     { blockSlot :: Int64
     , blockId :: Text
     }
+    deriving stock (Generic)
+    deriving anyclass (ToJSON)
 
 newtype GetDatumByHashResponse = GetDatumByHashResponse PlutusData.Data
     deriving stock (Generic)
