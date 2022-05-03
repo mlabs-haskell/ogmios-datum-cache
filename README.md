@@ -493,11 +493,13 @@ Run local ogmios instance:
 docker-compose up -f deploy/docker-compose.yml -d
 ```
 
-### Step 2
+### Step 2 - config file
 Modify `config.toml` in the app working directory (currently `/home/ubuntu/seabug/ogmios-datum-cache`).
 
 * `dbConnectionString` (postgres libpq connection string) — `host=localhost port=5432 user=<user> password=<pass>`
 * `datumFilterPath` defines path to [filter file](#filter-file). If path is not defined all datums will be saved.
+
+* block id is hash of HEADER not of a block.
 
 ### Filter file
 

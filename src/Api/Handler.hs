@@ -58,7 +58,11 @@ datumServiceHandlers = Routes{..}
         pure $ GetDatumsByHashesResponse $ fmap (uncurry GetDatumsByHashesDatum) datums
 
     getLastBlock :: App FirstFetchBlock
-    getLastBlock = Db.getLastBlock
+    getLastBlock = do
+        block' <- Db.getLastBlock
+        case block' of
+            Just block -> pure block
+            Nothing -> throwM err404
 
     -- control api
     controlRoutes :: ToServant ControlApi (AsServerT App)

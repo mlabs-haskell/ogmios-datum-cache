@@ -120,7 +120,7 @@ initLastBlock slot hash = do
     case res of
         Right _ -> pure ()
         Left err -> do
-            logErrorNS "initLastBlock" $ "Error: " <> Text.pack (show err)
+            logErrorNS "initLastBlock" $ Text.pack $ show err
             pure ()
 
 updateLastBlock :: (MonadIO m, MonadLogger m, MonadReader r m, Has Connection r) => Int64 -> Text -> m ()
@@ -138,10 +138,10 @@ updateLastBlock slot hash = do
     case res of
         Right _ -> pure ()
         Left err -> do
-            logErrorNS "updateLastBlock" $ "Error: " <> Text.pack (show err)
+            logErrorNS "updateLastBlock" $ Text.pack $ show err
             pure ()
 
-getLastBlock :: (MonadIO m, MonadLogger m, MonadReader r m, Has Connection r) => m FirstFetchBlock
+getLastBlock :: (MonadIO m, MonadLogger m, MonadReader r m, Has Connection r) => m (Maybe FirstFetchBlock)
 getLastBlock = do
     let sql = "SELECT slot, hash FROM last_block LIMIT 1"
         enc = Encoders.noParams
@@ -154,10 +154,10 @@ getLastBlock = do
     dbConnection <- ask
     res <- liftIO $ Session.run stmt dbConnection
     case res of
-        Right x -> pure x
+        Right x -> pure . pure $ x
         Left err -> do
-            logErrorNS "getLastBlock" $ "Error (unreachable): " <> Text.pack (show err)
-            error "unreachable?"
+            logErrorNS "getLastBlock" $ Text.pack $ show err
+            pure Nothing
 
 data DatabaseError
     = DatabaseErrorDecodeError [ByteString]

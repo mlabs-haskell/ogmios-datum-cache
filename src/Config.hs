@@ -19,6 +19,7 @@ data Config = Config
     , cfgAutoStartFetcher :: Bool
     , cfgStartFromLastBlock :: Bool
     }
+    deriving stock (Show)
 
 withDefault :: a -> TomlCodec a -> TomlCodec a
 withDefault d c = dimap pure (fromMaybe d) (Toml.dioptional c)

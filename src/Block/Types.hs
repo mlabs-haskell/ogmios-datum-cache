@@ -190,6 +190,7 @@ data AlonzoBlockHeader = AlonzoBlockHeader
 data AlonzoBlock = AlonzoBlock
     { body :: [AlonzoTransaction]
     , header :: AlonzoBlockHeader
+    , headerHash :: Maybe Text
     }
     deriving stock (Eq, Show, Generic)
     deriving anyclass (FromJSON)

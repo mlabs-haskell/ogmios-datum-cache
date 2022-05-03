@@ -100,9 +100,9 @@ executable ogmios-datum-cache
     , servant-server
     , servant-websockets
     , text
-    , transformers
     , time
     , tomland
+    , transformers
     , unliftio
     , unliftio-core
     , unordered-containers

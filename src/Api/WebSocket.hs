@@ -13,6 +13,7 @@ import Api.Types (FirstFetchBlock (FirstFetchBlock))
 import Api.WebSocket.Json (
     mkCancelFetchBlocksFault,
     mkCancelFetchBlocksResponse,
+    mkGetBlockFault,
     mkGetBlockResponse,
     mkGetDatumByHashFault,
     mkGetDatumByHashResponse,
@@ -70,8 +71,12 @@ getDatumsByHashes conn hashes = do
 
 getLastBlock :: WS.Connection -> App ()
 getLastBlock conn = do
-    block <- Db.getLastBlock
-    sendTextData conn $ mkGetBlockResponse block
+    block' <- Db.getLastBlock
+    case block' of
+        Just block ->
+            sendTextData conn $ mkGetBlockResponse block
+        Nothing ->
+            sendTextData conn mkGetBlockFault
 
 startFetchBlocks ::
     WS.Connection ->

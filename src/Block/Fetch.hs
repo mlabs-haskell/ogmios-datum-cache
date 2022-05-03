@@ -21,7 +21,6 @@ import Control.Monad.Trans (liftIO)
 import Data.Aeson qualified as Json
 import Data.ByteString.Base64 qualified as BSBase64
 import Data.Map qualified as Map
-import Data.Maybe (fromMaybe)
 import Data.Text (Text)
 import Data.Text qualified as Text
 import Data.Text.Encoding qualified as Text
@@ -46,6 +45,7 @@ import Block.Types (
     mkFindIntersectRequest,
     mkRequestNextRequest,
  )
+import Control.Applicative ((<|>))
 import Database (getLastBlock, saveDatums, updateLastBlock)
 
 data OgmiosInfo = OgmiosInfo
@@ -126,7 +126,7 @@ receiveLoop conn = do
             logErrorNS "receiveLoop" "Error decoding FindIntersect response"
             pure ()
         Just (IntersectionNotFound _) -> do
-            logErrorNS "receiveLoop" "Find intersection error: Intersection not found"
+            logErrorNS "receiveLoop" "Find intersection error: Intersection not found. Consider restarting block fetcher with different block info"
             pure ()
         Just (IntersectionFound _ _) -> do
             logInfoNS "receiveLoop" "Find intersection: intersection found, starting RequestNext loop"
@@ -134,6 +134,9 @@ receiveLoop conn = do
                 Async.link receiveBlocksWorker
                 requestRemainingBlocks conn
                 Async.wait receiveBlocksWorker
+
+-- b3faa2bc1465aa0d8500655981108904e5a7a9339be5fc1e6a9754088a4456c1
+-- dd5733ec572c904a98376ecce6759c943b8fa05d2765aaef3cb50cd016d620e9
 
 -- Why it's neccesary?
 debounce ::
@@ -164,9 +167,14 @@ receiveBlocksLoop conn = forever $ do
         Right (RollForward OtherBlock _tip) ->
             logWarnNS "receiveBlocksLoop" "Received non-Alonzo block in the RollForward response"
         Right (RollForward (MkAlonzoBlock block) _tip) -> do
-            logInfoNS "receiveBlocksLoop" $ Text.pack $ "Processing block: " <> show (header block)
+            logInfoNS "receiveBlocksLoop" $
+                Text.pack $ "Processing block: " <> show (slot $ header block, headerHash block)
             saveDatumsFromAlonzoBlock block
-            updateLastBlock (slot $ header block) (blockHash $ header block)
+            case headerHash block of
+                Just headerHash' ->
+                    updateLastBlock (slot $ header block) headerHash'
+                Nothing ->
+                    logWarnNS "receiveBlocksLoop" $ Text.pack $ "Block without header hash: " <> show block
 
 saveDatumsFromAlonzoBlock ::
     (MonadIO m, MonadLogger m, MonadReader r m, Has DatumFilter r, Has Hasql.Connection r) =>
@@ -193,16 +201,21 @@ wsApp ::
     Maybe FirstFetchBlock ->
     m ()
 wsApp conn mFirstFetchBlock = do
-    firstFetchBlock' :: FirstFetchBlock <- getLastBlock
+    lastFirstFetchBlock :: Maybe FirstFetchBlock <- getLastBlock
     logInfoNS "wsApp" "Connected to ogmios websocket"
     Async.withAsync (receiveLoop conn) $ \receiveWorker -> do
         Async.link receiveWorker
-        let firstFetchBlock = fromMaybe firstFetchBlock' mFirstFetchBlock
-        let findIntersectRequest = mkFindIntersectRequest firstFetchBlock
-        liftIO $ WS.sendTextData conn (Json.encode findIntersectRequest)
-        debounce
-        Async.wait receiveWorker
-        liftIO $ WS.sendClose conn ("Fin" :: Text)
+        let firstFetchBlock' = mFirstFetchBlock <|> lastFirstFetchBlock
+        case firstFetchBlock' of
+            Nothing -> do
+                logErrorNS "wsApp" "No block provided or found in db"
+            Just firstFetchBlock -> do
+                logInfoNS "wsApp" $ Text.pack $ "Starting fetcher from block: " <> show firstFetchBlock
+                let findIntersectRequest = mkFindIntersectRequest firstFetchBlock
+                liftIO $ WS.sendTextData conn (Json.encode findIntersectRequest)
+                debounce
+                Async.wait receiveWorker
+                liftIO $ WS.sendClose conn ("Fin" :: Text)
 
 newtype FindIntersectException = FindIntersectException Text
     deriving stock (Eq, Show)

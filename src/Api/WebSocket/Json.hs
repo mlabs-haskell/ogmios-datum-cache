@@ -6,6 +6,7 @@ module Api.WebSocket.Json (
     mkGetDatumsByHashesResponse,
     mkGetDatumsByHashesFault,
     mkGetBlockResponse,
+    mkGetBlockFault,
     mkStartFetchBlocksResponse,
     mkStartFetchBlocksFault,
     mkCancelFetchBlocksResponse,
@@ -94,6 +95,9 @@ mkGetDatumsByHashesFault =
 
 mkGetBlockResponse :: FirstFetchBlock -> JsonWspResponse
 mkGetBlockResponse block = JsonWspResponse "GetBlock" (object ["block" .= block])
+
+mkGetBlockFault :: JsonWspFault
+mkGetBlockFault = JsonWspFault "GetBlock" "notFound" ""
 
 mkStartFetchBlocksResponse :: JsonWspResponse
 mkStartFetchBlocksResponse =

@@ -5,7 +5,7 @@ module Main (
 import Control.Monad (unless, when)
 import Control.Monad.Catch (Exception, throwM, try)
 import Control.Monad.Except (ExceptT (..))
-import Control.Monad.Logger (logErrorNS, runStdoutLoggingT)
+import Control.Monad.Logger (logErrorNS, logInfoNS, runStdoutLoggingT)
 import Control.Monad.Reader (runReaderT)
 import Data.Aeson (eitherDecodeFileStrict)
 import Hasql.Connection qualified as Connection
@@ -16,6 +16,7 @@ import Network.Wai.Middleware.Cors (simpleCors)
 import Servant.API.Generic (ToServantApi)
 import Servant.Server (Application, Handler (..), ServerT, hoistServer, serve)
 import Servant.Server.Generic (genericServerT)
+import System.IO
 
 import Api (Routes, datumCacheApi)
 import Api.Handler (datumServiceHandlers)
@@ -62,6 +63,8 @@ mkAppEnv Config{..} = do
     let env = Env datumFilter pgConn (OgmiosInfo cfgOgmiosPort cfgOgmiosAddress) ogmiosWorker
     print datumFilter
     runStdoutLoggingT . flip runReaderT env $ do
+        initTables
+
         let handleError res = case res of
                 Left e -> logErrorNS "mkAppEnv" $ Text.pack $ show e
                 Right () -> pure ()
@@ -74,14 +77,16 @@ mkAppEnv Config{..} = do
             updateLastBlock cfgFirstFetchBlockSlot cfgFirstFetchBlockId
 
         when cfgAutoStartFetcher $ do
+            logInfoNS "mkAppEnv" "Auto-Starting block fetcher..."
             startBlockFetcher Nothing >>= handleError
     pure env
 
 main :: IO ()
 main = do
+    hSetBuffering stdout NoBuffering
     cfg@Config{..} <- loadConfig
+    print cfg
     env <- mkAppEnv cfg
-    runReaderT initTables env
     withStdoutLogger $ \logger -> do
         let warpSettings = W.setPort cfgServerPort $ W.setLogger logger W.defaultSettings
         W.runSettings warpSettings $ simpleCors (appService env)
