@@ -12,17 +12,10 @@ import Servant.API.Generic (Generic, ToServantApi, genericApi, (:-))
 import Servant.API.WebSocket (WebSocket)
 
 import Api.Types (
-    AddDatumHashesRequest,
-    AddDatumHashesResponse,
     CancelBlockFetchingResponse,
     GetDatumByHashResponse,
-    GetDatumHashesResponse,
     GetDatumsByHashesRequest,
     GetDatumsByHashesResponse,
-    RemoveDatumHashesRequest,
-    RemoveDatumHashesResponse,
-    SetDatumHashesRequest,
-    SetDatumHashesResponse,
     StartBlockFetchingRequest,
     StartBlockFetchingResponse,
  )
@@ -45,30 +38,7 @@ data DatumApi route = DatumApi
     deriving stock (Generic)
 
 data ControlApi route = ControlApi
-    { addDatumHashes ::
-        route
-            :- "add_hashes"
-            :> Summary "Add a set of additional datum hashes for fetching"
-            :> ReqBody '[JSON] AddDatumHashesRequest
-            :> Post '[JSON] AddDatumHashesResponse
-    , removeDatumHashes ::
-        route
-            :- "remove_hashes"
-            :> Summary "Don't fetch specified datum hashes"
-            :> ReqBody '[JSON] RemoveDatumHashesRequest
-            :> Post '[JSON] RemoveDatumHashesResponse
-    , setDatumHashes ::
-        route
-            :- "set_hashes"
-            :> Summary "Set a set of datum hashes for fetching"
-            :> ReqBody '[JSON] SetDatumHashesRequest
-            :> Post '[JSON] SetDatumHashesResponse
-    , getDatumHashes ::
-        route
-            :- "get_hashes"
-            :> Summary "Get a set of datum hashes for fetching"
-            :> Get '[JSON] GetDatumHashesResponse
-    , startBlockFetching ::
+    { startBlockFetching ::
         route
             :- "fetch_blocks"
             :> Summary "Start a block fetcher starting with the specified block"

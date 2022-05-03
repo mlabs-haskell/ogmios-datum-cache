@@ -23,9 +23,7 @@ import Data.Text (Text)
 import GHC.Exts (toList)
 import GHC.Generics (Generic)
 
--- import Debug.Trace (trace)
-
-import App.FirstFetchBlock (FirstFetchBlock (..))
+import Api.Types (FirstFetchBlock (..))
 
 type OgmiosMirror = Int
 
@@ -180,18 +178,11 @@ instance FromJSON AlonzoTransaction where
         outputs <- body .: "outputs"
         pure $ AlonzoTransaction datums outputs
 
--- data AlonzoBlockHeader = AlonzoBlockHeader
---   { signature :: Text
---   , nonce :: AlonzoBlockHeaderNonce
---   , leadervalue ::  AlonzoBlockHeaderLeaderValue
---   , ..
---   }
-
 data AlonzoBlockHeader = AlonzoBlockHeader
+    { slot :: Integer
+    }
     deriving stock (Eq, Show, Generic)
-
-instance FromJSON AlonzoBlockHeader where
-    parseJSON = const $ pure AlonzoBlockHeader
+    deriving anyclass (FromJSON)
 
 data AlonzoBlock = AlonzoBlock
     { body :: [AlonzoTransaction]

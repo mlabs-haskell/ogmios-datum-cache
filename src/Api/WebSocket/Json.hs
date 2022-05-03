@@ -9,18 +9,14 @@ module Api.WebSocket.Json (
     mkStartFetchBlocksFault,
     mkCancelFetchBlocksResponse,
     mkCancelFetchBlocksFault,
-    mkDatumFilterAddHashesResponse,
-    mkDatumFilterRemoveHashesResponse,
-    mkDatumFilterSetHashesResponse,
-    mkDatumFilterGetHashesResponse,
 ) where
 
+import Data.Aeson
 import Data.Aeson qualified as Json
-import Data.Set (Set)
 import Data.Text (Text)
 import GHC.Generics (Generic)
 
-import Data.Aeson
+import PlutusData qualified
 
 -- {
 --   type: 'jsonwsp/response',
@@ -68,12 +64,12 @@ instance ToJSON JsonWspFault where
                     ]
             ]
 
-mkGetDatumByHashResponse :: Maybe Json.Value -> JsonWspResponse
+mkGetDatumByHashResponse :: Maybe PlutusData.Data -> JsonWspResponse
 mkGetDatumByHashResponse = \case
     Just datumValue ->
         JsonWspResponse "GetDatumByHash" (object ["DatumFound" .= value])
       where
-        value = object ["value" .= datumValue]
+        value = object ["value" .= toJSON datumValue]
     Nothing ->
         JsonWspResponse "GetDatumByHash" (object ["DatumNotFound" .= Null])
 
@@ -109,19 +105,3 @@ mkCancelFetchBlocksResponse =
 mkCancelFetchBlocksFault :: Text -> JsonWspFault
 mkCancelFetchBlocksFault =
     JsonWspFault "CancelFetchBlocks" "client"
-
-mkDatumFilterAddHashesResponse :: JsonWspResponse
-mkDatumFilterAddHashesResponse =
-    JsonWspResponse "DatumFilterAddHashes" (object ["AddedHashes" .= Bool True])
-
-mkDatumFilterRemoveHashesResponse :: JsonWspResponse
-mkDatumFilterRemoveHashesResponse =
-    JsonWspResponse "DatumFilterRemoveHashes" (object ["RemovedHashes" .= Bool True])
-
-mkDatumFilterSetHashesResponse :: JsonWspResponse
-mkDatumFilterSetHashesResponse =
-    JsonWspResponse "DatumFilterSetHashes" (object ["SetHashes" .= Bool True])
-
-mkDatumFilterGetHashesResponse :: Set Text -> JsonWspResponse
-mkDatumFilterGetHashesResponse hashes =
-    JsonWspResponse "DatumFilterGetHashes" (object ["hashes" .= hashes])
