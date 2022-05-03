@@ -497,5 +497,27 @@ docker-compose up -f deploy/docker-compose.yml -d
 Modify `config.toml` in the app working directory (currently `/home/ubuntu/seabug/ogmios-datum-cache`).
 
 * `dbConnectionString` (postgres libpq connection string) — `host=localhost port=5432 user=<user> password=<pass>`
-* `saveAllDatums` (save all datums regardless of filter settings) — you likely want this set to `false`
+* `datumFilterPath` defines path to [filter file](#filter-file). If path is not defined all datums will be saved.
+
+### Filter file
+
+Datum filter can filter datum hash and address of utxo with given datum. Filters can be combine with logical `or`s and `and`s.
+
+Example (filter will save datums only if hash is `foobar` and (utxo with datum is on address `addr_abc` or `addr_xyz`):
+```json
+{
+    "all": [
+        {
+            "hash": "foobar"
+        },
+        {
+            "any": [
+                { "address": "addr_abc" },
+                { "address": "addr_xyz" }
+            ]
+        }
+    ]
+}
+
+```
 
