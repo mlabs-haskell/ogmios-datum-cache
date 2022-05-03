@@ -63,7 +63,7 @@ startBlockFetcher firstBlock = do
 
     let runOgmiosClient =
             WS.runClient ogmiosAddress ogmiosPort "" $ \wsConn ->
-                runStack $ fmap Right $ wsApp wsConn firstBlock
+                runStack $ Right <$> wsApp wsConn firstBlock
 
     ogmiosWorker <- liftIO $
         Async.async $ do
@@ -72,9 +72,7 @@ startBlockFetcher firstBlock = do
 
     putSuccessful <- liftIO $ tryPutMVar envOgmiosWorker $ void ogmiosWorker
 
-    case putSuccessful of
-        True -> pure . pure $ ()
-        False -> pure $ Left StartBlockFetcherErrorAlreadyRunning
+    if putSuccessful then pure . pure $ () else pure $ Left StartBlockFetcherErrorAlreadyRunning
 
 isBlockFetcherRunning :: (MonadIO m) => OgmiosWorkerMVar -> m Bool
 isBlockFetcherRunning (MkOgmiosWorkerMVar mvar) = liftIO $ isEmptyMVar mvar

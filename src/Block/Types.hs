@@ -178,7 +178,7 @@ instance FromJSON AlonzoTransaction where
         outputs <- body .: "outputs"
         pure $ AlonzoTransaction datums outputs
 
-data AlonzoBlockHeader = AlonzoBlockHeader
+newtype AlonzoBlockHeader = AlonzoBlockHeader
     { slot :: Integer
     }
     deriving stock (Eq, Show, Generic)

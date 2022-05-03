@@ -130,8 +130,8 @@ toPlutusDataMany datums =
         rightToMaybe _ = Nothing
         leftToMaybe (Left x) = Just x
         leftToMaybe _ = Nothing
-        correct = Vector.mapMaybe (\(datum, data') -> (hash datum,) <$> (rightToMaybe data')) res
-        faulty = Vector.toList $ Vector.mapMaybe (fmap fst . (\(datum, data') -> (value datum,) <$> (leftToMaybe data'))) res
+        correct = Vector.mapMaybe (\(datum, data') -> (hash datum,) <$> rightToMaybe data') res
+        faulty = Vector.toList $ Vector.mapMaybe (fmap fst . (\(datum, data') -> (value datum,) <$> leftToMaybe data')) res
      in if null faulty
             then pure correct
             else Left $ DatabaseErrorDecodeError faulty

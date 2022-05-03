@@ -87,7 +87,7 @@ cancelFetchBlocks conn = do
         Left StopBlockFetcherErrorNotRunning ->
             sendTextData conn $ mkCancelFetchBlocksFault "No block fetcher running"
         Right () ->
-            sendTextData conn $ mkCancelFetchBlocksResponse
+            sendTextData conn mkCancelFetchBlocksResponse
 
 sendTextData :: (Json.ToJSON a) => WS.Connection -> a -> App ()
 sendTextData conn =

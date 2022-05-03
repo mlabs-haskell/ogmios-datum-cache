@@ -20,7 +20,7 @@ configT :: TomlCodec Config
 configT =
     Config
         <$> Toml.byteString "dbConnectionString" .= cfgDbConnectionString
-        <*> (Toml.dioptional $ Toml.string "datumFilterPath") .= cfgDatumFilterPath
+        <*> Toml.dioptional (Toml.string "datumFilterPath") .= cfgDatumFilterPath
         <*> Toml.int "server.port" .= cfgServerPort
         <*> Toml.string "ogmios.address" .= cfgOgmiosAddress
         <*> Toml.int "ogmios.port" .= cfgOgmiosPort

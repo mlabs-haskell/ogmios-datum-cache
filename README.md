@@ -501,9 +501,9 @@ Modify `config.toml` in the app working directory (currently `/home/ubuntu/seabu
 
 ### Filter file
 
-Datum filter can filter datum hash and address of utxo with given datum. Filters can be combine with logical `or`s and `and`s.
+Datum filter can filter datum hash and address of utxo with given datum. Filters can be combined with logical `or`s and `and`s.
 
-Example (filter will save datums only if hash is `foobar` and (utxo with datum is on address `addr_abc` or `addr_xyz`):
+Example (filter will save datums only if hash is `foobar` and (utxo with datum is on address `addr_abc` or `addr_xyz`)):
 ```json
 {
     "all": [
