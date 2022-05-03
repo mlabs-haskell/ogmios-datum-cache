@@ -2,6 +2,10 @@
   description = "ogmios-datum-cache";
 
   inputs = {
+    flake-compat = {
+      url = "github:edolstra/flake-compat";
+      flake = false;
+    };
     nixpkgs = {
       type = "github";
       owner = "NixOS";
