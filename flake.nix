@@ -2,67 +2,94 @@
   description = "ogmios-datum-cache";
 
   inputs = {
-    haskell-nix = {
-      url = "github:input-output-hk/haskell.nix";
-      inputs.nixpkgs.follows = "haskell-nix/nixpkgs-2111";
+    nixpkgs = {
+      type = "github";
+      owner = "NixOS";
+      repo = "nixpkgs";
+      # This is the revision that the project was using pre-flakes
+      rev = "2cf9db0e3d45b9d00f16f2836cb1297bcadc475e";
     };
-    nixpkgs.follows = "haskell-nix/nixpkgs-unstable";
   };
 
-  outputs = { self, nixpkgs, haskell-nix }:
+  outputs = { self, nixpkgs, ... }:
     let
-      supportedSystems = [ "x86_64-linux" "x86_64-darwin" "aarch64-linux" "aarch64-darwin" ];
-
+      supportedSystems = [
+        "x86_64-linux"
+        "x86_64-darwin"
+        "aarch64-linux"
+        "aarch64-darwin"
+      ];
       perSystem = nixpkgs.lib.genAttrs supportedSystems;
-
-      nixpkgsFor = system: import nixpkgs { inherit system; overlays = [ haskell-nix.overlay ]; inherit (haskell-nix) config; };
-
-      projectFor = system:
-        let
-          deferPluginErrors = true;
-          pkgs = nixpkgsFor system;
-
-          fakeSrc = pkgs.runCommand "real-source" {} ''
-            cp -rT ${self} $out
-            chmod u+w $out/cabal.project
-            cat $out/cabal-haskell.nix.project >> $out/cabal.project
-          '';
-        in
-        (nixpkgsFor system).haskell-nix.cabalProject' {
-          src = fakeSrc.outPath;
-          compiler-nix-name = "ghc8107";
-          cabalProjectFileName = "cabal.project";
-          shell = {
-            withHoogle = true;
-            tools.haskell-language-server = {};
-
-            exactDeps = true;
-
-            # We use the ones from Nixpkgs, since they are cached reliably.
-            # Eventually we will probably want to build these with haskell.nix.
-            nativeBuildInputs = [
-              pkgs.cabal-install
-              pkgs.hlint
-              pkgs.haskellPackages.fourmolu
-              pkgs.haskellPackages.apply-refact
-              pkgs.postgresql
-            ];
-          };
+      nixpkgsFor = system: import nixpkgs { inherit system; };
+      hsPackageName = "ogmios-datum-cache";
+      hpkgsFor = system: (nixpkgsFor system).haskell.packages.ghc8107.override {
+        overrides = prev: _: {
+          "${hsPackageName}" =
+            prev.callCabal2nix hsPackageName self { };
         };
+      };
+
     in
     {
-      project = perSystem projectFor;
-      flake = perSystem (system: (projectFor system).flake {});
-
-      # this could be done automatically, but would reduce readability
-      packages = perSystem (system: self.flake.${system}.packages);
-      checks = perSystem (system: self.flake.${system}.checks);
-      check = perSystem (system:
-        (nixpkgsFor system).runCommand "combined-test" {
-          nativeBuildInputs = builtins.attrValues self.checks.${system};
-        } "touch $out"
+      defaultPackage = perSystem (system:
+        self.packages.${system}."${hsPackageName}"
       );
-      apps = perSystem (system: self.flake.${system}.apps);
-      devShell = perSystem (system: self.flake.${system}.devShell);
+      packages = perSystem (system: {
+        "${hsPackageName}" = (hpkgsFor system)."${hsPackageName}";
+      });
+      devShell = perSystem (system:
+        let
+          hpkgs = hpkgsFor system;
+          pkgs = nixpkgsFor system;
+        in
+        hpkgs.shellFor {
+          packages = ps: [ ps."${hsPackageName}" ];
+          buildInputs = with hpkgs; [
+            fourmolu
+            haskell-language-server
+            cabal-install
+            hlint
+            apply-refact
+            pkgs.postgresql
+          ];
+        });
+      # TODO
+      # There is no test suite currently, after tests are implemented we can run
+      # them in the `checks` directly (or just run them when the package is
+      # built, as is the default with `callCabal2nix`)
+      checks = perSystem (system:
+        let
+          hpkgs = hpkgsFor system;
+          pkgs = nixpkgsFor system;
+        in
+        {
+          formatting-check = pkgs.runCommand "formatting-check"
+            {
+              nativeBuildInputs = [ hpkgs.fourmolu pkgs.fd ];
+            }
+            ''
+              cd ${self}
+              fourmolu -m check -o -XTypeApplications -o -XImportQualifiedPost \
+                $(fd -ehs)
+              touch $out
+            '';
+          lint-check = pkgs.runCommand "formatting-check"
+            {
+              nativeBuildInputs = [ hpkgs.hlint ];
+            }
+            ''
+              cd ${self}
+              hlint .
+              touch $out
+            '';
+        });
+      check = perSystem (system:
+        (nixpkgsFor system).runCommand "combined-test"
+          {
+            nativeBuildInputs = builtins.attrValues self.checks.${system}
+              ++ builtins.attrValues self.packages.${system};
+          }
+          "touch $out"
+      );
     };
 }
