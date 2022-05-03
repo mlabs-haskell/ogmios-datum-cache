@@ -21,6 +21,7 @@ import Control.Monad.Trans (liftIO)
 import Data.Aeson qualified as Json
 import Data.ByteString.Base64 qualified as BSBase64
 import Data.Map qualified as Map
+import Data.Maybe (fromMaybe)
 import Data.Text (Text)
 import Data.Text qualified as Text
 import Data.Text.Encoding qualified as Text
@@ -31,7 +32,7 @@ import UnliftIO.Async (Async)
 import UnliftIO.Async qualified as Async
 import UnliftIO.Concurrent (threadDelay)
 
-import Api.Types (FirstFetchBlock (FirstFetchBlock))
+import Api.Types (FirstFetchBlock)
 import Block.Filter (DatumFilter, runDatumFilter)
 import Block.Types (AlonzoBlock (..), AlonzoTransaction (..), Block (..), FindIntersectResult (..), OgmiosFindIntersectResponse, OgmiosRequestNextResponse, OgmiosResponse (..), RequestNextResult (..), mkFindIntersectRequest, mkRequestNextRequest)
 import Database (insertDatumsSession)
@@ -45,10 +46,11 @@ newtype OgmiosWorkerMVar = MkOgmiosWorkerMVar (MVar (Async ()))
 
 data StartBlockFetcherError
     = StartBlockFetcherErrorAlreadyRunning
+    deriving stock (Show)
 
 startBlockFetcher ::
     (MonadIO m, MonadUnliftIO m, MonadReader r m, Has OgmiosWorkerMVar r, Has OgmiosInfo r, Has FirstFetchBlock r, Has DatumFilter r, Has Hasql.Connection r) =>
-    Maybe (Integer, Text) ->
+    Maybe FirstFetchBlock ->
     m (Either StartBlockFetcherError ())
 startBlockFetcher firstBlock = do
     OgmiosInfo{..} <- ask
@@ -178,19 +180,14 @@ saveDatumsFromAlonzoBlock block = do
 wsApp ::
     (MonadIO m, MonadUnliftIO m, MonadLogger m, MonadReader r m, Has FirstFetchBlock r, Has DatumFilter r, Has Hasql.Connection r) =>
     WS.Connection ->
-    Maybe (Integer, Text) ->
+    Maybe FirstFetchBlock ->
     m ()
-wsApp conn mfirstFetchBlock = do
+wsApp conn mFirstFetchBlock = do
     firstFetchBlock' :: FirstFetchBlock <- ask
     logInfoNS "wsApp" "Connected to ogmios websocket"
     Async.withAsync (receiveLoop conn) $ \receiveWorker -> do
         Async.link receiveWorker
-        let firstFetchBlock =
-                case mfirstFetchBlock of
-                    Just (firstBlockSlot, firstBlockId) ->
-                        FirstFetchBlock firstBlockSlot firstBlockId
-                    Nothing ->
-                        firstFetchBlock'
+        let firstFetchBlock = fromMaybe firstFetchBlock' mFirstFetchBlock
         let findIntersectRequest = mkFindIntersectRequest firstFetchBlock
         liftIO $ WS.sendTextData conn (Json.encode findIntersectRequest)
         debounce

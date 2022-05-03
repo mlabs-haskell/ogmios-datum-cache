@@ -9,6 +9,7 @@ import Data.Text qualified as Text
 import Data.Vector qualified as Vector
 import Network.WebSockets qualified as WS
 
+import Api.Types (FirstFetchBlock (FirstFetchBlock))
 import Api.WebSocket.Json (
     mkCancelFetchBlocksFault,
     mkCancelFetchBlocksResponse,
@@ -71,7 +72,7 @@ startFetchBlocks ::
     Text ->
     App ()
 startFetchBlocks conn firstBlockSlot firstBlockId = do
-    res <- startBlockFetcher (Just (firstBlockSlot, firstBlockId))
+    res <- startBlockFetcher $ pure $ FirstFetchBlock firstBlockSlot firstBlockId
     case res of
         Left StartBlockFetcherErrorAlreadyRunning ->
             sendTextData conn $ mkStartFetchBlocksFault "Block fetcher already running"

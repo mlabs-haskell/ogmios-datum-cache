@@ -2,9 +2,10 @@ module Main (
     main,
 ) where
 
+import Control.Monad (when)
 import Control.Monad.Catch (Exception, throwM, try)
 import Control.Monad.Except (ExceptT (..))
-import Control.Monad.Logger (runStdoutLoggingT)
+import Control.Monad.Logger (logErrorNS, runStdoutLoggingT)
 import Control.Monad.Reader (runReaderT)
 import Data.Aeson (eitherDecodeFileStrict)
 import Hasql.Connection qualified as Connection
@@ -21,9 +22,11 @@ import Api.Handler (datumServiceHandlers)
 import Api.Types (FirstFetchBlock (FirstFetchBlock))
 import App (App (..))
 import App.Env (Env (..))
-import Block.Fetch (OgmiosInfo (OgmiosInfo), createStoppedFetcher)
+import Block.Fetch (OgmiosInfo (OgmiosInfo), createStoppedFetcher, startBlockFetcher)
 import Block.Filter (DatumFilter (ConstFilter))
 import Config (Config (..), loadConfig)
+import Control.Monad.IO.Class (MonadIO, liftIO)
+import Data.Text qualified as Text
 import Database (initTables)
 
 appService :: Env -> Application
@@ -42,20 +45,29 @@ newtype DbConnectionAcquireException = DbConnectionAcquireException Hasql.Connec
     deriving stock (Eq, Show)
     deriving anyclass (Exception)
 
+mkFilterFromPath :: MonadIO m => Maybe FilePath -> m DatumFilter
+mkFilterFromPath path =
+    case path of
+        Nothing -> pure $ ConstFilter True
+        Just path' -> do
+            datumFilter' <- liftIO $ eitherDecodeFileStrict @DatumFilter path'
+            case datumFilter' of
+                Left e -> error e
+                Right x -> pure x
+
 mkAppEnv :: Config -> IO Env
 mkAppEnv Config{..} = do
     pgConn <- Connection.acquire cfgDbConnectionString >>= either (throwM . DbConnectionAcquireException) pure
     let firstFetchBlock = FirstFetchBlock cfgFirstFetchBlockSlot cfgFirstFetchBlockId
     ogmiosWorker <- createStoppedFetcher
-    datumFilter <- case cfgDatumFilterPath of
-        Nothing -> pure $ ConstFilter True
-        Just path -> do
-            datumFilter' <- eitherDecodeFileStrict @DatumFilter path
-            case datumFilter' of
-                Left e -> error e
-                Right x -> pure x
+    datumFilter <- mkFilterFromPath cfgDatumFilterPath
     let env = Env datumFilter firstFetchBlock pgConn (OgmiosInfo cfgOgmiosPort cfgOgmiosAddress) ogmiosWorker
     print datumFilter
+    when cfgAutoStartFetcher $ do
+        let handleError res = case res of
+                Left e -> logErrorNS "mkAppEnv" $ Text.pack $ show e
+                Right () -> pure ()
+        runStdoutLoggingT . flip runReaderT env $ (startBlockFetcher (pure firstFetchBlock) >>= handleError)
     pure env
 
 main :: IO ()

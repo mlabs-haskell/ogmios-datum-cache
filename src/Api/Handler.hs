@@ -12,6 +12,7 @@ import Api (ControlApi (..), DatumApi (..), Routes (..), WebSocketApi (..))
 import Api.Error (throwJsonError)
 import Api.Types (
     CancelBlockFetchingResponse (..),
+    FirstFetchBlock (FirstFetchBlock),
     GetDatumByHashResponse (..),
     GetDatumsByHashesDatum (..),
     GetDatumsByHashesRequest (..),
@@ -62,7 +63,7 @@ datumServiceHandlers = Routes{..}
 
     startBlockFetching :: StartBlockFetchingRequest -> App StartBlockFetchingResponse
     startBlockFetching (StartBlockFetchingRequest firstBlockSlot firstBlockId) = do
-        res <- startBlockFetcher (Just (firstBlockSlot, firstBlockId))
+        res <- startBlockFetcher $ pure $ FirstFetchBlock firstBlockSlot firstBlockId
         case res of
             Left StartBlockFetcherErrorAlreadyRunning ->
                 throwJsonError err422 "Block fetcher already running"

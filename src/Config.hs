@@ -2,8 +2,9 @@ module Config (loadConfig, Config (..)) where
 
 import Control.Monad.IO.Class (MonadIO)
 import Data.ByteString (ByteString)
+import Data.Maybe (fromMaybe)
 import Data.Text (Text)
-import Toml (TomlCodec, (.=))
+import Toml (TomlCodec, dimap, (.=))
 import Toml qualified
 
 data Config = Config
@@ -14,7 +15,11 @@ data Config = Config
     , cfgOgmiosPort :: Int
     , cfgFirstFetchBlockSlot :: Integer
     , cfgFirstFetchBlockId :: Text
+    , cfgAutoStartFetcher :: Bool
     }
+
+withDefault :: a -> TomlCodec a -> TomlCodec a
+withDefault d c = dimap pure (fromMaybe d) (Toml.dioptional c)
 
 configT :: TomlCodec Config
 configT =
@@ -26,6 +31,7 @@ configT =
         <*> Toml.int "ogmios.port" .= cfgOgmiosPort
         <*> Toml.integer "firstFetchBlock.slot" .= cfgFirstFetchBlockSlot
         <*> Toml.text "firstFetchBlock.id" .= cfgFirstFetchBlockId
+        <*> withDefault False (Toml.bool "blockFetcher.autoStart") .= cfgAutoStartFetcher
 
 loadConfig :: MonadIO m => m Config
 loadConfig = Toml.decodeFile configT "config.toml"
