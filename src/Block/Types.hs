@@ -9,6 +9,7 @@ module Block.Types (
     RequestNextResult (..),
     Block (..),
     AlonzoBlock (..),
+    AlonzoBlockHeader (..),
     AlonzoTransaction (..),
     OgmiosResponse (..),
     TxOut (..),
@@ -17,6 +18,7 @@ module Block.Types (
 import Data.Aeson (FromJSON, ToJSON, withObject, (.:), (.:?))
 import Data.Aeson qualified as Json
 import Data.HashMap.Strict qualified as HM
+import Data.Int (Int64)
 import Data.Map (Map)
 import Data.Map qualified as Map
 import Data.Text (Text)
@@ -68,7 +70,7 @@ mkFindIntersectRequest (FirstFetchBlock firstBlockSlot firstBlockId) =
         , _mirror = 0
         }
   where
-    points = CursorPoints [CursorPoint firstBlockSlot firstBlockId]
+    points = CursorPoints [CursorPoint (fromIntegral firstBlockSlot) firstBlockId]
 
 mkRequestNextRequest :: Int -> OgmiosRequestNextRequest
 mkRequestNextRequest n =
@@ -178,8 +180,9 @@ instance FromJSON AlonzoTransaction where
         outputs <- body .: "outputs"
         pure $ AlonzoTransaction datums outputs
 
-newtype AlonzoBlockHeader = AlonzoBlockHeader
-    { slot :: Integer
+data AlonzoBlockHeader = AlonzoBlockHeader
+    { slot :: Int64
+    , blockHash :: Text
     }
     deriving stock (Eq, Show, Generic)
     deriving anyclass (FromJSON)

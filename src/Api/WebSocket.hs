@@ -31,6 +31,7 @@ import Block.Fetch (
     startBlockFetcher,
     stopBlockFetcher,
  )
+import Data.Int (Int64)
 import Database (
     DatabaseError (DatabaseErrorDecodeError, DatabaseErrorNotFound),
  )
@@ -68,7 +69,7 @@ getDatumsByHashes conn hashes = do
 
 startFetchBlocks ::
     WS.Connection ->
-    Integer ->
+    Int64 ->
     Text ->
     App ()
 startFetchBlocks conn firstBlockSlot firstBlockId = do

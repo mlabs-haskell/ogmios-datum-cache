@@ -2,7 +2,7 @@ module Main (
     main,
 ) where
 
-import Control.Monad (when)
+import Control.Monad (unless, when)
 import Control.Monad.Catch (Exception, throwM, try)
 import Control.Monad.Except (ExceptT (..))
 import Control.Monad.Logger (logErrorNS, runStdoutLoggingT)
@@ -19,7 +19,6 @@ import Servant.Server.Generic (genericServerT)
 
 import Api (Routes, datumCacheApi)
 import Api.Handler (datumServiceHandlers)
-import Api.Types (FirstFetchBlock (FirstFetchBlock))
 import App (App (..))
 import App.Env (Env (..))
 import Block.Fetch (OgmiosInfo (OgmiosInfo), createStoppedFetcher, startBlockFetcher)
@@ -27,7 +26,7 @@ import Block.Filter (DatumFilter (ConstFilter))
 import Config (Config (..), loadConfig)
 import Control.Monad.IO.Class (MonadIO, liftIO)
 import Data.Text qualified as Text
-import Database (initTables)
+import Database (initLastBlock, initTables, updateLastBlock)
 
 appService :: Env -> Application
 appService env = serve datumCacheApi appServer
@@ -58,16 +57,24 @@ mkFilterFromPath path =
 mkAppEnv :: Config -> IO Env
 mkAppEnv Config{..} = do
     pgConn <- Connection.acquire cfgDbConnectionString >>= either (throwM . DbConnectionAcquireException) pure
-    let firstFetchBlock = FirstFetchBlock cfgFirstFetchBlockSlot cfgFirstFetchBlockId
     ogmiosWorker <- createStoppedFetcher
     datumFilter <- mkFilterFromPath cfgDatumFilterPath
-    let env = Env datumFilter firstFetchBlock pgConn (OgmiosInfo cfgOgmiosPort cfgOgmiosAddress) ogmiosWorker
+    let env = Env datumFilter pgConn (OgmiosInfo cfgOgmiosPort cfgOgmiosAddress) ogmiosWorker
     print datumFilter
-    when cfgAutoStartFetcher $ do
+    runStdoutLoggingT . flip runReaderT env $ do
         let handleError res = case res of
                 Left e -> logErrorNS "mkAppEnv" $ Text.pack $ show e
                 Right () -> pure ()
-        runStdoutLoggingT . flip runReaderT env $ (startBlockFetcher (pure firstFetchBlock) >>= handleError)
+
+        -- This won't do anything if there is already some entry
+        initLastBlock cfgFirstFetchBlockSlot cfgFirstFetchBlockId
+
+        -- If we are not starting from last block, we need to override it from one from config
+        unless cfgStartFromLastBlock $ do
+            updateLastBlock cfgFirstFetchBlockSlot cfgFirstFetchBlockId
+
+        when cfgAutoStartFetcher $ do
+            startBlockFetcher Nothing >>= handleError
     pure env
 
 main :: IO ()

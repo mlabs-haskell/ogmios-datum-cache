@@ -14,5 +14,6 @@ firstFetchBlock.id = "d2a4249fe3d0607535daa26caf12a38da2233586bc51e79ed0b3a36170
 
 # default = false
 # blockFetcher.autoStart = true
+# blockFetcher.startFromLast = true
 
 # datumFilterPath = "filter.json"

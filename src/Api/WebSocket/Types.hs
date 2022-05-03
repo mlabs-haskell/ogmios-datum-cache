@@ -1,6 +1,7 @@
 module Api.WebSocket.Types (Method (..), GetDatumsByHashesDatum (..)) where
 
 import Data.Aeson (FromJSON, ToJSON, parseJSON, withObject, (.:))
+import Data.Int (Int64)
 import Data.Text (Text)
 import GHC.Generics (Generic)
 
@@ -9,7 +10,7 @@ import PlutusData qualified
 data Method
     = GetDatumByHash Text
     | GetDatumsByHashes [Text]
-    | StartFetchBlocks Integer Text
+    | StartFetchBlocks Int64 Text
     | CancelFetchBlocks
     deriving stock (Show)
 
