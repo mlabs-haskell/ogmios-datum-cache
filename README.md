@@ -96,31 +96,6 @@ Response
 ```
 
 ## Control API
-### `POST /control/add_hashes`
-Request:
-```json
-{
-  "hashes": ["a", "b"]
-}
-```
-
-### `POST /control/remove_hashes`
-Request:
-```json
-{
-  "hashes": ["a", "b"]
-}
-```
-
-### `POST /control/set_hashes`
-Request:
-```json
-{
-  "hashes": ["a", "b"]
-}
-```
-
-### `GET /control/get_hashes`
 
 ### `POST /control/fetch_blocks`
 Request body:
@@ -394,123 +369,6 @@ Response (fault):
 }
 ```
 
-#### DatumFilterAddHashes
-Request:
-```json
-{
-  "type": "jsonwsp/request",
-  "version": "1.0",
-  "servicename": "ogmios-datum-cache",
-  "methodname": "DatumFilterAddHashes",
-  "args": {
-    "hashes": [
-      "abc",
-      "04caaf1336b754e0b8b4e2fa1c59aa6b85f97dd29652729f1c1e28805acdeb20"
-    ]
-  }
-}
-```
-
-Response:
-```json
-{
-  "methodname": "DatumFilterAddHashes",
-  "result": {
-    "AddedHashes": true
-  },
-  "version": "1.0",
-  "servicename": "ogmios-datum-cache",
-  "type": "jsonwsp/response"
-}
-```
-
-#### DatumFilterRemoveHashes
-Request:
-```json
-{
-  "type": "jsonwsp/request",
-  "version": "1.0",
-  "servicename": "ogmios-datum-cache",
-  "methodname": "DatumFilterRemoveHashes",
-  "args": {
-    "hashes": [
-      "abc",
-      "04caaf1336b754e0b8b4e2fa1c59aa6b85f97dd29652729f1c1e28805acdeb20"
-    ]
-  }
-}
-```
-
-Response:
-```json
-{
-  "methodname": "DatumFilterRemoveHashes",
-  "result": {
-    "RemovedHashes": true
-  },
-  "version": "1.0",
-  "servicename": "ogmios-datum-cache",
-  "type": "jsonwsp/response"
-}
-```
-
-#### DatumFilterSetHashes
-Request:
-```json
-{
-  "type": "jsonwsp/request",
-  "version": "1.0",
-  "servicename": "ogmios-datum-cache",
-  "methodname": "DatumFilterSetHashes",
-  "args": {
-    "hashes": [
-      "abc",
-      "04caaf1336b754e0b8b4e2fa1c59aa6b85f97dd29652729f1c1e28805acdeb20"
-    ]
-  }
-}
-```
-
-Response:
-```json
-{
-  "methodname": "DatumFilterSetHashes",
-  "result": {
-    "SetHashes": true
-  },
-  "version": "1.0",
-  "servicename": "ogmios-datum-cache",
-  "type": "jsonwsp/response"
-}
-```
-
-#### DatumFilterGetHashes
-Request:
-```json
-{
-  "type": "jsonwsp/request",
-  "version": "1.0",
-  "servicename": "ogmios-datum-cache",
-  "methodname": "DatumFilterGetHashes"
-}
-```
-
-Response:
-```json
-{
-  "methodname": "DatumFilterGetHashes",
-  "result": {
-    "hashes": [
-      "04caaf1336b754e0b8b4e2fa1c59aa6b85f97dd29652729f1c1e28805acdeb20",
-      "abc"
-    ]
-  },
-  "version": "1.0",
-  "servicename": "ogmios-datum-cache",
-  "type": "jsonwsp/response"
-}
-```
-
 ## Block data from ogmios local chain sync
 Structure:
 ```json
@@ -639,5 +497,27 @@ docker-compose up -f deploy/docker-compose.yml -d
 Modify `config.toml` in the app working directory (currently `/home/ubuntu/seabug/ogmios-datum-cache`).
 
 * `dbConnectionString` (postgres libpq connection string) — `host=localhost port=5432 user=<user> password=<pass>`
-* `saveAllDatums` (save all datums regardless of filter settings) — you likely want this set to `false`
+* `datumFilterPath` defines path to [filter file](#filter-file). If path is not defined all datums will be saved.
+
+### Filter file
+
+Datum filter can filter datum hash and address of utxo with given datum. Filters can be combined with logical `or`s and `and`s.
+
+Example (filter will save datums only if hash is `foobar` and (utxo with datum is on address `addr_abc` or `addr_xyz`)):
+```json
+{
+    "all": [
+        {
+            "hash": "foobar"
+        },
+        {
+            "any": [
+                { "address": "addr_abc" },
+                { "address": "addr_xyz" }
+            ]
+        }
+    ]
+}
+
+```
 

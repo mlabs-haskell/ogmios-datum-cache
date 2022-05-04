@@ -59,9 +59,8 @@ executable ogmios-datum-cache
     Api.WebSocket.Types
     App
     App.Env
-    App.FirstFetchBlock
-    App.RequestedDatumHashes
     Block.Fetch
+    Block.Filter
     Block.Types
     Config
     Database
@@ -75,6 +74,7 @@ executable ogmios-datum-cache
     , base16
     , base64
     , bytestring
+    , can-i-haz
     , cborg
     , cborg-json
     , co-log
@@ -100,6 +100,7 @@ executable ogmios-datum-cache
     , servant-server
     , servant-websockets
     , text
+    , transformers
     , time
     , tomland
     , unliftio

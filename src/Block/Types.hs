@@ -11,17 +11,19 @@ module Block.Types (
     AlonzoBlock (..),
     AlonzoTransaction (..),
     OgmiosResponse (..),
+    TxOut (..),
 ) where
 
-import Data.Aeson (FromJSON, ToJSON, withObject, (.:))
+import Data.Aeson (FromJSON, ToJSON, withObject, (.:), (.:?))
 import Data.Aeson qualified as Json
 import Data.HashMap.Strict qualified as HM
 import Data.Map (Map)
 import Data.Map qualified as Map
 import Data.Text (Text)
+import GHC.Exts (toList)
 import GHC.Generics (Generic)
 
-import App.FirstFetchBlock (FirstFetchBlock (..))
+import Api.Types (FirstFetchBlock (..))
 
 type OgmiosMirror = Int
 
@@ -112,7 +114,7 @@ data FindIntersectResult
 
 instance FromJSON FindIntersectResult where
     parseJSON = withObject "FindIntersectResult" $ \o -> do
-        case HM.toList o of
+        case toList o of
             [("IntersectionFound", intersectionObj)] ->
                 withObject
                     "IntersectionFound"
@@ -150,8 +152,21 @@ data Block
     | MkAlonzoBlock AlonzoBlock
     deriving stock (Eq, Show, Generic)
 
-newtype AlonzoTransaction = AlonzoTransaction
+data TxOut = TxOut
+    { address :: Text
+    , datumHash :: Maybe Text
+    }
+    deriving stock (Eq, Show, Generic)
+
+instance FromJSON TxOut where
+    parseJSON = withObject "TxOut" $ \o -> do
+        address <- o .: "address"
+        datumHash <- o .:? "datum"
+        pure $ TxOut{..}
+
+data AlonzoTransaction = AlonzoTransaction
     { datums :: Map Text Text
+    , outputs :: [TxOut]
     }
     deriving stock (Eq, Show, Generic)
 
@@ -159,20 +174,15 @@ instance FromJSON AlonzoTransaction where
     parseJSON = withObject "AlonzoTransaction" $ \o -> do
         witness <- o .: "witness"
         datums <- witness .: "datums"
-        pure $ AlonzoTransaction datums
+        body <- o .: "body"
+        outputs <- body .: "outputs"
+        pure $ AlonzoTransaction datums outputs
 
--- data AlonzoBlockHeader = AlonzoBlockHeader
---   { signature :: Text
---   , nonce :: AlonzoBlockHeaderNonce
---   , leadervalue ::  AlonzoBlockHeaderLeaderValue
---   , ..
---   }
-
-data AlonzoBlockHeader = AlonzoBlockHeader
+newtype AlonzoBlockHeader = AlonzoBlockHeader
+    { slot :: Integer
+    }
     deriving stock (Eq, Show, Generic)
-
-instance FromJSON AlonzoBlockHeader where
-    parseJSON = const $ pure AlonzoBlockHeader
+    deriving anyclass (FromJSON)
 
 data AlonzoBlock = AlonzoBlock
     { body :: [AlonzoTransaction]
@@ -183,7 +193,7 @@ data AlonzoBlock = AlonzoBlock
 
 instance FromJSON RequestNextResult where
     parseJSON = withObject "RequestNextResult" $ \o -> do
-        case HM.toList o of
+        case toList o of
             [("RollBackward", rollObj)] ->
                 withObject
                     "RollBackward"

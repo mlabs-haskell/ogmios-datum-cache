@@ -11,10 +11,6 @@ data Method
     | GetDatumsByHashes [Text]
     | StartFetchBlocks Integer Text
     | CancelFetchBlocks
-    | DatumFilterAddHashes [Text]
-    | DatumFilterRemoveHashes [Text]
-    | DatumFilterSetHashes [Text]
-    | DatumFilterGetHashes
     deriving stock (Show)
 
 instance FromJSON Method where
@@ -36,20 +32,6 @@ instance FromJSON Method where
                 pure $ StartFetchBlocks slot blockId
             "CancelFetchBlocks" -> do
                 pure CancelFetchBlocks
-            "DatumFilterAddHashes" -> do
-                args <- o .: "args"
-                hashes <- args .: "hashes"
-                pure $ DatumFilterAddHashes hashes
-            "DatumFilterRemoveHashes" -> do
-                args <- o .: "args"
-                hashes <- args .: "hashes"
-                pure $ DatumFilterRemoveHashes hashes
-            "DatumFilterSetHashes" -> do
-                args <- o .: "args"
-                hashes <- args .: "hashes"
-                pure $ DatumFilterSetHashes hashes
-            "DatumFilterGetHashes" -> do
-                pure DatumFilterGetHashes
             _ -> fail "Unexpected method"
 
 data GetDatumsByHashesDatum = GetDatumsByHashesDatum

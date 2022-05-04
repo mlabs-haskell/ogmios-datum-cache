@@ -2,9 +2,9 @@ name: Build
 
 on:
   push:
-    branches: [ master, staging ]
+    branches: [master, staging]
   pull_request:
-    branches: [ master, staging ]
+    branches: [master, staging]
   workflow_dispatch:
 
 jobs:
@@ -13,20 +13,13 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - uses: cachix/install-nix-action@v13
-        name: Set up nix cache
+        name: Set up nix and IOHK cache
         with:
-          nix_path: nixpkgs=channel:nixos-unstable
           extra_nix_config: |
-            trusted-public-keys = cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY=
-            substituters = https://cache.nixos.org/
-      - name: Cache cabal folder
-        id: cabal
-        uses: actions/cache@v2.1.4
+            experimental-features = nix-command flakes
+      - uses: cachix/cachix-action@v10
         with:
-          path: |
-            ~/.cabal/packages
-            ~/.cabal/store
-            dist-newstyle
-          key: ${{ runner.os }}-cabal
-      - name: Build the full ci derivation
-        run: nix-build ./release.nix
+          name: mlabs
+          authToken: "${{ secrets.CACHIXKEY }}"
+      - name: Build all project components
+        run: nix build -L .#check.x86_64-linux
