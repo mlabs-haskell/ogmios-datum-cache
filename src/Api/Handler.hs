@@ -3,13 +3,14 @@ module Api.Handler (datumServiceHandlers) where
 import Control.Monad.Catch (throwM)
 import Control.Monad.Logger (logInfoNS)
 import Data.Text (Text)
+import Data.Text qualified as Text
 import Network.WebSockets qualified as WS
 import Servant
 import Servant.API.Generic (ToServant)
 import Servant.Server.Generic (AsServerT, genericServerT)
 
 import Api (ControlApi (..), DatumApi (..), Routes (..), WebSocketApi (..))
-import Api.Error (throwJsonError)
+import Api.Error (JsonError (JsonError), throwJsonError)
 import Api.Types (
     CancelBlockFetchingResponse (..),
     GetDatumByHashResponse (..),
@@ -40,8 +41,8 @@ datumServiceHandlers = Routes{..}
 
     catchDatabaseError r = do
         case r of
-            Left (DatabaseErrorDecodeError _) ->
-                throwM err500
+            Left (DatabaseErrorDecodeError e) ->
+                throwJsonError err500 $ JsonError $ Text.pack $ "Decoding error: " <> show e
             Left DatabaseErrorNotFound ->
                 throwM err404
             Right x -> pure x
