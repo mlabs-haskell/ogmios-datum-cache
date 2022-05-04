@@ -4,6 +4,7 @@ import Control.Monad (forever)
 import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Logger (logErrorNS)
 import Data.Aeson qualified as Json
+import Data.Int (Int64)
 import Data.Text (Text)
 import Data.Text qualified as Text
 import Data.Vector qualified as Vector
@@ -34,7 +35,6 @@ import Block.Fetch (
  )
 import Block.Filter (DatumFilter)
 import Block.Types (BlockInfo (BlockInfo))
-import Data.Int (Int64)
 import Database (
     DatabaseError (DatabaseErrorDecodeError, DatabaseErrorNotFound),
  )
@@ -47,8 +47,8 @@ getDatumByHash ::
 getDatumByHash conn hash = do
     res <- Db.getDatumByHash hash
     case res of
-        Left (DatabaseErrorDecodeError _) ->
-            sendTextData conn $ mkGetDatumByHashFault "Error deserializing plutus Data"
+        Left (DatabaseErrorDecodeError faulty) ->
+            sendTextData conn $ mkGetDatumByHashFault $ "Error deserializing plutus Data in: " <> Text.pack (show faulty)
         Left DatabaseErrorNotFound ->
             sendTextData conn $ mkGetDatumByHashResponse Nothing
         Right datum ->
@@ -79,7 +79,6 @@ getLastBlock conn = do
         Nothing ->
             sendTextData conn mkGetBlockFault
 
--- TODO: Use ExceptT
 startFetchBlocks ::
     WS.Connection ->
     Int64 ->
