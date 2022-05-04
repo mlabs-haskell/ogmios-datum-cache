@@ -125,7 +125,6 @@ toPlutusData datum =
 toPlutusDataMany :: Vector Datum -> Either DatabaseError (Vector (Text, PlutusData.Data))
 toPlutusDataMany datums =
     let res = fmap (\d -> (d,) . deserialiseOrFail @PlutusData.Data . BSL.fromStrict . value $ d) datums
-        -- faulty = Vector.filter (\(_, e) -> isLeft e) res
         rightToMaybe (Right x) = Just x
         rightToMaybe _ = Nothing
         leftToMaybe (Left x) = Just x

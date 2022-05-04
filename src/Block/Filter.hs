@@ -1,11 +1,11 @@
 module Block.Filter (DatumFilter (..), runDatumFilter) where
 
-import Data.Aeson
+import Data.Aeson (FromJSON (parseJSON), Value (Bool, String), withObject)
 import Data.Maybe (mapMaybe)
 import Data.Text (Text)
 import GHC.Exts (toList)
 
-import Block.Types
+import Block.Types (AlonzoTransaction (outputs), TxOut (address, datumHash))
 
 data DatumFilter
     = ConstFilter Bool
