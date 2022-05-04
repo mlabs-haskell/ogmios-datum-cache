@@ -13,6 +13,7 @@ module Block.Types (
     AlonzoTransaction (..),
     OgmiosResponse (..),
     TxOut (..),
+    BlockInfo (..),
 ) where
 
 import Data.Aeson (FromJSON, ToJSON, withObject, (.:), (.:?))
@@ -25,7 +26,12 @@ import Data.Text (Text)
 import GHC.Exts (toList)
 import GHC.Generics (Generic)
 
-import Api.Types (FirstFetchBlock (..))
+data BlockInfo = BlockInfo
+    { blockSlot :: Int64
+    , blockId :: Text
+    }
+    deriving stock (Generic, Show)
+    deriving anyclass (ToJSON)
 
 type OgmiosMirror = Int
 
@@ -59,8 +65,8 @@ type OgmiosFindIntersectRequest = OgmiosRequest CursorPoints OgmiosMirror
 
 type OgmiosRequestNextRequest = OgmiosRequest (Map Text Text) OgmiosMirror
 
-mkFindIntersectRequest :: FirstFetchBlock -> OgmiosFindIntersectRequest
-mkFindIntersectRequest (FirstFetchBlock firstBlockSlot firstBlockId) =
+mkFindIntersectRequest :: BlockInfo -> OgmiosFindIntersectRequest
+mkFindIntersectRequest (BlockInfo firstBlockSlot firstBlockId) =
     OgmiosRequest
         { _type = "jsonwsp/request"
         , _version = "1.0"

@@ -539,17 +539,17 @@ Modify `config.toml` in the app working directory (currently `/home/ubuntu/seabu
 
 * `dbConnectionString` (postgres libpq connection string) — `host=localhost port=5432 user=<user> password=<pass>`
 
-* `datumFilterPath` defines path to [filter file](#filter-file). If path is not defined all datums will be saved.
+* `blockFetcher.autoStart` defines if initial block fetcher should start automatically.
 
-* `firstFetchBlock.slot` slot of first block to fetch.
+* `blockFetcher.filter` defines json encoded [filter](#filter) for initial block fetcher. If not defined filter will accept all datums.
 
-* `firstFetchBlock.id` hash of block's HEADER not hash of a block itself.
+* `blockFetcher.firstBlock.slot` slot of first block to fetch by initial block fetcher.
 
-* `blockFetcher.autoStart` defines if block fetcher should start automatically.
+* `blockFetcher.firstBlock.id` hash of block's HEADER not hash of a block itself.
 
 * `blockFetcher.startFromLast` defines if block fetcher, if started automatically, should start from last block that was proccessed rather than from block defined in `firstFetchBlock`.
 
-### Filter file
+### Filter
 
 Datum filter can filter datum hash and address of utxo with given datum. Filters can be combined with logical `or`s and `and`s.
 

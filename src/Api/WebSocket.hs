@@ -9,7 +9,6 @@ import Data.Text qualified as Text
 import Data.Vector qualified as Vector
 import Network.WebSockets qualified as WS
 
-import Api.Types (FirstFetchBlock (FirstFetchBlock))
 import Api.WebSocket.Json (
     mkCancelFetchBlocksFault,
     mkCancelFetchBlocksResponse,
@@ -33,6 +32,8 @@ import Block.Fetch (
     startBlockFetcher,
     stopBlockFetcher,
  )
+import Block.Filter (DatumFilter)
+import Block.Types (BlockInfo (BlockInfo))
 import Data.Int (Int64)
 import Database (
     DatabaseError (DatabaseErrorDecodeError, DatabaseErrorNotFound),
@@ -78,13 +79,15 @@ getLastBlock conn = do
         Nothing ->
             sendTextData conn mkGetBlockFault
 
+-- TODO: Use ExceptT
 startFetchBlocks ::
     WS.Connection ->
     Int64 ->
     Text ->
+    DatumFilter ->
     App ()
-startFetchBlocks conn firstBlockSlot firstBlockId = do
-    res <- startBlockFetcher $ pure $ FirstFetchBlock firstBlockSlot firstBlockId
+startFetchBlocks conn firstBlockSlot firstBlockId datumFilter = do
+    res <- startBlockFetcher (BlockInfo firstBlockSlot firstBlockId) datumFilter
     case res of
         Left StartBlockFetcherErrorAlreadyRunning ->
             sendTextData conn $ mkStartFetchBlocksFault "Block fetcher already running"
@@ -122,8 +125,8 @@ websocketServer conn = forever $ do
                     getDatumsByHashes conn hashes
                 GetBlock ->
                     getLastBlock conn
-                StartFetchBlocks firstBlockSlot firstBlockId ->
-                    startFetchBlocks conn firstBlockSlot firstBlockId
+                StartFetchBlocks firstBlockSlot firstBlockId datumFilter ->
+                    startFetchBlocks conn firstBlockSlot firstBlockId datumFilter
                 CancelFetchBlocks ->
                     cancelFetchBlocks conn
   where

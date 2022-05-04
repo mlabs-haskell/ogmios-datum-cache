@@ -1,7 +1,6 @@
 {-# LANGUAGE DuplicateRecordFields #-}
 
 module Api.Types (
-    FirstFetchBlock (..),
     GetDatumByHashResponse (..),
     GetDatumsByHashesRequest (..),
     GetDatumsByHashesDatum (..),
@@ -17,14 +16,8 @@ import Data.Text (Text)
 import Data.Vector (Vector)
 import Servant.API.Generic (Generic)
 
+import Block.Filter (DatumFilter)
 import PlutusData qualified
-
-data FirstFetchBlock = FirstFetchBlock
-    { blockSlot :: Int64
-    , blockId :: Text
-    }
-    deriving stock (Generic, Show)
-    deriving anyclass (ToJSON)
 
 newtype GetDatumByHashResponse = GetDatumByHashResponse PlutusData.Data
     deriving stock (Generic)
@@ -52,6 +45,7 @@ newtype GetDatumsByHashesResponse = GetDatumsByHashesResponse
 data StartBlockFetchingRequest = StartBlockFetchingRequest
     { slot :: Int64
     , id :: Text
+    , datumFilter :: DatumFilter
     }
     deriving stock (Generic)
     deriving anyclass (FromJSON)

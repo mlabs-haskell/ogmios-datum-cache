@@ -18,7 +18,7 @@ import Data.Aeson qualified as Json
 import Data.Text (Text)
 import GHC.Generics (Generic)
 
-import Api.Types (FirstFetchBlock)
+import Block.Types (BlockInfo)
 import PlutusData qualified
 
 -- {
@@ -93,7 +93,7 @@ mkGetDatumsByHashesFault :: Text -> JsonWspFault
 mkGetDatumsByHashesFault =
     JsonWspFault "GetDatumsByHashes" "client"
 
-mkGetBlockResponse :: FirstFetchBlock -> JsonWspResponse
+mkGetBlockResponse :: BlockInfo -> JsonWspResponse
 mkGetBlockResponse block = JsonWspResponse "GetBlock" (object ["block" .= block])
 
 mkGetBlockFault :: JsonWspFault

@@ -19,7 +19,6 @@ import Control.Monad.Trans.Except (except, runExceptT, throwE)
 import Data.ByteString (ByteString)
 import Data.ByteString.Lazy qualified as BSL
 import Data.Functor.Contravariant ((>$<))
-import Data.Int (Int64)
 import Data.List (foldl')
 import Data.Text (Text)
 import Data.Text qualified as Text
@@ -32,7 +31,7 @@ import Hasql.Session (Session)
 import Hasql.Session qualified as Session
 import Hasql.Statement (Statement (..))
 
-import Api.Types (FirstFetchBlock (FirstFetchBlock))
+import Block.Types (BlockInfo (BlockInfo))
 import PlutusData qualified
 
 data Datum = Datum
@@ -105,8 +104,8 @@ initTables = do
     liftIO $ void $ Session.run sql conn
 
 initLastBlock ::
-    (MonadIO m, MonadLogger m, MonadReader r m, Has Connection r) => Int64 -> Text -> m ()
-initLastBlock slot hash = do
+    (MonadIO m, MonadLogger m, MonadReader r m, Has Connection r) => BlockInfo -> m ()
+initLastBlock (BlockInfo slot hash) = do
     let sql = "INSERT INTO last_block (slot, hash) VALUES ($1, $2) ON CONFLICT DO NOTHING"
         enc =
             mconcat
@@ -123,8 +122,8 @@ initLastBlock slot hash = do
             logErrorNS "initLastBlock" $ Text.pack $ show err
             pure ()
 
-updateLastBlock :: (MonadIO m, MonadLogger m, MonadReader r m, Has Connection r) => Int64 -> Text -> m ()
-updateLastBlock slot hash = do
+updateLastBlock :: (MonadIO m, MonadLogger m, MonadReader r m, Has Connection r) => BlockInfo -> m ()
+updateLastBlock (BlockInfo slot hash) = do
     let sql = "UPDATE last_block SET slot = $1, hash = $2"
         enc =
             mconcat
@@ -141,13 +140,13 @@ updateLastBlock slot hash = do
             logErrorNS "updateLastBlock" $ Text.pack $ show err
             pure ()
 
-getLastBlock :: (MonadIO m, MonadLogger m, MonadReader r m, Has Connection r) => m (Maybe FirstFetchBlock)
+getLastBlock :: (MonadIO m, MonadLogger m, MonadReader r m, Has Connection r) => m (Maybe BlockInfo)
 getLastBlock = do
     let sql = "SELECT slot, hash FROM last_block LIMIT 1"
         enc = Encoders.noParams
         dec =
             Decoders.singleRow $
-                FirstFetchBlock
+                BlockInfo
                     <$> Decoders.column (Decoders.nonNullable Decoders.int8)
                     <*> Decoders.column (Decoders.nonNullable Decoders.text)
         stmt = Session.statement () $ Statement sql enc dec True
