@@ -71,8 +71,8 @@ startBlockFetcher ::
     Maybe FirstFetchBlock ->
     m (Either StartBlockFetcherError ())
 startBlockFetcher firstBlock = do
-    OgmiosInfo{..} <- ask
-    (MkOgmiosWorkerMVar envOgmiosWorker) <- ask
+    OgmiosInfo ogmiosPort ogmiosAddress <- ask
+    MkOgmiosWorkerMVar envOgmiosWorker <- ask
     env <- Reader.ask
 
     let runStack = runStdoutLoggingT . flip runReaderT env
@@ -91,8 +91,7 @@ startBlockFetcher firstBlock = do
             runOgmiosClient `onException` errorHandler
 
     putSuccessful <- liftIO $ tryPutMVar envOgmiosWorker $ void ogmiosWorker
-
-    if putSuccessful then pure . pure $ () else pure $ Left StartBlockFetcherErrorAlreadyRunning
+    pure $ unless putSuccessful $ Left StartBlockFetcherErrorAlreadyRunning
 
 isBlockFetcherRunning :: (MonadIO m) => OgmiosWorkerMVar -> m Bool
 isBlockFetcherRunning (MkOgmiosWorkerMVar mvar) = liftIO $ isEmptyMVar mvar
@@ -101,9 +100,11 @@ data StopBlockFetcherError
     = StopBlockFetcherErrorNotRunning
     deriving stock (Show, Eq)
 
-stopBlockFetcher :: (MonadIO m, MonadReader r m, Has OgmiosWorkerMVar r) => m (Either StopBlockFetcherError ())
+stopBlockFetcher ::
+    (MonadIO m, MonadReader r m, Has OgmiosWorkerMVar r) =>
+    m (Either StopBlockFetcherError ())
 stopBlockFetcher = do
-    (MkOgmiosWorkerMVar envOgmiosWorker) <- ask
+    MkOgmiosWorkerMVar envOgmiosWorker <- ask
     ogmiosWorker' <- liftIO $ tryTakeMVar envOgmiosWorker
     case ogmiosWorker' of
         Just ogmiosWorker -> do
@@ -115,7 +116,13 @@ createStoppedFetcher :: MonadIO m => m OgmiosWorkerMVar
 createStoppedFetcher = MkOgmiosWorkerMVar <$> liftIO newEmptyMVar
 
 receiveLoop ::
-    (MonadIO m, MonadUnliftIO m, MonadLogger m, MonadReader r m, Has DatumFilter r, Has Hasql.Connection r) =>
+    ( MonadIO m
+    , MonadUnliftIO m
+    , MonadLogger m
+    , MonadReader r m
+    , Has DatumFilter r
+    , Has Hasql.Connection r
+    ) =>
     WS.Connection ->
     m ()
 receiveLoop conn = do
@@ -124,10 +131,8 @@ receiveLoop conn = do
     case _result <$> msg of
         Nothing -> do
             logErrorNS "receiveLoop" "Error decoding FindIntersect response"
-            pure ()
         Just (IntersectionNotFound _) -> do
             logErrorNS "receiveLoop" "Find intersection error: Intersection not found. Consider restarting block fetcher with different block info"
-            pure ()
         Just (IntersectionFound _ _) -> do
             logInfoNS "receiveLoop" "Find intersection: intersection found, starting RequestNext loop"
             Async.withAsync (receiveBlocksLoop conn) $ \receiveBlocksWorker -> do
@@ -190,13 +195,20 @@ saveDatumsFromAlonzoBlock block = do
     let decodeDatumValue = BSBase64.decodeBase64 . Text.encodeUtf8
     let (failedDecodings, requestedDatumsWithDecodedValues) = Map.mapEither decodeDatumValue requestedDatums
     unless (null failedDecodings) $ do
-        logErrorNS "saveDatumsFromAlonzoBlock" $ "Error decoding values for datums: " <> Text.intercalate ", " (Map.keys failedDecodings)
+        logErrorNS "saveDatumsFromAlonzoBlock" $
+            "Error decoding values for datums: " <> Text.intercalate ", " (Map.keys failedDecodings)
         pure ()
     let datums = Map.toList requestedDatumsWithDecodedValues
     unless (null datums) $ saveDatums datums
 
 wsApp ::
-    (MonadIO m, MonadUnliftIO m, MonadLogger m, MonadReader r m, Has DatumFilter r, Has Hasql.Connection r) =>
+    ( MonadIO m
+    , MonadUnliftIO m
+    , MonadLogger m
+    , MonadReader r m
+    , Has DatumFilter r
+    , Has Hasql.Connection r
+    ) =>
     WS.Connection ->
     Maybe FirstFetchBlock ->
     m ()
