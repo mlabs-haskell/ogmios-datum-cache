@@ -14,44 +14,6 @@ data JsonWspRequest = JsonWspRequest
     }
     deriving stock (Generic)
 
--- instance FromJSON JsonWspRequest where
---     parseJSON = withObject "JsonWspRequest" $ \o ->
---         JsonWspRequest <$> (o .:? "mirror") <*> parseMethod o
---       where
---         parseMethod o = do
---             (method :: Text) <- o .: "methodname"
---             case method of
---                 "GetDatumByHash" -> do
---                     args <- o .: "args"
---                     hash <- args .: "hash"
---                     pure $ GetDatumByHash hash
---                 "GetDatumsByHashes" -> do
---                     args <- o .: "args"
---                     hashes <- args .: "hashes"
---                     pure $ GetDatumsByHashes hashes
---                 "StartFetchBlocks" -> do
---                     args <- o .: "args"
---                     slot <- args .: "slot"
---                     blockId <- args .: "id"
---                     pure $ StartFetchBlocks slot blockId
---                 "CancelFetchBlocks" -> do
---                     pure CancelFetchBlocks
---                 "DatumFilterAddHashes" -> do
---                     args <- o .: "args"
---                     hashes <- args .: "hashes"
---                     pure $ DatumFilterAddHashes hashes
---                 "DatumFilterRemoveHashes" -> do
---                     args <- o .: "args"
---                     hashes <- args .: "hashes"
---                     pure $ DatumFilterRemoveHashes hashes
---                 "DatumFilterSetHashes" -> do
---                     args <- o .: "args"
---                     hashes <- args .: "hashes"
---                     pure $ DatumFilterSetHashes hashes
---                 "DatumFilterGetHashes" -> do
---                     pure DatumFilterGetHashes
---                 _ -> fail "Unexpected method"
-
 instance FromJSON JsonWspRequest where
     parseJSON = withObject "GetDatumByHash" $ \o ->
         JsonWspRequest <$> (o .:? "mirror") <*> parseMethod o
