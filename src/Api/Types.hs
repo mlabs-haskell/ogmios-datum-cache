@@ -5,24 +5,18 @@ module Api.Types (
     GetDatumsByHashesRequest (..),
     GetDatumsByHashesDatum (..),
     GetDatumsByHashesResponse (..),
-    AddDatumHashesRequest (..),
-    AddDatumHashesResponse (..),
-    RemoveDatumHashesRequest (..),
-    RemoveDatumHashesResponse (..),
-    SetDatumHashesRequest (..),
-    SetDatumHashesResponse (..),
-    GetDatumHashesResponse (..),
     StartBlockFetchingRequest (..),
     StartBlockFetchingResponse (..),
     CancelBlockFetchingResponse (..),
 ) where
 
 import Data.Aeson (FromJSON, ToJSON)
-import Data.Set (Set)
+import Data.Int (Int64)
 import Data.Text (Text)
 import Data.Vector (Vector)
 import Servant.API.Generic (Generic)
 
+import Block.Filter (DatumFilter)
 import PlutusData qualified
 
 newtype GetDatumByHashResponse = GetDatumByHashResponse PlutusData.Data
@@ -48,51 +42,10 @@ newtype GetDatumsByHashesResponse = GetDatumsByHashesResponse
     deriving stock (Generic)
     deriving anyclass (ToJSON)
 
-newtype AddDatumHashesRequest = AddDatumHashesRequest
-    { hashes :: [Text]
-    }
-    deriving stock (Generic)
-    deriving anyclass (FromJSON)
-
-newtype AddDatumHashesResponse = AddDatumHashesResponse
-    { message :: Text
-    }
-    deriving stock (Generic)
-    deriving anyclass (ToJSON)
-
-newtype RemoveDatumHashesRequest = RemoveDatumHashesRequest
-    { hashes :: [Text]
-    }
-    deriving stock (Generic)
-    deriving anyclass (FromJSON)
-
-newtype RemoveDatumHashesResponse = RemoveDatumHashesResponse
-    { message :: Text
-    }
-    deriving stock (Generic)
-    deriving anyclass (ToJSON)
-
-newtype SetDatumHashesRequest = SetDatumHashesRequest
-    { hashes :: [Text]
-    }
-    deriving stock (Generic)
-    deriving anyclass (FromJSON)
-
-newtype SetDatumHashesResponse = SetDatumHashesResponse
-    { message :: Text
-    }
-    deriving stock (Generic)
-    deriving anyclass (ToJSON)
-
-newtype GetDatumHashesResponse = GetDatumHashesResponse
-    { hashes :: Set Text
-    }
-    deriving stock (Generic)
-    deriving anyclass (ToJSON)
-
 data StartBlockFetchingRequest = StartBlockFetchingRequest
-    { slot :: Integer
+    { slot :: Int64
     , id :: Text
+    , datumFilter :: DatumFilter
     }
     deriving stock (Generic)
     deriving anyclass (FromJSON)

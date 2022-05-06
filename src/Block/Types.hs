@@ -9,19 +9,29 @@ module Block.Types (
     RequestNextResult (..),
     Block (..),
     AlonzoBlock (..),
+    AlonzoBlockHeader (..),
     AlonzoTransaction (..),
     OgmiosResponse (..),
+    TxOut (..),
+    BlockInfo (..),
 ) where
 
-import Data.Aeson (FromJSON, ToJSON, withObject, (.:))
+import Data.Aeson (FromJSON, ToJSON, withObject, (.:), (.:?))
 import Data.Aeson qualified as Json
 import Data.HashMap.Strict qualified as HM
+import Data.Int (Int64)
 import Data.Map (Map)
 import Data.Map qualified as Map
 import Data.Text (Text)
+import GHC.Exts (toList)
 import GHC.Generics (Generic)
 
-import App.FirstFetchBlock (FirstFetchBlock (..))
+data BlockInfo = BlockInfo
+    { blockSlot :: Int64
+    , blockId :: Text
+    }
+    deriving stock (Generic, Show)
+    deriving anyclass (ToJSON)
 
 type OgmiosMirror = Int
 
@@ -55,8 +65,8 @@ type OgmiosFindIntersectRequest = OgmiosRequest CursorPoints OgmiosMirror
 
 type OgmiosRequestNextRequest = OgmiosRequest (Map Text Text) OgmiosMirror
 
-mkFindIntersectRequest :: FirstFetchBlock -> OgmiosFindIntersectRequest
-mkFindIntersectRequest (FirstFetchBlock firstBlockSlot firstBlockId) =
+mkFindIntersectRequest :: BlockInfo -> OgmiosFindIntersectRequest
+mkFindIntersectRequest (BlockInfo firstBlockSlot firstBlockId) =
     OgmiosRequest
         { _type = "jsonwsp/request"
         , _version = "1.0"
@@ -66,7 +76,7 @@ mkFindIntersectRequest (FirstFetchBlock firstBlockSlot firstBlockId) =
         , _mirror = 0
         }
   where
-    points = CursorPoints [CursorPoint firstBlockSlot firstBlockId]
+    points = CursorPoints [CursorPoint (fromIntegral firstBlockSlot) firstBlockId]
 
 mkRequestNextRequest :: Int -> OgmiosRequestNextRequest
 mkRequestNextRequest n =
@@ -112,7 +122,7 @@ data FindIntersectResult
 
 instance FromJSON FindIntersectResult where
     parseJSON = withObject "FindIntersectResult" $ \o -> do
-        case HM.toList o of
+        case toList o of
             [("IntersectionFound", intersectionObj)] ->
                 withObject
                     "IntersectionFound"
@@ -150,8 +160,21 @@ data Block
     | MkAlonzoBlock AlonzoBlock
     deriving stock (Eq, Show, Generic)
 
-newtype AlonzoTransaction = AlonzoTransaction
+data TxOut = TxOut
+    { address :: Text
+    , datumHash :: Maybe Text
+    }
+    deriving stock (Eq, Show, Generic)
+
+instance FromJSON TxOut where
+    parseJSON = withObject "TxOut" $ \o -> do
+        address <- o .: "address"
+        datumHash <- o .:? "datum"
+        pure $ TxOut{..}
+
+data AlonzoTransaction = AlonzoTransaction
     { datums :: Map Text Text
+    , outputs :: [TxOut]
     }
     deriving stock (Eq, Show, Generic)
 
@@ -159,31 +182,28 @@ instance FromJSON AlonzoTransaction where
     parseJSON = withObject "AlonzoTransaction" $ \o -> do
         witness <- o .: "witness"
         datums <- witness .: "datums"
-        pure $ AlonzoTransaction datums
-
--- data AlonzoBlockHeader = AlonzoBlockHeader
---   { signature :: Text
---   , nonce :: AlonzoBlockHeaderNonce
---   , leadervalue ::  AlonzoBlockHeaderLeaderValue
---   , ..
---   }
+        body <- o .: "body"
+        outputs <- body .: "outputs"
+        pure $ AlonzoTransaction datums outputs
 
 data AlonzoBlockHeader = AlonzoBlockHeader
+    { slot :: Int64
+    , blockHash :: Text
+    }
     deriving stock (Eq, Show, Generic)
-
-instance FromJSON AlonzoBlockHeader where
-    parseJSON = const $ pure AlonzoBlockHeader
+    deriving anyclass (FromJSON)
 
 data AlonzoBlock = AlonzoBlock
     { body :: [AlonzoTransaction]
     , header :: AlonzoBlockHeader
+    , headerHash :: Maybe Text
     }
     deriving stock (Eq, Show, Generic)
     deriving anyclass (FromJSON)
 
 instance FromJSON RequestNextResult where
     parseJSON = withObject "RequestNextResult" $ \o -> do
-        case HM.toList o of
+        case toList o of
             [("RollBackward", rollObj)] ->
                 withObject
                     "RollBackward"

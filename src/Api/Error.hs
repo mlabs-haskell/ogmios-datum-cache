@@ -1,10 +1,11 @@
 module Api.Error (
     throwJsonError,
-    JsonError (..),
+    JsonError (JsonError),
 ) where
 
 import Control.Monad.Catch (MonadThrow, throwM)
 import Data.Aeson (ToJSON, encode)
+import Data.String (IsString)
 import Data.Text (Text)
 import GHC.Generics (Generic)
 import Network.HTTP.Types (hContentType)
@@ -19,8 +20,9 @@ newtype JsonError = JsonError
     }
     deriving stock (Generic)
     deriving anyclass (ToJSON)
+    deriving newtype (IsString)
 
-throwJsonError :: (MonadThrow m, ToJSON a) => ServerError -> a -> m b
+throwJsonError :: (MonadThrow m) => ServerError -> JsonError -> m b
 throwJsonError err json =
     throwM
         err
