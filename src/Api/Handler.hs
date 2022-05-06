@@ -28,6 +28,7 @@ import Block.Fetch (
     startBlockFetcher,
     stopBlockFetcher,
  )
+import Block.Types (BlockInfo (BlockInfo))
 import Database (
     DatabaseError (DatabaseErrorDecodeError, DatabaseErrorNotFound),
  )
@@ -57,13 +58,20 @@ datumServiceHandlers = Routes{..}
         datums <- Db.getDatumsByHashes hashes >>= catchDatabaseError
         pure $ GetDatumsByHashesResponse $ fmap (uncurry GetDatumsByHashesDatum) datums
 
+    getLastBlock :: App BlockInfo
+    getLastBlock = do
+        block' <- Db.getLastBlock
+        case block' of
+            Just block -> pure block
+            Nothing -> throwM err404
+
     -- control api
     controlRoutes :: ToServant ControlApi (AsServerT App)
     controlRoutes = genericServerT ControlApi{..}
 
     startBlockFetching :: StartBlockFetchingRequest -> App StartBlockFetchingResponse
-    startBlockFetching (StartBlockFetchingRequest firstBlockSlot firstBlockId) = do
-        res <- startBlockFetcher (Just (firstBlockSlot, firstBlockId))
+    startBlockFetching (StartBlockFetchingRequest firstBlockSlot firstBlockId datumFilter) = do
+        res <- startBlockFetcher (BlockInfo firstBlockSlot firstBlockId) datumFilter
         case res of
             Left StartBlockFetcherErrorAlreadyRunning ->
                 throwJsonError err422 "Block fetcher already running"

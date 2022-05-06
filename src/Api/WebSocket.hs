@@ -4,6 +4,7 @@ import Control.Monad (forever)
 import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Logger (logErrorNS)
 import Data.Aeson qualified as Json
+import Data.Int (Int64)
 import Data.Text (Text)
 import Data.Text qualified as Text
 import Data.Vector qualified as Vector
@@ -12,6 +13,8 @@ import Network.WebSockets qualified as WS
 import Api.WebSocket.Json (
     mkCancelFetchBlocksFault,
     mkCancelFetchBlocksResponse,
+    mkGetBlockFault,
+    mkGetBlockResponse,
     mkGetDatumByHashFault,
     mkGetDatumByHashResponse,
     mkGetDatumsByHashesFault,
@@ -30,6 +33,8 @@ import Block.Fetch (
     startBlockFetcher,
     stopBlockFetcher,
  )
+import Block.Filter (DatumFilter)
+import Block.Types (BlockInfo (BlockInfo))
 import Database (
     DatabaseError (DatabaseErrorDecodeError, DatabaseErrorNotFound),
  )
@@ -42,8 +47,8 @@ getDatumByHash ::
 getDatumByHash conn hash = do
     res <- Db.getDatumByHash hash
     case res of
-        Left (DatabaseErrorDecodeError _) ->
-            sendTextData conn $ mkGetDatumByHashFault "Error deserializing plutus Data"
+        Left (DatabaseErrorDecodeError faulty) ->
+            sendTextData conn $ mkGetDatumByHashFault $ "Error deserializing plutus Data in: " <> Text.pack (show faulty)
         Left DatabaseErrorNotFound ->
             sendTextData conn $ mkGetDatumByHashResponse Nothing
         Right datum ->
@@ -65,13 +70,23 @@ getDatumsByHashes conn hashes = do
             let datums' = Vector.toList $ Vector.map (Json.toJSON . uncurry GetDatumsByHashesDatum) datums
             sendTextData conn $ mkGetDatumsByHashesResponse (Just datums')
 
+getLastBlock :: WS.Connection -> App ()
+getLastBlock conn = do
+    block' <- Db.getLastBlock
+    case block' of
+        Just block ->
+            sendTextData conn $ mkGetBlockResponse block
+        Nothing ->
+            sendTextData conn mkGetBlockFault
+
 startFetchBlocks ::
     WS.Connection ->
-    Integer ->
+    Int64 ->
     Text ->
+    DatumFilter ->
     App ()
-startFetchBlocks conn firstBlockSlot firstBlockId = do
-    res <- startBlockFetcher (Just (firstBlockSlot, firstBlockId))
+startFetchBlocks conn firstBlockSlot firstBlockId datumFilter = do
+    res <- startBlockFetcher (BlockInfo firstBlockSlot firstBlockId) datumFilter
     case res of
         Left StartBlockFetcherErrorAlreadyRunning ->
             sendTextData conn $ mkStartFetchBlocksFault "Block fetcher already running"
@@ -107,8 +122,10 @@ websocketServer conn = forever $ do
                     getDatumByHash conn hash
                 GetDatumsByHashes hashes ->
                     getDatumsByHashes conn hashes
-                StartFetchBlocks firstBlockSlot firstBlockId ->
-                    startFetchBlocks conn firstBlockSlot firstBlockId
+                GetBlock ->
+                    getLastBlock conn
+                StartFetchBlocks firstBlockSlot firstBlockId datumFilter ->
+                    startFetchBlocks conn firstBlockSlot firstBlockId datumFilter
                 CancelFetchBlocks ->
                     cancelFetchBlocks conn
   where

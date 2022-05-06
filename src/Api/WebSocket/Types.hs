@@ -1,15 +1,18 @@
 module Api.WebSocket.Types (Method (..), GetDatumsByHashesDatum (..)) where
 
 import Data.Aeson (FromJSON, ToJSON, parseJSON, withObject, (.:))
+import Data.Int (Int64)
 import Data.Text (Text)
 import GHC.Generics (Generic)
 
+import Block.Filter (DatumFilter)
 import PlutusData qualified
 
 data Method
     = GetDatumByHash Text
     | GetDatumsByHashes [Text]
-    | StartFetchBlocks Integer Text
+    | GetBlock
+    | StartFetchBlocks Int64 Text DatumFilter
     | CancelFetchBlocks
     deriving stock (Show)
 
@@ -25,11 +28,13 @@ instance FromJSON Method where
                 args <- o .: "args"
                 hashes <- args .: "hashes"
                 pure $ GetDatumsByHashes hashes
+            "GetBlock" -> pure GetBlock
             "StartFetchBlocks" -> do
                 args <- o .: "args"
                 slot <- args .: "slot"
                 blockId <- args .: "id"
-                pure $ StartFetchBlocks slot blockId
+                datumFilter <- args .: "datumFilter"
+                pure $ StartFetchBlocks slot blockId datumFilter
             "CancelFetchBlocks" -> do
                 pure CancelFetchBlocks
             _ -> fail "Unexpected method"

@@ -19,6 +19,7 @@ import Api.Types (
     StartBlockFetchingRequest,
     StartBlockFetchingResponse,
  )
+import Block.Types (BlockInfo)
 
 data DatumApi route = DatumApi
     { getDatumByHash ::
@@ -34,6 +35,11 @@ data DatumApi route = DatumApi
             -- TODO: change to JSON request
             :> ReqBody '[JSON] GetDatumsByHashesRequest
             :> Get '[JSON] GetDatumsByHashesResponse
+    , getLastBlock ::
+        route
+            :- "block"
+            :> Summary "Get latest processed block"
+            :> Get '[JSON] BlockInfo
     }
     deriving stock (Generic)
 

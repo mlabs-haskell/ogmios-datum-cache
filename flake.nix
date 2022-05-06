@@ -55,6 +55,7 @@
             hlint
             apply-refact
             pkgs.postgresql
+            hoogle
           ];
         });
       # TODO

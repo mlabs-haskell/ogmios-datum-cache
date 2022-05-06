@@ -5,6 +5,8 @@ module Api.WebSocket.Json (
     mkGetDatumByHashFault,
     mkGetDatumsByHashesResponse,
     mkGetDatumsByHashesFault,
+    mkGetBlockResponse,
+    mkGetBlockFault,
     mkStartFetchBlocksResponse,
     mkStartFetchBlocksFault,
     mkCancelFetchBlocksResponse,
@@ -16,6 +18,7 @@ import Data.Aeson qualified as Json
 import Data.Text (Text)
 import GHC.Generics (Generic)
 
+import Block.Types (BlockInfo)
 import PlutusData qualified
 
 -- {
@@ -89,6 +92,12 @@ mkGetDatumsByHashesResponse = \case
 mkGetDatumsByHashesFault :: Text -> JsonWspFault
 mkGetDatumsByHashesFault =
     JsonWspFault "GetDatumsByHashes" "client"
+
+mkGetBlockResponse :: BlockInfo -> JsonWspResponse
+mkGetBlockResponse block = JsonWspResponse "GetBlock" (object ["block" .= block])
+
+mkGetBlockFault :: JsonWspFault
+mkGetBlockFault = JsonWspFault "GetBlock" "notFound" ""
 
 mkStartFetchBlocksResponse :: JsonWspResponse
 mkStartFetchBlocksResponse =

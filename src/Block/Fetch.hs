@@ -25,18 +25,18 @@ import Data.Text (Text)
 import Data.Text qualified as Text
 import Data.Text.Encoding qualified as Text
 import Hasql.Connection qualified as Hasql
-import Hasql.Session qualified as Session
 import Network.WebSockets qualified as WS
 import UnliftIO.Async (Async)
 import UnliftIO.Async qualified as Async
 import UnliftIO.Concurrent (threadDelay)
 
-import Api.Types (FirstFetchBlock (FirstFetchBlock))
 import Block.Filter (DatumFilter, runDatumFilter)
 import Block.Types (
     AlonzoBlock (..),
+    AlonzoBlockHeader (..),
     AlonzoTransaction (..),
     Block (..),
+    BlockInfo (BlockInfo),
     FindIntersectResult (..),
     OgmiosFindIntersectResponse,
     OgmiosRequestNextResponse,
@@ -45,7 +45,7 @@ import Block.Types (
     mkFindIntersectRequest,
     mkRequestNextRequest,
  )
-import Database (insertDatumsSession)
+import Database (saveDatums, updateLastBlock)
 
 data OgmiosInfo = OgmiosInfo
     { ogmiosPort :: Int
@@ -56,6 +56,7 @@ newtype OgmiosWorkerMVar = MkOgmiosWorkerMVar (MVar (Async ()))
 
 data StartBlockFetcherError
     = StartBlockFetcherErrorAlreadyRunning
+    deriving stock (Show)
 
 startBlockFetcher ::
     ( MonadIO m
@@ -63,13 +64,12 @@ startBlockFetcher ::
     , MonadReader r m
     , Has OgmiosWorkerMVar r
     , Has OgmiosInfo r
-    , Has FirstFetchBlock r
-    , Has DatumFilter r
     , Has Hasql.Connection r
     ) =>
-    Maybe (Integer, Text) ->
+    BlockInfo ->
+    DatumFilter ->
     m (Either StartBlockFetcherError ())
-startBlockFetcher firstBlock = do
+startBlockFetcher blockInfo datumFilter = do
     OgmiosInfo ogmiosPort ogmiosAddress <- ask
     MkOgmiosWorkerMVar envOgmiosWorker <- ask
     env <- Reader.ask
@@ -82,7 +82,7 @@ startBlockFetcher firstBlock = do
 
     let runOgmiosClient =
             WS.runClient ogmiosAddress ogmiosPort "" $ \wsConn ->
-                runStack $ Right <$> wsApp wsConn firstBlock
+                runStack $ Right <$> wsApp wsConn blockInfo datumFilter
 
     ogmiosWorker <- liftIO $
         Async.async $ do
@@ -119,22 +119,22 @@ receiveLoop ::
     , MonadUnliftIO m
     , MonadLogger m
     , MonadReader r m
-    , Has DatumFilter r
     , Has Hasql.Connection r
     ) =>
     WS.Connection ->
+    DatumFilter ->
     m ()
-receiveLoop conn = do
+receiveLoop conn datumFilter = do
     jsonMsg <- liftIO $ WS.receiveData conn
     let msg = Json.decode @OgmiosFindIntersectResponse jsonMsg
     case _result <$> msg of
         Nothing -> do
             logErrorNS "receiveLoop" "Error decoding FindIntersect response"
         Just (IntersectionNotFound _) -> do
-            logErrorNS "receiveLoop" "Find intersection error: Intersection not found"
+            logErrorNS "receiveLoop" "Find intersection error: Intersection not found. Consider restarting block fetcher with different block info"
         Just (IntersectionFound _ _) -> do
             logInfoNS "receiveLoop" "Find intersection: intersection found, starting RequestNext loop"
-            Async.withAsync (receiveBlocksLoop conn) $ \receiveBlocksWorker -> do
+            Async.withAsync (receiveBlocksLoop conn datumFilter) $ \receiveBlocksWorker -> do
                 Async.link receiveBlocksWorker
                 requestRemainingBlocks conn
                 Async.wait receiveBlocksWorker
@@ -154,10 +154,11 @@ requestRemainingBlocks conn = forever $ do
     debounce
 
 receiveBlocksLoop ::
-    (MonadIO m, MonadLogger m, MonadReader r m, Has DatumFilter r, Has Hasql.Connection r) =>
+    (MonadIO m, MonadLogger m, MonadReader r m, Has Hasql.Connection r) =>
     WS.Connection ->
+    DatumFilter ->
     m ()
-receiveBlocksLoop conn = forever $ do
+receiveBlocksLoop conn datumFilter = forever $ do
     jsonMsg <- liftIO $ WS.receiveData conn
     let msg = Json.eitherDecode @OgmiosRequestNextResponse jsonMsg
     case _result <$> msg of
@@ -168,16 +169,21 @@ receiveBlocksLoop conn = forever $ do
         Right (RollForward OtherBlock _tip) ->
             logWarnNS "receiveBlocksLoop" "Received non-Alonzo block in the RollForward response"
         Right (RollForward (MkAlonzoBlock block) _tip) -> do
-            logInfoNS "receiveBlocksLoop" $ Text.pack $ "Processing block: " <> show (header block)
-            saveDatumsFromAlonzoBlock block
+            logInfoNS "receiveBlocksLoop" $
+                Text.pack $ "Processing block: " <> show (slot $ header block, headerHash block)
+            saveDatumsFromAlonzoBlock block datumFilter
+            case headerHash block of
+                Just headerHash' ->
+                    updateLastBlock $ BlockInfo (slot $ header block) headerHash'
+                Nothing ->
+                    logWarnNS "receiveBlocksLoop" $ Text.pack $ "Block without header hash: " <> show block
 
 saveDatumsFromAlonzoBlock ::
-    (MonadIO m, MonadLogger m, MonadReader r m, Has DatumFilter r, Has Hasql.Connection r) =>
+    (MonadIO m, MonadLogger m, MonadReader r m, Has Hasql.Connection r) =>
     AlonzoBlock ->
+    DatumFilter ->
     m ()
-saveDatumsFromAlonzoBlock block = do
-    datumFilter <- ask
-    dbConnection <- ask
+saveDatumsFromAlonzoBlock block datumFilter = do
     let txs = body block
     let requestedDatums =
             Map.fromList
@@ -189,41 +195,26 @@ saveDatumsFromAlonzoBlock block = do
         logErrorNS "saveDatumsFromAlonzoBlock" $
             "Error decoding values for datums: " <> Text.intercalate ", " (Map.keys failedDecodings)
         pure ()
-    let savedHashes = Map.keys requestedDatums
-    let savedValues = Map.elems requestedDatumsWithDecodedValues
-    unless (null savedHashes) $ do
-        logInfoNS "saveDatumsFromAlonzoBlock" $ "Inserting datums: " <> Text.intercalate ", " savedHashes
-        res <- liftIO $ Session.run (insertDatumsSession savedHashes savedValues) dbConnection
-        case res of
-            Right _ -> pure ()
-            Left err -> do
-                logErrorNS "saveDatumsFromAlonzoBlock" $ "Error inserting datums: " <> Text.pack (show err)
-                pure ()
+    let datums = Map.toList requestedDatumsWithDecodedValues
+    unless (null datums) $ saveDatums datums
 
 wsApp ::
     ( MonadIO m
     , MonadUnliftIO m
     , MonadLogger m
     , MonadReader r m
-    , Has FirstFetchBlock r
-    , Has DatumFilter r
     , Has Hasql.Connection r
     ) =>
     WS.Connection ->
-    Maybe (Integer, Text) ->
+    BlockInfo ->
+    DatumFilter ->
     m ()
-wsApp conn mfirstFetchBlock = do
-    firstFetchBlock' :: FirstFetchBlock <- ask
+wsApp conn blockInfo datumFilter = do
     logInfoNS "wsApp" "Connected to ogmios websocket"
-    Async.withAsync (receiveLoop conn) $ \receiveWorker -> do
+    Async.withAsync (receiveLoop conn datumFilter) $ \receiveWorker -> do
         Async.link receiveWorker
-        let firstFetchBlock =
-                case mfirstFetchBlock of
-                    Just (firstBlockSlot, firstBlockId) ->
-                        FirstFetchBlock firstBlockSlot firstBlockId
-                    Nothing ->
-                        firstFetchBlock'
-        let findIntersectRequest = mkFindIntersectRequest firstFetchBlock
+        logInfoNS "wsApp" $ Text.pack $ "Starting fetcher from block: " <> show blockInfo
+        let findIntersectRequest = mkFindIntersectRequest blockInfo
         liftIO $ WS.sendTextData conn (Json.encode findIntersectRequest)
         debounce
         Async.wait receiveWorker
