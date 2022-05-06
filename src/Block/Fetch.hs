@@ -139,9 +139,6 @@ receiveLoop conn datumFilter = do
                 requestRemainingBlocks conn
                 Async.wait receiveBlocksWorker
 
--- b3faa2bc1465aa0d8500655981108904e5a7a9339be5fc1e6a9754088a4456c1
--- dd5733ec572c904a98376ecce6759c943b8fa05d2765aaef3cb50cd016d620e9
-
 -- Why it's neccesary?
 debounce ::
     MonadIO m =>
