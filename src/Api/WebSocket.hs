@@ -3,11 +3,8 @@ module Api.WebSocket (websocketServer) where
 import Control.Monad (forever)
 import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Logger (logErrorNS)
-import Data.Aeson (Value (Null))
 import Data.Aeson qualified as Json
-import Data.HashMap.Strict qualified as HM
 import Data.Int (Int64)
-import Data.Maybe (fromMaybe)
 import Data.Text (Text)
 import Data.Text qualified as Text
 import Data.Vector qualified as Vector
@@ -46,65 +43,67 @@ import Database (
  )
 import Database qualified as Db
 
+type WSResponse = Either (Maybe Text -> JsonWspFault) (Maybe Text -> JsonWspResponse)
+
 getDatumByHash ::
     Text ->
-    App (Either JsonWspFault JsonWspResponse)
+    App WSResponse
 getDatumByHash hash = do
     res <- Db.getDatumByHash hash
-    case res of
+    pure $ case res of
         Left (DatabaseErrorDecodeError faulty) ->
-            pure $ Left $ mkGetDatumByHashFault $ "Error deserializing plutus Data in: " <> Text.pack (show faulty)
+            Left $ mkGetDatumByHashFault $ "Error deserializing plutus Data in: " <> Text.pack (show faulty)
         Left DatabaseErrorNotFound ->
-            pure $ Right $ mkGetDatumByHashResponse Nothing
+            Right $ mkGetDatumByHashResponse Nothing
         Right datum ->
-            pure $ Right $ mkGetDatumByHashResponse $ Just datum
+            Right $ mkGetDatumByHashResponse $ Just datum
 
 getDatumsByHashes ::
     [Text] ->
-    App (Either JsonWspFault JsonWspResponse)
+    App WSResponse
 getDatumsByHashes hashes = do
     res <- Db.getDatumsByHashes hashes
-    case res of
+    pure $ case res of
         Left (DatabaseErrorDecodeError faulty) -> do
             let resp = mkGetDatumsByHashesFault $ "Error deserializing plutus Data in: " <> Text.pack (show faulty)
-            pure $ Left resp
+            Left resp
         Left DatabaseErrorNotFound ->
-            pure $ Right $ mkGetDatumsByHashesResponse Nothing
+            Right $ mkGetDatumsByHashesResponse Nothing
         Right datums -> do
             let datums' = Vector.toList $ Vector.map (Json.toJSON . uncurry GetDatumsByHashesDatum) datums
-            pure $ Right $ mkGetDatumsByHashesResponse (Just datums')
+            Right $ mkGetDatumsByHashesResponse (Just datums')
 
-getLastBlock :: App (Either JsonWspFault JsonWspResponse)
+getLastBlock :: App WSResponse
 getLastBlock = do
     block' <- Db.getLastBlock
-    case block' of
+    pure $ case block' of
         Nothing ->
-            pure $ Left mkGetBlockFault
+            Left mkGetBlockFault
         Just block ->
-            pure $ Right $ mkGetBlockResponse block
+            Right $ mkGetBlockResponse block
 
 startFetchBlocks ::
     Int64 ->
     Text ->
     DatumFilter ->
-    App (Either JsonWspFault JsonWspResponse)
+    App WSResponse
 startFetchBlocks firstBlockSlot firstBlockId datumFilter = do
     res <- startBlockFetcher (BlockInfo firstBlockSlot firstBlockId) datumFilter
-    case res of
+    pure $ case res of
         Left StartBlockFetcherErrorAlreadyRunning ->
-            pure $ Left $ mkStartFetchBlocksFault "Block fetcher already running"
+            Left $ mkStartFetchBlocksFault "Block fetcher already running"
         Right () ->
-            pure $ Right $ mkStartFetchBlocksResponse
+            Right mkStartFetchBlocksResponse
 
 cancelFetchBlocks ::
-    App (Either JsonWspFault JsonWspResponse)
+    App WSResponse
 cancelFetchBlocks = do
     res <- stopBlockFetcher
-    case res of
+    pure $ case res of
         Left StopBlockFetcherErrorNotRunning ->
-            pure $ Left $ mkCancelFetchBlocksFault "No block fetcher running"
+            Left $ mkCancelFetchBlocksFault "No block fetcher running"
         Right () ->
-            pure $ Right mkCancelFetchBlocksResponse
+            Right mkCancelFetchBlocksResponse
 
 websocketServer ::
     WS.Connection ->
@@ -126,16 +125,8 @@ websocketServer conn = forever $ do
                     startFetchBlocks firstBlockSlot firstBlockId datumFilter
                 CancelFetchBlocks ->
                     cancelFetchBlocks
-            let jsonResp = either Json.toJSON Json.toJSON response
-            sendTextData $ appendJsonWspReflection mirror jsonResp
+            let jsonResp = either (\l -> Json.encode $ l mirror) (\r -> Json.encode $ r mirror) response
+            sendTextData jsonResp
   where
-    sendTextData = liftIO . WS.sendTextData conn . Json.encode
-
+    sendTextData = liftIO . WS.sendTextData conn
     receiveData = liftIO $ WS.receiveData conn
-
-    -- A little bit hacky but ok
-    appendJsonWspReflection mirror = \case
-        Json.Object jsonWspResponseObject ->
-            Json.Object $ HM.insert "reflection" (fromMaybe Null mirror) jsonWspResponseObject
-        -- unreachable: this should not be the case anyway
-        nonObject -> nonObject
