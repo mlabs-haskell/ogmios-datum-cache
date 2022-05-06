@@ -321,6 +321,7 @@ Request:
   "version": "1.0",
   "servicename": "ogmios",
   "methodname": "GetBlock"
+  "mirror": "req.no.1"
 }
 ```
 
@@ -336,7 +337,8 @@ Response:
   },
   "version":"1.0",
   "servicename":"ogmios-datum-cache",
-  "type":"jsonwsp/response"
+  "type":"jsonwsp/response",
+  "reflection": "req.no.1"
 }
 ```
 
@@ -350,7 +352,8 @@ Request:
   "methodname": "StartFetchBlocks",
   "args": {
     "slot": 1,
-    "id": "abc"
+    "id": "abc",
+    "datumFilter": { "address": "addr_xyz" }
   },
   "mirror": "foo"
 }
