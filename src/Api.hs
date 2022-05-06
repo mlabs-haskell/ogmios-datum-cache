@@ -38,7 +38,7 @@ data DatumApi route = DatumApi
     , getLastBlock ::
         route
             :- "block"
-            :> Summary "Get currenctly processed block"
+            :> Summary "Get latest processed block"
             :> Get '[JSON] BlockInfo
     }
     deriving stock (Generic)
