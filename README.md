@@ -139,7 +139,9 @@ Request:
   "methodname": "GetDatumByHash",
   "args": {
     "hash": "04caaf1336b754e0b8b4e2fa1c59aa6b85f97dd29652729f1c1e28805acdeb20"
-  }
+  },
+  // optional
+  "mirror": {"meta": "this object will be mirrored under 'reflection' field in a response to this request"}
 }
 ```
 
@@ -150,7 +152,8 @@ Response (datum found):
   result: { DatumFound: { value: [Object] } },
   version: '1.0',
   servicename: 'ogmios-datum-cache',
-  type: 'jsonwsp/response'
+  type: 'jsonwsp/response',
+  reflection: {"meta": "this object will be mirrored under 'reflection' field in a response to this request"}
 }
 ```
 
@@ -188,7 +191,8 @@ Response (datum found):
   },
   "version": "1.0",
   "servicename": "ogmios-datum-cache",
-  "type": "jsonwsp/response"
+  "type": "jsonwsp/response",
+  "reflection": {"meta": "this object will be mirrored under 'reflection' field in a response to this request"}
 }
 
 ```
@@ -200,7 +204,8 @@ Response (datum not found):
   result: { DatumNotFound: null },
   version: '1.0',
   servicename: 'ogmios-datum-cache',
-  type: 'jsonwsp/response'
+  type: 'jsonwsp/response',
+  reflection: {"meta": "this object will be mirrored under 'reflection' field in a response to this request"}
 }
 ```
 
@@ -211,7 +216,8 @@ Response (fault):
   version: '1.0',
   fault: { string: 'Error deserializing plutus Data', code: 'client' },
   servicename: 'ogmios-datum-cache',
-  type: 'jsonwsp/fault'
+  type: 'jsonwsp/fault',
+  reflection: {"meta": "this object will be mirrored under 'reflection' field in a response to this request"}
 }
 ```
 
@@ -230,7 +236,8 @@ Request:
       "abc",
       "04caaf1336b754e0b8b4e2fa1c59aa6b85f97dd29652729f1c1e28805acdeb20"
     ]
-  }
+  },
+  "mirror": "req.no.1"
 }
 ```
 
@@ -241,7 +248,8 @@ Response:
   result: { DatumsFound: { value: [Array] } },
   version: '1.0',
   servicename: 'ogmios-datum-cache',
-  type: 'jsonwsp/response'
+  type: 'jsonwsp/response',
+  reflection: "req.no.1"
 }
 ```
 
@@ -284,7 +292,8 @@ Response:
   },
   "version": "1.0",
   "servicename": "ogmios-datum-cache",
-  "type": "jsonwsp/response"
+  "type": "jsonwsp/response",
+  "reflection": "req.no.1"
 }
 ```
 
@@ -298,7 +307,8 @@ Response (fault)
     code: 'client'
   },
   servicename: 'ogmios-datum-cache',
-  type: 'jsonwsp/fault'
+  type: 'jsonwsp/fault',
+  reflection: "req.no.1"
 }
 ```
 
@@ -311,6 +321,7 @@ Request:
   "version": "1.0",
   "servicename": "ogmios",
   "methodname": "GetBlock"
+  "mirror": "req.no.1"
 }
 ```
 
@@ -326,7 +337,8 @@ Response:
   },
   "version":"1.0",
   "servicename":"ogmios-datum-cache",
-  "type":"jsonwsp/response"
+  "type":"jsonwsp/response",
+  "reflection": "req.no.1"
 }
 ```
 
@@ -340,8 +352,10 @@ Request:
   "methodname": "StartFetchBlocks",
   "args": {
     "slot": 1,
-    "id": "abc"
-  }
+    "id": "abc",
+    "datumFilter": { "address": "addr_xyz" }
+  },
+  "mirror": "foo"
 }
 ```
 
@@ -354,7 +368,8 @@ Response:
   },
   "version": "1.0",
   "servicename": "ogmios-datum-cache",
-  "type": "jsonwsp/response"
+  "type": "jsonwsp/response",
+  "reflection": "foo"
 }
 ```
 
@@ -368,7 +383,8 @@ Response (fault):
     "code": "client"
   },
   "servicename": "ogmios-datum-cache",
-  "type": "jsonwsp/fault"
+  "type": "jsonwsp/fault",
+  "reflection": "foo"
 }
 ```
 
@@ -379,7 +395,8 @@ Request:
   "type": "jsonwsp/request",
   "version": "1.0",
   "servicename": "ogmios-datum-cache",
-  "methodname": "CancelFetchBlocks"
+  "methodname": "CancelFetchBlocks",
+  "reflection": "foo"
 }
 ```
 
@@ -392,7 +409,8 @@ Response:
   },
   "version": "1.0",
   "servicename": "ogmios-datum-cache",
-  "type": "jsonwsp/response"
+  "type": "jsonwsp/response",
+  "reflection": "foo"
 }
 ```
 
@@ -406,7 +424,8 @@ Response (fault):
     "code": "client"
   },
   "servicename": "ogmios-datum-cache",
-  "type": "jsonwsp/fault"
+  "type": "jsonwsp/fault",
+  "reflection": "foo"
 }
 ```
 
