@@ -1,13 +1,13 @@
 {-# LANGUAGE DuplicateRecordFields #-}
 
 module Api.Types (
-    GetDatumByHashResponse (..),
-    GetDatumsByHashesRequest (..),
-    GetDatumsByHashesDatum (..),
-    GetDatumsByHashesResponse (..),
-    StartBlockFetchingRequest (..),
-    StartBlockFetchingResponse (..),
-    CancelBlockFetchingResponse (..),
+  GetDatumByHashResponse (..),
+  GetDatumsByHashesRequest (..),
+  GetDatumsByHashesDatum (..),
+  GetDatumsByHashesResponse (..),
+  StartBlockFetchingRequest (..),
+  StartBlockFetchingResponse (..),
+  CancelBlockFetchingResponse (..),
 ) where
 
 import Data.Aeson (FromJSON, ToJSON)
@@ -20,44 +20,44 @@ import Block.Filter (DatumFilter)
 import PlutusData qualified
 
 newtype GetDatumByHashResponse = GetDatumByHashResponse PlutusData.Data
-    deriving stock (Generic)
-    deriving anyclass (ToJSON)
+  deriving stock (Generic)
+  deriving anyclass (ToJSON)
 
 newtype GetDatumsByHashesRequest = GetDatumsByHashesRequest
-    { hashes :: [Text]
-    }
-    deriving stock (Generic)
-    deriving anyclass (FromJSON)
+  { hashes :: [Text]
+  }
+  deriving stock (Generic)
+  deriving anyclass (FromJSON)
 
 data GetDatumsByHashesDatum = GetDatumsByHashesDatum
-    { hash :: Text
-    , value :: PlutusData.Data
-    }
-    deriving stock (Generic)
-    deriving anyclass (ToJSON)
+  { hash :: Text
+  , value :: PlutusData.Data
+  }
+  deriving stock (Generic)
+  deriving anyclass (ToJSON)
 
 newtype GetDatumsByHashesResponse = GetDatumsByHashesResponse
-    { datums :: Vector GetDatumsByHashesDatum
-    }
-    deriving stock (Generic)
-    deriving anyclass (ToJSON)
+  { datums :: Vector GetDatumsByHashesDatum
+  }
+  deriving stock (Generic)
+  deriving anyclass (ToJSON)
 
 data StartBlockFetchingRequest = StartBlockFetchingRequest
-    { slot :: Int64
-    , id :: Text
-    , datumFilter :: DatumFilter
-    }
-    deriving stock (Generic)
-    deriving anyclass (FromJSON)
+  { slot :: Int64
+  , id :: Text
+  , datumFilter :: DatumFilter
+  }
+  deriving stock (Generic)
+  deriving anyclass (FromJSON)
 
 newtype StartBlockFetchingResponse = StartBlockFetchingResponse
-    { message :: Text
-    }
-    deriving stock (Generic)
-    deriving anyclass (ToJSON)
+  { message :: Text
+  }
+  deriving stock (Generic)
+  deriving anyclass (ToJSON)
 
 newtype CancelBlockFetchingResponse = CancelBlockFetchingResponse
-    { message :: Text
-    }
-    deriving stock (Generic)
-    deriving anyclass (ToJSON)
+  { message :: Text
+  }
+  deriving stock (Generic)
+  deriving anyclass (ToJSON)

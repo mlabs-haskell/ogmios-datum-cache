@@ -1,5 +1,5 @@
 module Main (
-    main,
+  main,
 ) where
 
 import Control.Monad.Catch (Exception, throwM, try)
@@ -40,42 +40,42 @@ appService env = serve datumCacheApi appServer
     appServerT = genericServerT datumServiceHandlers
 
 newtype DbConnectionAcquireException = DbConnectionAcquireException Hasql.ConnectionError
-    deriving stock (Eq, Show)
-    deriving anyclass (Exception)
+  deriving stock (Eq, Show)
+  deriving anyclass (Exception)
 
 mkAppEnv :: Config -> IO Env
-mkAppEnv Config{..} = do
-    pgConn <- Connection.acquire cfgDbConnectionString >>= either (throwM . DbConnectionAcquireException) pure
-    Env pgConn (OgmiosInfo cfgOgmiosPort cfgOgmiosAddress) <$> createStoppedFetcher
+mkAppEnv Config {..} = do
+  pgConn <- Connection.acquire cfgDbConnectionString >>= either (throwM . DbConnectionAcquireException) pure
+  Env pgConn (OgmiosInfo cfgOgmiosPort cfgOgmiosAddress) <$> createStoppedFetcher
 
 initDbAndFetcher :: Env -> Config -> IO ()
-initDbAndFetcher env Config{..} =
-    runStdoutLoggingT . flip runReaderT env $ do
-        initTables
-        case cfgFetcher of
-            Nothing -> pure ()
-            Just (BlockFetcherConfig blockInfo filterJson useLatest) -> do
-                let datumFilter' = eitherDecode filterJson
-                case datumFilter' of
-                    Left e -> logErrorNS "initDbAndFetcher" $ Text.pack $ show e
-                    Right datumFilter -> do
-                        logInfoNS "initDbAndFetcher" $ Text.pack $ "Filter: " <> show datumFilter
-                        latestBlock' <- getLastBlock
-                        let firstBlock = if useLatest then fromMaybe blockInfo latestBlock' else blockInfo
-                        initLastBlock firstBlock
-                        updateLastBlock firstBlock
-                        r <- startBlockFetcher firstBlock datumFilter
-                        case r of
-                            Right () -> pure ()
-                            Left e -> logErrorNS "initDbAndFetcher" $ Text.pack $ show e
+initDbAndFetcher env Config {..} =
+  runStdoutLoggingT . flip runReaderT env $ do
+    initTables
+    case cfgFetcher of
+      Nothing -> pure ()
+      Just (BlockFetcherConfig blockInfo filterJson useLatest) -> do
+        let datumFilter' = eitherDecode filterJson
+        case datumFilter' of
+          Left e -> logErrorNS "initDbAndFetcher" $ Text.pack $ show e
+          Right datumFilter -> do
+            logInfoNS "initDbAndFetcher" $ Text.pack $ "Filter: " <> show datumFilter
+            latestBlock' <- getLastBlock
+            let firstBlock = if useLatest then fromMaybe blockInfo latestBlock' else blockInfo
+            initLastBlock firstBlock
+            updateLastBlock firstBlock
+            r <- startBlockFetcher firstBlock datumFilter
+            case r of
+              Right () -> pure ()
+              Left e -> logErrorNS "initDbAndFetcher" $ Text.pack $ show e
 
 main :: IO ()
 main = do
-    hSetBuffering stdout NoBuffering
-    cfg@Config{..} <- loadConfig
-    print cfg
-    env <- mkAppEnv cfg
-    initDbAndFetcher env cfg
-    withStdoutLogger $ \logger -> do
-        let warpSettings = W.setPort cfgServerPort $ W.setLogger logger W.defaultSettings
-        W.runSettings warpSettings $ simpleCors (appService env)
+  hSetBuffering stdout NoBuffering
+  cfg@Config {..} <- loadConfig
+  print cfg
+  env <- mkAppEnv cfg
+  initDbAndFetcher env cfg
+  withStdoutLogger $ \logger -> do
+    let warpSettings = W.setPort cfgServerPort $ W.setLogger logger W.defaultSettings
+    W.runSettings warpSettings $ simpleCors (appService env)
