@@ -60,7 +60,7 @@ data OgmiosRequest args mirror = OgmiosRequest
 
 instance (ToJSON args, ToJSON mirror) => ToJSON (OgmiosRequest args mirror) where
   toJSON =
-    Aeson.genericToJSON Aeson.defaultOptions{Aeson.fieldLabelModifier = drop 1}
+    Aeson.genericToJSON Aeson.defaultOptions {Aeson.fieldLabelModifier = drop 1}
 
 type OgmiosFindIntersectRequest = OgmiosRequest CursorPoints OgmiosMirror
 
@@ -106,7 +106,7 @@ instance
   FromJSON (OgmiosResponse result reflection)
   where
   parseJSON =
-    Aeson.genericParseJSON Aeson.defaultOptions{Aeson.fieldLabelModifier = drop 1}
+    Aeson.genericParseJSON Aeson.defaultOptions {Aeson.fieldLabelModifier = drop 1}
 
 type OgmiosFindIntersectResponse =
   OgmiosResponse FindIntersectResult OgmiosMirror
