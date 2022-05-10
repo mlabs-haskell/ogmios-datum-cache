@@ -16,7 +16,7 @@ module Api.WebSocket.Json (
 ) where
 
 import Data.Aeson
-import Data.Aeson qualified as Json
+import Data.Aeson qualified as Aeson
 import Data.Text (Text)
 import GHC.Generics (Generic)
 
@@ -34,7 +34,7 @@ import PlutusData qualified
 
 data JsonWspResponse = JsonWspResponse
   { methodname :: Text
-  , result :: Json.Value
+  , result :: Aeson.Value
   , reflection :: Maybe Text
   }
   deriving stock (Generic)
@@ -86,7 +86,7 @@ mkGetDatumByHashFault :: Text -> Maybe Text -> JsonWspFault
 mkGetDatumByHashFault =
   JsonWspFault "GetDatumByHash" "client"
 
-mkGetDatumsByHashesResponse :: Maybe [Json.Value] -> Maybe Text -> JsonWspResponse
+mkGetDatumsByHashesResponse :: Maybe [Aeson.Value] -> Maybe Text -> JsonWspResponse
 mkGetDatumsByHashesResponse = \case
   Just datumsWithValues ->
     JsonWspResponse "GetDatumsByHashes" (object ["DatumsFound" .= value])

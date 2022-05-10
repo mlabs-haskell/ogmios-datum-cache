@@ -4,24 +4,29 @@ import Control.Monad.Catch (throwM)
 import Control.Monad.Logger (logInfoNS)
 import Data.Text (Text)
 import Data.Text qualified as Text
-import Network.WebSockets qualified as WS
+import Network.WebSockets qualified as WebSockets
 import Servant
 import Servant.API.Generic (ToServant)
 import Servant.Server.Generic (AsServerT, genericServerT)
 
-import Api (ControlApi (..), DatumApi (..), Routes (..), WebSocketApi (..))
+import Api (
+  ControlApi (ControlApi, cancelBlockFetching, startBlockFetching),
+  DatumApi (DatumApi, getDatumByHash, getDatumsByHashes, getLastBlock),
+  Routes (Routes, controlRoutes, datumRoutes, websocketRoutes),
+  WebSocketApi (WebSocketApi, websocketApi),
+ )
 import Api.Error (JsonError (JsonError), throwJsonError)
 import Api.Types (
-  CancelBlockFetchingResponse (..),
-  GetDatumByHashResponse (..),
-  GetDatumsByHashesDatum (..),
-  GetDatumsByHashesRequest (..),
-  GetDatumsByHashesResponse (..),
-  StartBlockFetchingRequest (..),
-  StartBlockFetchingResponse (..),
+  CancelBlockFetchingResponse (CancelBlockFetchingResponse),
+  GetDatumByHashResponse (GetDatumByHashResponse),
+  GetDatumsByHashesDatum (GetDatumsByHashesDatum),
+  GetDatumsByHashesRequest (GetDatumsByHashesRequest),
+  GetDatumsByHashesResponse (GetDatumsByHashesResponse),
+  StartBlockFetchingRequest (StartBlockFetchingRequest),
+  StartBlockFetchingResponse (StartBlockFetchingResponse),
  )
 import Api.WebSocket (websocketServer)
-import App (App (..))
+import App (App)
 import Block.Fetch (
   StartBlockFetcherError (StartBlockFetcherErrorAlreadyRunning),
   StopBlockFetcherError (StopBlockFetcherErrorNotRunning),
@@ -32,7 +37,7 @@ import Block.Types (BlockInfo (BlockInfo))
 import Database (
   DatabaseError (DatabaseErrorDecodeError, DatabaseErrorNotFound),
  )
-import Database qualified as Db
+import Database qualified
 
 datumServiceHandlers :: Routes (AsServerT App)
 datumServiceHandlers = Routes {..}
@@ -43,24 +48,29 @@ datumServiceHandlers = Routes {..}
     catchDatabaseError r = do
       case r of
         Left (DatabaseErrorDecodeError e) ->
-          throwJsonError err500 $ JsonError $ Text.pack $ "Decoding error: " <> show e
+          throwJsonError err500 $
+            JsonError $ Text.pack $ "Decoding error: " <> show e
         Left DatabaseErrorNotFound ->
           throwM err404
         Right x -> pure x
 
     getDatumByHash :: Text -> App GetDatumByHashResponse
     getDatumByHash hash = do
-      datum <- Db.getDatumByHash hash >>= catchDatabaseError
+      datum <- Database.getDatumByHash hash >>= catchDatabaseError
       pure $ GetDatumByHashResponse datum
 
-    getDatumsByHashes :: GetDatumsByHashesRequest -> App GetDatumsByHashesResponse
+    getDatumsByHashes ::
+      GetDatumsByHashesRequest ->
+      App GetDatumsByHashesResponse
     getDatumsByHashes (GetDatumsByHashesRequest hashes) = do
-      datums <- Db.getDatumsByHashes hashes >>= catchDatabaseError
-      pure $ GetDatumsByHashesResponse $ fmap (uncurry GetDatumsByHashesDatum) datums
+      datums <- Database.getDatumsByHashes hashes >>= catchDatabaseError
+      pure $
+        GetDatumsByHashesResponse $
+          fmap (uncurry GetDatumsByHashesDatum) datums
 
     getLastBlock :: App BlockInfo
     getLastBlock = do
-      block' <- Db.getLastBlock
+      block' <- Database.getLastBlock
       case block' of
         Just block -> pure block
         Nothing -> throwM err404
@@ -69,7 +79,9 @@ datumServiceHandlers = Routes {..}
     controlRoutes :: ToServant ControlApi (AsServerT App)
     controlRoutes = genericServerT ControlApi {..}
 
-    startBlockFetching :: StartBlockFetchingRequest -> App StartBlockFetchingResponse
+    startBlockFetching ::
+      StartBlockFetchingRequest ->
+      App StartBlockFetchingResponse
     startBlockFetching (StartBlockFetchingRequest firstBlockSlot firstBlockId datumFilter) = do
       res <- startBlockFetcher (BlockInfo firstBlockSlot firstBlockId) datumFilter
       case res of
@@ -90,7 +102,7 @@ datumServiceHandlers = Routes {..}
     websocketRoutes :: ToServant WebSocketApi (AsServerT App)
     websocketRoutes = genericServerT WebSocketApi {..}
 
-    websocketApi :: WS.Connection -> App ()
+    websocketApi :: WebSockets.Connection -> App ()
     websocketApi conn = do
       logInfoNS "websocketApi" "New WS connection established"
       websocketServer conn

@@ -31,9 +31,15 @@ instance FromJSON DatumFilter where
 
 runDatumFilter :: DatumFilter -> AlonzoTransaction -> (Text, Text) -> Bool
 runDatumFilter (ConstFilter b) _ _ = b
-runDatumFilter (AnyFilter filters) tx datum = any (\f -> runDatumFilter f tx datum) filters
-runDatumFilter (AllFilter filters) tx datum = all (\f -> runDatumFilter f tx datum) filters
-runDatumFilter (DatumHashFilter expectedHash) _ (actualHash, _) = expectedHash == actualHash
+runDatumFilter (AnyFilter filters) tx datum =
+  any (\f -> runDatumFilter f tx datum) filters
+runDatumFilter (AllFilter filters) tx datum =
+  all (\f -> runDatumFilter f tx datum) filters
+runDatumFilter (DatumHashFilter expectedHash) _ (actualHash, _) =
+  expectedHash == actualHash
 runDatumFilter (AddressFilter expectedAddress) tx (actualHash, _) =
-  let hashes = mapMaybe datumHash $ filter ((== expectedAddress) . address) $ outputs tx
+  let hashes =
+        mapMaybe datumHash $
+          filter ((== expectedAddress) . address) $
+            outputs tx
    in actualHash `elem` hashes

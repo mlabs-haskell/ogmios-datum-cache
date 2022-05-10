@@ -1,4 +1,8 @@
-module Api.WebSocket.Types (JsonWspRequest (JsonWspRequest), Method (..), GetDatumsByHashesDatum (..)) where
+module Api.WebSocket.Types (
+  JsonWspRequest (JsonWspRequest),
+  Method (..),
+  GetDatumsByHashesDatum (..),
+) where
 
 import Data.Aeson (FromJSON, ToJSON, parseJSON, withObject, (.:), (.:?))
 import Data.Int (Int64)

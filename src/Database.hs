@@ -29,7 +29,7 @@ import Hasql.Decoders qualified as Decoders
 import Hasql.Encoders qualified as Encoders
 import Hasql.Session (Session)
 import Hasql.Session qualified as Session
-import Hasql.Statement (Statement (..))
+import Hasql.Statement (Statement (Statement))
 
 import Block.Types (BlockInfo (BlockInfo))
 import PlutusData qualified
@@ -67,7 +67,11 @@ getDatumsStatement = Statement sql enc dec True
     sql =
       "SELECT hash, value FROM datums WHERE hash = ANY ($1)"
     enc =
-      Encoders.param (Encoders.nonNullable (Encoders.array (Encoders.dimension foldl' (Encoders.element (Encoders.nonNullable Encoders.text)))))
+      Encoders.param $
+        Encoders.nonNullable $
+          Encoders.array $
+            Encoders.dimension foldl' $
+              Encoders.element $ Encoders.nonNullable Encoders.text
     dec =
       Decoders.rowVector $
         Datum
@@ -85,7 +89,12 @@ insertDatumsStatement = Statement sql enc dec True
       "INSERT INTO datums (hash, value) (SELECT h::text, v::bytea FROM unnest($1, $2) AS x(h, v)) ON CONFLICT DO NOTHING"
 
     encArray elemEncoder =
-      Encoders.param (Encoders.nonNullable (Encoders.array (Encoders.dimension foldl' (Encoders.element (Encoders.nonNullable elemEncoder)))))
+      Encoders.param $
+        Encoders.nonNullable $
+          Encoders.array $
+            Encoders.dimension foldl' $
+              Encoders.element $
+                Encoders.nonNullable elemEncoder
     enc =
       (fst >$< encArray Encoders.text)
         <> (snd >$< encArray Encoders.bytea)
@@ -104,7 +113,13 @@ initTables = do
   liftIO $ void $ Session.run sql conn
 
 initLastBlock ::
-  (MonadIO m, MonadLogger m, MonadReader r m, Has Connection r) => BlockInfo -> m ()
+  ( MonadIO m
+  , MonadLogger m
+  , MonadReader r m
+  , Has Connection r
+  ) =>
+  BlockInfo ->
+  m ()
 initLastBlock (BlockInfo slot hash) = do
   let sql = "INSERT INTO last_block (slot, hash) VALUES ($1, $2) ON CONFLICT DO NOTHING"
       enc =
@@ -122,7 +137,14 @@ initLastBlock (BlockInfo slot hash) = do
       logErrorNS "initLastBlock" $ Text.pack $ show err
       pure ()
 
-updateLastBlock :: (MonadIO m, MonadLogger m, MonadReader r m, Has Connection r) => BlockInfo -> m ()
+updateLastBlock ::
+  ( MonadIO m
+  , MonadLogger m
+  , MonadReader r m
+  , Has Connection r
+  ) =>
+  BlockInfo ->
+  m ()
 updateLastBlock (BlockInfo slot hash) = do
   let sql = "UPDATE last_block SET slot = $1, hash = $2"
       enc =
@@ -140,7 +162,13 @@ updateLastBlock (BlockInfo slot hash) = do
       logErrorNS "updateLastBlock" $ Text.pack $ show err
       pure ()
 
-getLastBlock :: (MonadIO m, MonadLogger m, MonadReader r m, Has Connection r) => m (Maybe BlockInfo)
+getLastBlock ::
+  ( MonadIO m
+  , MonadLogger m
+  , MonadReader r m
+  , Has Connection r
+  ) =>
+  m (Maybe BlockInfo)
 getLastBlock = do
   let sql = "SELECT slot, hash FROM last_block LIMIT 1"
       enc = Encoders.noParams
@@ -169,15 +197,22 @@ toPlutusData datum =
         Left _ -> Left $ DatabaseErrorDecodeError [value datum]
         Right x -> pure x
 
-toPlutusDataMany :: Vector Datum -> Either DatabaseError (Vector (Text, PlutusData.Data))
+toPlutusDataMany ::
+  Vector Datum ->
+  Either DatabaseError (Vector (Text, PlutusData.Data))
 toPlutusDataMany datums =
-  let res = fmap (\d -> (d,) . deserialiseOrFail @PlutusData.Data . BSL.fromStrict . value $ d) datums
+  let res =
+        fmap
+          (\d -> (d,) . deserialiseOrFail @PlutusData.Data . BSL.fromStrict . value $ d)
+          datums
       rightToMaybe (Right x) = Just x
       rightToMaybe _ = Nothing
       leftToMaybe (Left x) = Just x
       leftToMaybe _ = Nothing
       correct = Vector.mapMaybe (\(datum, data') -> (hash datum,) <$> rightToMaybe data') res
-      faulty = Vector.toList $ Vector.mapMaybe (fmap fst . (\(datum, data') -> (value datum,) <$> leftToMaybe data')) res
+      faulty =
+        Vector.toList $
+          Vector.mapMaybe (fmap fst . (\(datum, data') -> (value datum,) <$> leftToMaybe data')) res
    in if null faulty
         then pure correct
         else Left $ DatabaseErrorDecodeError faulty
@@ -204,14 +239,27 @@ getDatumsByHashes hashes = runExceptT $ do
     Left _ -> throwE DatabaseErrorNotFound
     Right datums -> except $ toPlutusDataMany datums
 
-saveDatums :: (MonadIO m, MonadLogger m, MonadReader r m, Has Connection r) => [(Text, ByteString)] -> m ()
+saveDatums ::
+  ( MonadIO m
+  , MonadLogger m
+  , MonadReader r m
+  , Has Connection r
+  ) =>
+  [(Text, ByteString)] ->
+  m ()
 saveDatums datums = do
   dbConnection <- ask
   let (datumHashes, datumValues) = unzip datums
-  logInfoNS "saveDatumsFromAlonzoBlock" $ "Inserting datums: " <> Text.intercalate ", " datumHashes
-  res <- liftIO $ Session.run (insertDatumsSession datumHashes datumValues) dbConnection
+  logInfoNS "saveDatumsFromAlonzoBlock" $
+    "Inserting datums: "
+      <> Text.intercalate ", " datumHashes
+  res <-
+    liftIO $
+      Session.run (insertDatumsSession datumHashes datumValues) dbConnection
   case res of
     Right _ -> pure ()
     Left err -> do
-      logErrorNS "saveDatumsFromAlonzoBlock" $ "Error inserting datums: " <> Text.pack (show err)
+      logErrorNS "saveDatumsFromAlonzoBlock" $
+        "Error inserting datums: "
+          <> Text.pack (show err)
       pure ()

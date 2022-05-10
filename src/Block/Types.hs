@@ -17,8 +17,8 @@ module Block.Types (
 ) where
 
 import Data.Aeson (FromJSON, ToJSON, withObject, (.:), (.:?))
-import Data.Aeson qualified as Json
-import Data.HashMap.Strict qualified as HM
+import Data.Aeson qualified as Aeson
+import Data.HashMap.Strict qualified as HashMap
 import Data.Int (Int64)
 import Data.Map (Map)
 import Data.Map qualified as Map
@@ -59,7 +59,8 @@ data OgmiosRequest args mirror = OgmiosRequest
   deriving stock (Eq, Show, Generic)
 
 instance (ToJSON args, ToJSON mirror) => ToJSON (OgmiosRequest args mirror) where
-  toJSON = Json.genericToJSON Json.defaultOptions{Json.fieldLabelModifier = drop 1}
+  toJSON =
+    Aeson.genericToJSON Aeson.defaultOptions{Aeson.fieldLabelModifier = drop 1}
 
 type OgmiosFindIntersectRequest = OgmiosRequest CursorPoints OgmiosMirror
 
@@ -76,7 +77,8 @@ mkFindIntersectRequest (BlockInfo firstBlockSlot firstBlockId) =
     , _mirror = 0
     }
   where
-    points = CursorPoints [CursorPoint (fromIntegral firstBlockSlot) firstBlockId]
+    points =
+      CursorPoints [CursorPoint (fromIntegral firstBlockSlot) firstBlockId]
 
 mkRequestNextRequest :: Int -> OgmiosRequestNextRequest
 mkRequestNextRequest n =
@@ -99,10 +101,15 @@ data OgmiosResponse result reflection = OgmiosResponse
   }
   deriving stock (Eq, Show, Generic)
 
-instance (FromJSON result, FromJSON reflection) => FromJSON (OgmiosResponse result reflection) where
-  parseJSON = Json.genericParseJSON Json.defaultOptions{Json.fieldLabelModifier = drop 1}
+instance
+  (FromJSON result, FromJSON reflection) =>
+  FromJSON (OgmiosResponse result reflection)
+  where
+  parseJSON =
+    Aeson.genericParseJSON Aeson.defaultOptions{Aeson.fieldLabelModifier = drop 1}
 
-type OgmiosFindIntersectResponse = OgmiosResponse FindIntersectResult OgmiosMirror
+type OgmiosFindIntersectResponse =
+  OgmiosResponse FindIntersectResult OgmiosMirror
 
 data ResultTip = ResultTip
   { slot :: Integer
@@ -219,9 +226,9 @@ instance FromJSON RequestNextResult where
           ( \obj -> do
               tip <- obj .: "tip"
               blockObj <- obj .: "block"
-              case HM.toList blockObj of
+              case HashMap.toList blockObj of
                 [("alonzo" :: Text, blockValue)] -> do
-                  block <- Json.parseJSON @AlonzoBlock blockValue
+                  block <- Aeson.parseJSON @AlonzoBlock blockValue
                   pure $ RollForward (MkAlonzoBlock block) tip
                 [(_, _blockObj)] ->
                   pure $ RollForward OtherBlock tip

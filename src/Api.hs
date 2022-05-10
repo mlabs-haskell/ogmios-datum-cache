@@ -7,7 +7,7 @@ module Api (
 ) where
 
 import Data.Text (Text)
-import Servant (Capture, Get, JSON, Post, Proxy (..), ReqBody, Summary, (:>))
+import Servant (Capture, Get, JSON, Post, Proxy (Proxy), ReqBody, Summary, (:>))
 import Servant.API.Generic (Generic, ToServantApi, genericApi, (:-))
 import Servant.API.WebSocket (WebSocket)
 

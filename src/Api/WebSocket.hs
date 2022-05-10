@@ -3,12 +3,12 @@ module Api.WebSocket (websocketServer) where
 import Control.Monad (forever)
 import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Logger (logErrorNS)
-import Data.Aeson qualified as Json
+import Data.Aeson qualified as Aeson
 import Data.Int (Int64)
 import Data.Text (Text)
 import Data.Text qualified as Text
 import Data.Vector qualified as Vector
-import Network.WebSockets qualified as WS
+import Network.WebSockets qualified as WebSockets
 
 import Api.WebSocket.Json (
   JsonWspFault,
@@ -25,9 +25,15 @@ import Api.WebSocket.Json (
   mkStartFetchBlocksResponse,
  )
 import Api.WebSocket.Types (
-  GetDatumsByHashesDatum (..),
-  JsonWspRequest (..),
-  Method (..),
+  GetDatumsByHashesDatum (GetDatumsByHashesDatum),
+  JsonWspRequest (JsonWspRequest),
+  Method (
+    CancelFetchBlocks,
+    GetBlock,
+    GetDatumByHash,
+    GetDatumsByHashes,
+    StartFetchBlocks
+  ),
  )
 import App (App)
 import Block.Fetch (
@@ -41,18 +47,23 @@ import Block.Types (BlockInfo (BlockInfo))
 import Database (
   DatabaseError (DatabaseErrorDecodeError, DatabaseErrorNotFound),
  )
-import Database qualified as Db
+import Database qualified
 
-type WSResponse = Either (Maybe Text -> JsonWspFault) (Maybe Text -> JsonWspResponse)
+type WSResponse =
+  Either
+    (Maybe Text -> JsonWspFault)
+    (Maybe Text -> JsonWspResponse)
 
 getDatumByHash ::
   Text ->
   App WSResponse
 getDatumByHash hash = do
-  res <- Db.getDatumByHash hash
+  res <- Database.getDatumByHash hash
   pure $ case res of
     Left (DatabaseErrorDecodeError faulty) ->
-      Left $ mkGetDatumByHashFault $ "Error deserializing plutus Data in: " <> Text.pack (show faulty)
+      Left $
+        mkGetDatumByHashFault $
+          "Error deserializing plutus Data in: " <> Text.pack (show faulty)
     Left DatabaseErrorNotFound ->
       Right $ mkGetDatumByHashResponse Nothing
     Right datum ->
@@ -62,20 +73,24 @@ getDatumsByHashes ::
   [Text] ->
   App WSResponse
 getDatumsByHashes hashes = do
-  res <- Db.getDatumsByHashes hashes
+  res <- Database.getDatumsByHashes hashes
   pure $ case res of
     Left (DatabaseErrorDecodeError faulty) -> do
-      let resp = mkGetDatumsByHashesFault $ "Error deserializing plutus Data in: " <> Text.pack (show faulty)
+      let resp =
+            mkGetDatumsByHashesFault $
+              "Error deserializing plutus Data in: " <> Text.pack (show faulty)
       Left resp
     Left DatabaseErrorNotFound ->
       Right $ mkGetDatumsByHashesResponse Nothing
     Right datums -> do
-      let datums' = Vector.toList $ Vector.map (Json.toJSON . uncurry GetDatumsByHashesDatum) datums
+      let datums' =
+            Vector.toList $
+              Vector.map (Aeson.toJSON . uncurry GetDatumsByHashesDatum) datums
       Right $ mkGetDatumsByHashesResponse (Just datums')
 
 getLastBlock :: App WSResponse
 getLastBlock = do
-  block' <- Db.getLastBlock
+  block' <- Database.getLastBlock
   pure $ case block' of
     Nothing ->
       Left mkGetBlockFault
@@ -106,11 +121,11 @@ cancelFetchBlocks = do
       Right mkCancelFetchBlocksResponse
 
 websocketServer ::
-  WS.Connection ->
+  WebSockets.Connection ->
   App ()
 websocketServer conn = forever $ do
   jsonMsg <- receiveData
-  case Json.decode @JsonWspRequest jsonMsg of
+  case Aeson.decode @JsonWspRequest jsonMsg of
     Nothing ->
       logErrorNS "websocketServer" "Error parsing action"
     Just (JsonWspRequest mirror method) -> do
@@ -125,8 +140,12 @@ websocketServer conn = forever $ do
           startFetchBlocks firstBlockSlot firstBlockId datumFilter
         CancelFetchBlocks ->
           cancelFetchBlocks
-      let jsonResp = either (\l -> Json.encode $ l mirror) (\r -> Json.encode $ r mirror) response
+      let jsonResp =
+            either
+              (\l -> Aeson.encode $ l mirror)
+              (\r -> Aeson.encode $ r mirror)
+              response
       sendTextData jsonResp
   where
-    sendTextData = liftIO . WS.sendTextData conn
-    receiveData = liftIO $ WS.receiveData conn
+    sendTextData = liftIO . WebSockets.sendTextData conn
+    receiveData = liftIO $ WebSockets.receiveData conn
