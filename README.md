@@ -192,7 +192,7 @@ Response (datum found):
   "version": "1.0",
   "servicename": "ogmios-datum-cache",
   "type": "jsonwsp/response",
-  "reflection": {"meta": "this object will be mirrored under 'reflection' field in a response to this request"}
+  "reflection": "this string will be mirrored under 'reflection' field in a response to this request"
 }
 
 ```
@@ -205,7 +205,7 @@ Response (datum not found):
   version: '1.0',
   servicename: 'ogmios-datum-cache',
   type: 'jsonwsp/response',
-  reflection: {"meta": "this object will be mirrored under 'reflection' field in a response to this request"}
+  reflection: "this string will be mirrored under 'reflection' field in a response to this request"
 }
 ```
 
@@ -217,7 +217,7 @@ Response (fault):
   fault: { string: 'Error deserializing plutus Data', code: 'client' },
   servicename: 'ogmios-datum-cache',
   type: 'jsonwsp/fault',
-  reflection: {"meta": "this object will be mirrored under 'reflection' field in a response to this request"}
+  reflection: "this string will be mirrored under 'reflection' field in a response to this request"
 }
 ```
 
