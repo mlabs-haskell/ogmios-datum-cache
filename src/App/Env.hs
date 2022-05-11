@@ -7,10 +7,10 @@ import Hasql.Connection qualified as Hasql
 import Block.Fetch
 
 data Env = Env
-    { -- TODO: Switch to pool of connections
-      envDbConnection :: Hasql.Connection
-    , envOgmiosInfo :: OgmiosInfo
-    , envOgmiosWorker :: OgmiosWorkerMVar
-    }
-    deriving stock (Generic)
-    deriving anyclass (Has Hasql.Connection, Has OgmiosWorkerMVar, Has OgmiosInfo)
+  { -- TODO: Switch to pool of connections
+    envDbConnection :: Hasql.Connection
+  , envOgmiosInfo :: OgmiosInfo
+  , envOgmiosWorker :: OgmiosWorkerMVar
+  }
+  deriving stock (Generic)
+  deriving anyclass (Has Hasql.Connection, Has OgmiosWorkerMVar, Has OgmiosInfo)

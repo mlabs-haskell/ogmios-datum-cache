@@ -9,4 +9,4 @@ import Control.Monad.Reader (MonadReader, ReaderT)
 import App.Env (Env)
 
 newtype App a = App {unApp :: ReaderT Env (LoggingT IO) a}
-    deriving newtype (Functor, Applicative, Monad, MonadReader Env, MonadIO, MonadThrow, MonadUnliftIO, MonadLogger)
+  deriving newtype (Functor, Applicative, Monad, MonadReader Env, MonadIO, MonadThrow, MonadUnliftIO, MonadLogger)
