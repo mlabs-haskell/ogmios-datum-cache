@@ -11,7 +11,7 @@ import Servant.Server.Generic (AsServerT, genericServerT)
 
 import Api (
   ControlApi (ControlApi, cancelBlockFetching, startBlockFetching),
-  DatumApi (DatumApi, getDatumByHash, getDatumsByHashes, getLastBlock),
+  DatumApi (DatumApi, getDatumByHash, getDatumsByHashes, getHealthcheck, getLastBlock),
   Routes (Routes, controlRoutes, datumRoutes, websocketRoutes),
   WebSocketApi (WebSocketApi, websocketApi),
  )
@@ -74,6 +74,9 @@ datumServiceHandlers = Routes {..}
       case block' of
         Just block -> pure block
         Nothing -> throwM err404
+
+    getHealthcheck :: App ()
+    getHealthcheck = pure ()
 
     -- control api
     controlRoutes :: ToServant ControlApi (AsServerT App)
