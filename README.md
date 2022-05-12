@@ -127,6 +127,10 @@ Responses:
 * 200 `{"message": "Stopped block fetcher"}`
 * 422 `{"error": "No block fetcher running"}`
 
+### `GET /healthcheck`
+Response:
+* 200 `[]`
+
 ## WebSocket API
 ### Examples from ogmios-datum-cache
 #### GetDatumByHash
@@ -426,6 +430,30 @@ Response (fault):
   "servicename": "ogmios-datum-cache",
   "type": "jsonwsp/fault",
   "reflection": "foo"
+}
+```
+
+#### GetHealthcheck
+Request:
+```json
+{
+  "type": "jsonwsp/request",
+  "version": "1.0",
+  "servicename": "ogmios",
+  "methodname": "GetHealthcheck",
+  // optional
+  "mirror": "foo"
+}
+```
+Response:
+```json
+{
+  "methodname":"GetHealthcheck",
+  "result":{ },
+  "version":"1.0",
+  "servicename":"ogmios-datum-cache",
+  "type":"jsonwsp/response",
+  "reflection":"foo"
 }
 ```
 
