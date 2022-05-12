@@ -38,7 +38,7 @@ instance FromJSON JsonWspRequest where
             args <- o .: "args"
             slot <- args .: "slot"
             blockId <- args .: "id"
-            datumFilter <- args .: "datumFilter"
+            datumFilter <- args .:? "datumFilter"
             pure $ StartFetchBlocks slot blockId datumFilter
           "CancelFetchBlocks" -> do
             pure CancelFetchBlocks
@@ -48,7 +48,7 @@ data Method
   = GetDatumByHash Text
   | GetDatumsByHashes [Text]
   | GetBlock
-  | StartFetchBlocks Int64 Text DatumFilter
+  | StartFetchBlocks Int64 Text (Maybe DatumFilter)
   | CancelFetchBlocks
   deriving stock (Show)
 

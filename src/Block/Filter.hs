@@ -1,6 +1,7 @@
 module Block.Filter (DatumFilter (..), runDatumFilter) where
 
 import Data.Aeson (FromJSON (parseJSON), Value (Bool, String), withObject)
+import Data.Default (Default (def))
 import Data.Maybe (mapMaybe)
 import Data.Text (Text)
 import GHC.Exts (toList)
@@ -14,6 +15,9 @@ data DatumFilter
   | DatumHashFilter Text
   | AddressFilter Text
   deriving stock (Show)
+
+instance Default DatumFilter where
+  def = ConstFilter True
 
 instance FromJSON DatumFilter where
   parseJSON = withObject "DatumFilter" $ \o -> do

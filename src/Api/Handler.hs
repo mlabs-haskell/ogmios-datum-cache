@@ -2,6 +2,8 @@ module Api.Handler (datumServiceHandlers) where
 
 import Control.Monad.Catch (throwM)
 import Control.Monad.Logger (logInfoNS)
+import Data.Default (def)
+import Data.Maybe (fromMaybe)
 import Data.Text (Text)
 import Data.Text qualified as Text
 import Network.WebSockets qualified as WebSockets
@@ -82,7 +84,8 @@ datumServiceHandlers = Routes {..}
     startBlockFetching ::
       StartBlockFetchingRequest ->
       App StartBlockFetchingResponse
-    startBlockFetching (StartBlockFetchingRequest firstBlockSlot firstBlockId datumFilter) = do
+    startBlockFetching (StartBlockFetchingRequest firstBlockSlot firstBlockId datumFilter') = do
+      let datumFilter = fromMaybe def datumFilter'
       res <- startBlockFetcher (BlockInfo firstBlockSlot firstBlockId) datumFilter
       case res of
         Left StartBlockFetcherErrorAlreadyRunning ->
