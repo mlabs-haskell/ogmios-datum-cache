@@ -13,6 +13,7 @@ module Api.WebSocket.Json (
   mkStartFetchBlocksFault,
   mkCancelFetchBlocksResponse,
   mkCancelFetchBlocksFault,
+  mkHealthcheckResponse,
 ) where
 
 import Data.Aeson
@@ -120,3 +121,7 @@ mkCancelFetchBlocksResponse =
 mkCancelFetchBlocksFault :: Text -> Maybe Text -> JsonWspFault
 mkCancelFetchBlocksFault =
   JsonWspFault "CancelFetchBlocks" "client"
+
+mkHealthcheckResponse :: Maybe Text -> JsonWspResponse
+mkHealthcheckResponse =
+  JsonWspResponse "GetHealthcheck" (object [])
