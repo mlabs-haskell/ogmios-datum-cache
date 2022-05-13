@@ -23,7 +23,7 @@ instance ToJSON Data where
 Request: `GET /datum/179f56ecaaad4a92dd6554aaeaac7089dc4bd9903ffb047c28d75da90fe3f259`
 
 Response:
-```json
+```jsonc
 {
   "constr": 0,
   "fields": [
@@ -60,7 +60,7 @@ Response:
 
 ### `GET /datums`
 Request:
-```json
+```jsonc
 {
   "hashes": [
     "e827cc9fab9038391dabbe6b79440d7a14c4a38de5a69b2e130acbb46b5ae6ed",
@@ -70,7 +70,7 @@ Request:
 ```
 
 Response
-```json
+```jsonc
 {
   "datums": [
     {
@@ -100,7 +100,7 @@ Response
 Returns block that was recently processed.
 
 Response
-```json
+```jsonc
 {
   "blockId": "073f35fab0800201698628ef9e6bc85d05dcc78fc87c1f0633a8c4bd93a804d8",
   "blockSlot": 47189428
@@ -111,7 +111,7 @@ Response
 
 ### `POST /control/fetch_blocks`
 Request body:
-```json
+```jsonc
 {
   "slot": 44366242,
   "id": "d2a4249fe3d0607535daa26caf12a38da2233586bc51e79ed0b3a36170471bf5"
@@ -127,11 +127,15 @@ Responses:
 * 200 `{"message": "Stopped block fetcher"}`
 * 422 `{"error": "No block fetcher running"}`
 
+### `GET /healthcheck`
+Response:
+* 200 `[]`
+
 ## WebSocket API
 ### Examples from ogmios-datum-cache
 #### GetDatumByHash
 Request:
-```json
+```jsonc
 {
   "type": "jsonwsp/request",
   "version": "1.0",
@@ -157,7 +161,7 @@ Response (datum found):
 }
 ```
 
-```json
+```jsonc
 {
   "methodname": "GetDatumByHash",
   "result": {
@@ -225,7 +229,7 @@ Response (fault):
 Datums missing in the db are omitted from the response, if none datums are found an empty array is returned.
 
 Request:
-```json
+```jsonc
 {
   "type": "jsonwsp/request",
   "version": "1.0",
@@ -253,7 +257,7 @@ Response:
 }
 ```
 
-```json
+```jsonc
 {
   "methodname": "GetDatumsByHashes",
   "result": {
@@ -315,7 +319,7 @@ Response (fault)
 #### GetBlock
 
 Request:
-```json
+```jsonc
 {
   "type": "jsonwsp/request",
   "version": "1.0",
@@ -326,7 +330,7 @@ Request:
 ```
 
 Response:
-```json
+```jsonc
 {
   "methodname":"GetBlock",
   "result":{
@@ -344,7 +348,7 @@ Response:
 
 #### StartFetchBlocks
 Request:
-```json
+```jsonc
 {
   "type": "jsonwsp/request",
   "version": "1.0",
@@ -360,7 +364,7 @@ Request:
 ```
 
 Response:
-```json
+```jsonc
 {
   "methodname": "StartFetchBlocks",
   "result": {
@@ -374,7 +378,7 @@ Response:
 ```
 
 Response (fault):
-```json
+```jsonc
 {
   "methodname": "StartFetchBlocks",
   "version": "1.0",
@@ -390,7 +394,7 @@ Response (fault):
 
 #### CancelFetchBlocks
 Request:
-```json
+```jsonc
 {
   "type": "jsonwsp/request",
   "version": "1.0",
@@ -401,7 +405,7 @@ Request:
 ```
 
 Response:
-```json
+```jsonc
 {
   "methodname": "CancelFetchBlocks",
   "result": {
@@ -415,7 +419,7 @@ Response:
 ```
 
 Response (fault):
-```json
+```jsonc
 {
   "methodname": "CancelFetchBlocks",
   "version": "1.0",
@@ -429,9 +433,33 @@ Response (fault):
 }
 ```
 
+#### GetHealthcheck
+Request:
+```jsonc
+{
+  "type": "jsonwsp/request",
+  "version": "1.0",
+  "servicename": "ogmios",
+  "methodname": "GetHealthcheck",
+  // optional
+  "mirror": "foo"
+}
+```
+Response:
+```jsonc
+{
+  "methodname":"GetHealthcheck",
+  "result":{ },
+  "version":"1.0",
+  "servicename":"ogmios-datum-cache",
+  "type":"jsonwsp/response",
+  "reflection":"foo"
+}
+```
+
 ## Block data from ogmios local chain sync
 Structure:
-```json
+```jsonc
 {
   "body": [<transaction>],
   "header": <blockHeader>
@@ -439,7 +467,7 @@ Structure:
 ```
 
 Example of an Alonzo block returned during local chain sync:
-```json
+```jsonc
 {
   "body": [
     <...>
@@ -573,7 +601,7 @@ Modify `config.toml` in the app working directory (currently `/home/ubuntu/seabu
 Datum filter can filter datum hash and address of utxo with given datum. Filters can be combined with logical `or`s and `and`s.
 
 Example (filter will save datums only if hash is `foobar` and (utxo with datum is on address `addr_abc` or `addr_xyz`)):
-```json
+```jsonc
 {
     "all": [
         {

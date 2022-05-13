@@ -21,6 +21,7 @@ import Api.WebSocket.Json (
   mkGetDatumByHashResponse,
   mkGetDatumsByHashesFault,
   mkGetDatumsByHashesResponse,
+  mkHealthcheckResponse,
   mkStartFetchBlocksFault,
   mkStartFetchBlocksResponse,
  )
@@ -32,6 +33,7 @@ import Api.WebSocket.Types (
     GetBlock,
     GetDatumByHash,
     GetDatumsByHashes,
+    GetHealthcheck,
     StartFetchBlocks
   ),
  )
@@ -120,6 +122,10 @@ cancelFetchBlocks = do
     Right () ->
       Right mkCancelFetchBlocksResponse
 
+getHealthcheck :: App WSResponse
+getHealthcheck = do
+  pure $ Right mkHealthcheckResponse
+
 websocketServer ::
   WebSockets.Connection ->
   App ()
@@ -140,6 +146,8 @@ websocketServer conn = forever $ do
           startFetchBlocks firstBlockSlot firstBlockId datumFilter
         CancelFetchBlocks ->
           cancelFetchBlocks
+        GetHealthcheck ->
+          getHealthcheck
       let jsonResp =
             either
               (\l -> Aeson.encode $ l mirror)

@@ -40,6 +40,11 @@ data DatumApi route = DatumApi
         :- "block"
         :> Summary "Get latest processed block"
         :> Get '[JSON] BlockInfo
+  , getHealthcheck ::
+      route
+        :- "healthcheck"
+        :> Summary "Succeeds if service is alive, otherwise not"
+        :> Get '[JSON] ()
   }
   deriving stock (Generic)
 

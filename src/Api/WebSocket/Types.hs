@@ -42,6 +42,8 @@ instance FromJSON JsonWspRequest where
             pure $ StartFetchBlocks slot blockId datumFilter
           "CancelFetchBlocks" -> do
             pure CancelFetchBlocks
+          "GetHealthcheck" -> do
+            pure GetHealthcheck
           _ -> fail "Unexpected method"
 
 data Method
@@ -50,6 +52,7 @@ data Method
   | GetBlock
   | StartFetchBlocks Int64 Text DatumFilter
   | CancelFetchBlocks
+  | GetHealthcheck
   deriving stock (Show)
 
 data GetDatumsByHashesDatum = GetDatumsByHashesDatum
