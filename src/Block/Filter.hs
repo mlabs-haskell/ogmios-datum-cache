@@ -1,4 +1,4 @@
-module Block.Filter (DatumFilter (..), runDatumFilter) where
+module Block.Filter (DatumFilter (..), defaultDatumFilter, runDatumFilter) where
 
 import Data.Aeson (FromJSON (parseJSON), Value (Bool, String), withObject)
 import Data.Default (Default (def))
@@ -16,8 +16,12 @@ data DatumFilter
   | AddressFilter Text
   deriving stock (Show)
 
+-- | Filter that accepts all datums
+defaultDatumFilter :: DatumFilter
+defaultDatumFilter = ConstFilter True
+
 instance Default DatumFilter where
-  def = ConstFilter True
+  def = defaultDatumFilter
 
 instance FromJSON DatumFilter where
   parseJSON = withObject "DatumFilter" $ \o -> do
