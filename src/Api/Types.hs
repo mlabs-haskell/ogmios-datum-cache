@@ -45,7 +45,7 @@ newtype GetDatumsByHashesResponse = GetDatumsByHashesResponse
 data StartBlockFetchingRequest = StartBlockFetchingRequest
   { slot :: Int64
   , id :: Text
-  , datumFilter :: DatumFilter
+  , datumFilter :: Maybe DatumFilter
   }
   deriving stock (Generic)
   deriving anyclass (FromJSON)

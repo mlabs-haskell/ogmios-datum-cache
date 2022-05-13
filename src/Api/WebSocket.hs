@@ -4,7 +4,9 @@ import Control.Monad (forever)
 import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Logger (logErrorNS)
 import Data.Aeson qualified as Aeson
+import Data.Default (def)
 import Data.Int (Int64)
+import Data.Maybe (fromMaybe)
 import Data.Text (Text)
 import Data.Text qualified as Text
 import Data.Vector qualified as Vector
@@ -142,7 +144,8 @@ websocketServer conn = forever $ do
           getDatumsByHashes hashes
         GetBlock ->
           getLastBlock
-        StartFetchBlocks firstBlockSlot firstBlockId datumFilter ->
+        StartFetchBlocks firstBlockSlot firstBlockId datumFilter' -> do
+          let datumFilter = fromMaybe def datumFilter'
           startFetchBlocks firstBlockSlot firstBlockId datumFilter
         CancelFetchBlocks ->
           cancelFetchBlocks

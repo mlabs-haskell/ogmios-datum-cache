@@ -81,6 +81,7 @@ executable ogmios-datum-cache
     , conduit
     , containers
     , cryptohash-sha256
+    , data-default
     , directory
     , esqueleto
     , exceptions
