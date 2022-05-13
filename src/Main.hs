@@ -26,6 +26,7 @@ import App.Env (Env (..))
 import Block.Fetch (
   OgmiosInfo (OgmiosInfo),
   createStoppedFetcher,
+  createWorkerRunLock,
   startBlockFetcher,
  )
 import Config (BlockFetcherConfig (BlockFetcherConfig), Config (..), loadConfig)
@@ -50,10 +51,13 @@ newtype DbConnectionAcquireException
 
 mkAppEnv :: Config -> IO Env
 mkAppEnv Config {..} = do
-  pgConn <-
+  envDbConnection <-
     Connection.acquire cfgDbConnectionString
       >>= either (throwM . DbConnectionAcquireException) pure
-  Env pgConn (OgmiosInfo cfgOgmiosPort cfgOgmiosAddress) <$> createStoppedFetcher
+  let envOgmiosInfo = OgmiosInfo cfgOgmiosPort cfgOgmiosAddress
+  envOgmiosWorker <- createStoppedFetcher
+  envOgmiosWorkerRunLock <- createWorkerRunLock
+  return Env {..}
 
 initDbAndFetcher :: Env -> Config -> IO ()
 initDbAndFetcher env Config {..} =

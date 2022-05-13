@@ -1,5 +1,6 @@
 module Block.Fetch (
   OgmiosWorkerMVar (MkOgmiosWorkerMVar),
+  OgmiosWorkerRunLock (OgmiosWorkerRunLock),
   OgmiosInfo (..),
   StartBlockFetcherError (..),
   StopBlockFetcherError (..),
@@ -7,17 +8,21 @@ module Block.Fetch (
   stopBlockFetcher,
   isBlockFetcherRunning,
   createStoppedFetcher,
+  createWorkerRunLock,
 ) where
 
 import Control.Concurrent.MVar (
   MVar,
   isEmptyMVar,
   newEmptyMVar,
-  tryPutMVar,
+  newMVar,
+  putMVar,
+  takeMVar,
   tryTakeMVar,
  )
 import Control.Exception (Exception, onException)
 import Control.Monad (forever, unless, void)
+import Control.Monad.Catch (finally)
 import Control.Monad.IO.Class (MonadIO)
 import Control.Monad.IO.Unlift (MonadUnliftIO)
 import Control.Monad.Logger (
@@ -65,6 +70,7 @@ data OgmiosInfo = OgmiosInfo
   }
 
 newtype OgmiosWorkerMVar = MkOgmiosWorkerMVar (MVar (Async ()))
+newtype OgmiosWorkerRunLock = OgmiosWorkerRunLock (MVar ())
 
 data StartBlockFetcherError
   = StartBlockFetcherErrorAlreadyRunning
@@ -76,6 +82,7 @@ startBlockFetcher ::
   , MonadReader r m
   , Has OgmiosWorkerMVar r
   , Has OgmiosInfo r
+  , Has OgmiosWorkerRunLock r
   , Has Hasql.Connection r
   ) =>
   BlockInfo ->
@@ -84,6 +91,7 @@ startBlockFetcher ::
 startBlockFetcher blockInfo datumFilter = do
   OgmiosInfo ogmiosPort ogmiosAddress <- ask
   MkOgmiosWorkerMVar envOgmiosWorker <- ask
+  OgmiosWorkerRunLock envRunLock <- ask
   env <- Reader.ask
 
   let runStack = runStdoutLoggingT . flip runReaderT env
@@ -96,16 +104,27 @@ startBlockFetcher blockInfo datumFilter = do
         WebSockets.runClient ogmiosAddress ogmiosPort "" $ \wsConn ->
           runStack $ Right <$> wsApp wsConn blockInfo datumFilter
 
-  ogmiosWorker <- liftIO $
-    Async.async $ do
-      runStdoutLoggingT $ logInfoNS "ogmiosWorker" "Starting ogmios client"
-      runOgmiosClient `onException` errorHandler
+  let startFetcher = do
+        takeMVar envRunLock
+        isBlockFetcherRunning' envOgmiosWorker >>= \case
+          True -> return $ Left StartBlockFetcherErrorAlreadyRunning
+          False -> do
+            ogmiosWorker <- Async.async $ do
+              runStdoutLoggingT $ logInfoNS "ogmiosWorker" "Starting ogmios client"
+              runOgmiosClient `onException` errorHandler
+            putMVar envOgmiosWorker $ void ogmiosWorker
+            return $ Right ()
 
-  putSuccessful <- liftIO $ tryPutMVar envOgmiosWorker $ void ogmiosWorker
-  pure $ unless putSuccessful $ Left StartBlockFetcherErrorAlreadyRunning
+  let finish = putMVar envRunLock ()
+
+  liftIO $ startFetcher `finally` finish
 
 isBlockFetcherRunning :: (MonadIO m) => OgmiosWorkerMVar -> m Bool
-isBlockFetcherRunning (MkOgmiosWorkerMVar mvar) = liftIO $ isEmptyMVar mvar
+isBlockFetcherRunning (MkOgmiosWorkerMVar mvar) =
+  liftIO $ isBlockFetcherRunning' mvar
+
+isBlockFetcherRunning' :: MVar (Async ()) -> IO Bool
+isBlockFetcherRunning' = isEmptyMVar
 
 data StopBlockFetcherError
   = StopBlockFetcherErrorNotRunning
@@ -125,6 +144,9 @@ stopBlockFetcher = do
 
 createStoppedFetcher :: MonadIO m => m OgmiosWorkerMVar
 createStoppedFetcher = MkOgmiosWorkerMVar <$> liftIO newEmptyMVar
+
+createWorkerRunLock :: MonadIO m => m OgmiosWorkerRunLock
+createWorkerRunLock = liftIO $ OgmiosWorkerRunLock <$> newMVar ()
 
 receiveLoop ::
   ( MonadIO m

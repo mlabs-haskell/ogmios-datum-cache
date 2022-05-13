@@ -11,6 +11,12 @@ data Env = Env
     envDbConnection :: Hasql.Connection
   , envOgmiosInfo :: OgmiosInfo
   , envOgmiosWorker :: OgmiosWorkerMVar
+  , envOgmiosWorkerRunLock :: OgmiosWorkerRunLock
   }
   deriving stock (Generic)
-  deriving anyclass (Has Hasql.Connection, Has OgmiosWorkerMVar, Has OgmiosInfo)
+  deriving anyclass
+    ( Has Hasql.Connection
+    , Has OgmiosWorkerMVar
+    , Has OgmiosInfo
+    , Has OgmiosWorkerRunLock
+    )
