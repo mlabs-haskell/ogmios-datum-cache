@@ -14,7 +14,7 @@ import Block.Types (BlockInfo (BlockInfo), blockId, blockSlot)
 
 data BlockFetcherConfig = BlockFetcherConfig
   { cfgFetcherBlock :: BlockInfo
-  , cfgFetcherFilterJson :: LBS.ByteString
+  , cfgFetcherFilterJson :: Maybe LBS.ByteString
   , cfgFetcherUseLatest :: Bool
   }
   deriving stock (Show)
@@ -54,9 +54,8 @@ blockInfoT = do
 withFetcherT :: TomlCodec BlockFetcherConfig
 withFetcherT = do
   true "blockFetcher.autoStart" .= const True
-  -- bool b Nothing Nothing
   cfgFetcherFilterJson <-
-    withDefault "{ \"const\" = true  }" (Toml.lazyByteString "blockFetcher.filter")
+    Toml.dioptional (Toml.lazyByteString "blockFetcher.filter")
       .= cfgFetcherFilterJson
   cfgFetcherBlock <- blockInfoT .= cfgFetcherBlock
   cfgFetcherUseLatest <-

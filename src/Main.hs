@@ -7,6 +7,7 @@ import Control.Monad.Except (ExceptT (..))
 import Control.Monad.Logger (logErrorNS, logInfoNS, runStdoutLoggingT)
 import Control.Monad.Reader (runReaderT)
 import Data.Aeson (eitherDecode)
+import Data.Default (def)
 import Data.Maybe (fromMaybe)
 import Data.Text qualified as Text
 import Hasql.Connection qualified as Connection
@@ -61,8 +62,10 @@ initDbAndFetcher env Config {..} =
     initTables
     case cfgFetcher of
       Nothing -> pure ()
-      Just (BlockFetcherConfig blockInfo filterJson useLatest) -> do
-        let datumFilter' = eitherDecode filterJson
+      Just (BlockFetcherConfig blockInfo filterJson' useLatest) -> do
+        let datumFilter' = case filterJson' of
+              Just filterJson -> eitherDecode filterJson
+              Nothing -> pure def
         case datumFilter' of
           Left e -> logErrorNS "initDbAndFetcher" $ Text.pack $ show e
           Right datumFilter -> do
