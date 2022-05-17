@@ -7,10 +7,12 @@ import Data.ByteString (ByteString)
 import Data.ByteString.Lazy qualified as LBS
 import Data.Int (Int64)
 import Data.Maybe (fromMaybe)
+import System.Directory (doesFileExist)
 import Toml (TomlCodec, dimap, (.=))
 import Toml qualified
 
 import Block.Types (BlockInfo (BlockInfo), blockId, blockSlot)
+import Control.Monad.IO.Unlift (liftIO)
 
 data BlockFetcherConfig = BlockFetcherConfig
   { cfgFetcherBlock :: BlockInfo
@@ -73,4 +75,9 @@ configT = do
   pure Config {..}
 
 loadConfig :: MonadIO m => String -> m Config
-loadConfig = Toml.decodeFile configT
+loadConfig path = do 
+  fileExists <- liftIO $ doesFileExist path
+  if fileExists then
+    Toml.decodeFile configT path
+  else
+    error "No config file exists at that path!"
