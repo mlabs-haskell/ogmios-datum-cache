@@ -72,5 +72,5 @@ configT = do
   cfgFetcher <- Toml.dioptional withFetcherT .= cfgFetcher
   pure Config {..}
 
-loadConfig :: MonadIO m => m Config
-loadConfig = Toml.decodeFile configT "config.toml"
+loadConfig :: MonadIO m => String -> m Config
+loadConfig = Toml.decodeFile configT
