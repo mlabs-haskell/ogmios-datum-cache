@@ -13,7 +13,19 @@ argParser :: Parser Parameters
 argParser = Parameters
         <$> strOption
           ( long "config"
-          <> help "File path config is loaded from.")
+          <> metavar "FILEPATH"
+          <> value "config.toml"
+          <> help "filepath where config is loaded from")
 
 paramInfo :: IO Parameters
-paramInfo = execParser (info argParser mempty)
+paramInfo = execParser (
+  info (
+    argParser <**> helper
+    )
+  (
+      fullDesc
+      <> progDesc ""
+      <> header "Ogmios Datum Cache"
+
+    )
+  )
