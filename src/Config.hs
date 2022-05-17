@@ -10,6 +10,7 @@ import Data.Maybe (fromMaybe)
 import System.Directory (doesFileExist)
 import Toml (TomlCodec, dimap, (.=))
 import Toml qualified
+import Parameters (Parameters(..))
 
 import Block.Types (BlockInfo (BlockInfo), blockId, blockSlot)
 import Control.Monad.IO.Unlift (liftIO)
@@ -74,9 +75,9 @@ configT = do
   cfgFetcher <- Toml.dioptional withFetcherT .= cfgFetcher
   pure Config {..}
 
-loadConfig :: MonadIO m => String -> m Config
-loadConfig path = do
-  fileExists <- liftIO $ doesFileExist path
+loadConfig :: MonadIO m => Parameters -> m Config
+loadConfig Parameters{..} = do
+  fileExists <- liftIO $ doesFileExist config
   if fileExists
-    then Toml.decodeFile configT path
-    else error $ "Config file \""++path++"\" doesn't exist."
+    then Toml.decodeFile configT config
+    else error $ "Config file \"" ++ config ++ "\" doesn't exist."

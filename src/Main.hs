@@ -19,7 +19,6 @@ import Servant.API.Generic (ToServantApi)
 import Servant.Server (Application, Handler (..), ServerT, hoistServer, serve)
 import Servant.Server.Generic (genericServerT)
 import System.IO
-import System.Environment (getArgs)
 
 import Api (Routes, datumCacheApi)
 import Api.Handler (datumServiceHandlers)
@@ -31,6 +30,7 @@ import Block.Fetch (
   startBlockFetcher,
  )
 import Config (BlockFetcherConfig (BlockFetcherConfig), Config (..), loadConfig)
+import Parameters (paramInfo)
 import Database (getLastBlock, initLastBlock, initTables, updateLastBlock)
 
 appService :: Env -> Application
@@ -84,23 +84,11 @@ initDbAndFetcher env Config {..} =
               Right () -> pure ()
               Left e -> logErrorNS "initDbAndFetcher" $ Text.pack $ show e
 
-argsParse :: [String] -> String -> String -> String
-argsParse args key vdefault = case args of
-  [] -> vdefault
-  arg:next -> fromMaybe (argsParse next key vdefault) (stripPrefix (key++"=") arg)
-  where
-  --https://hackage.haskell.org/package/base-4.16.1.0/docs/src/Data-OldList.html#stripPrefix
-  stripPrefix :: Eq a => [a] -> [a] -> Maybe [a]
-  stripPrefix [] ys = Just ys
-  stripPrefix (x:xs) (y:ys)
-    | x == y = stripPrefix xs ys
-  stripPrefix _ _ = Nothing
-
 main :: IO ()
 main = do
   hSetBuffering stdout NoBuffering
-  args <- getArgs
-  cfg@Config {..} <- loadConfig $ argsParse args "config" "config.toml"
+  parameters <- paramInfo
+  cfg@Config {..} <- loadConfig parameters
   print cfg
   env <- mkAppEnv cfg
   initDbAndFetcher env cfg

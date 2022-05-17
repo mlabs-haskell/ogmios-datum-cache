@@ -63,6 +63,7 @@ executable ogmios-datum-cache
     Block.Filter
     Block.Types
     Config
+    Parameters
     Database
     PlutusData
 
