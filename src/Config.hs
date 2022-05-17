@@ -75,9 +75,8 @@ configT = do
   pure Config {..}
 
 loadConfig :: MonadIO m => String -> m Config
-loadConfig path = do 
+loadConfig path = do
   fileExists <- liftIO $ doesFileExist path
-  if fileExists then
-    Toml.decodeFile configT path
-  else
-    error "No config file exists at that path!"
+  if fileExists
+    then Toml.decodeFile configT path
+    else error $ "Config file \""++path++"\" doesn't exist."
