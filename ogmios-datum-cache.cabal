@@ -41,32 +41,33 @@ common common-language
 common common-configs
   default-language: Haskell2010
 
-executable ogmios-datum-cache
-  import:         common-language
-  import:         common-configs
+library
+  import:          common-language
+  import:          common-configs
   ghc-options:
     -Wall -Wcompat -Wincomplete-uni-patterns -Wredundant-constraints
     -Wmissing-export-lists -Wmissing-deriving-strategies -O2 -Werror
 
-  main-is:        Main.hs
-  other-modules:
+  hs-source-dirs:  src
+  exposed-modules:
     Api
-    Api.Error
     Api.Handler
+    App
+    App.Env
+    Block.Fetch
+    Config
+    Database
+
+  other-modules:
+    Api.Error
     Api.Types
     Api.WebSocket
     Api.WebSocket.Json
     Api.WebSocket.Types
-    App
-    App.Env
-    Block.Fetch
     Block.Filter
     Block.Types
-    Config
-    Database
     PlutusData
 
-  hs-source-dirs: src
   build-depends:
     , aeson
     , async
@@ -76,41 +77,49 @@ executable ogmios-datum-cache
     , bytestring
     , can-i-haz
     , cborg
-    , cborg-json
-    , co-log
-    , conduit
     , containers
-    , cryptohash-sha256
     , data-default
-    , directory
-    , esqueleto
     , exceptions
-    , filepath
     , hasql
     , http-types
     , monad-logger
     , mtl
-    , network
-    , optparse-applicative
-    , persistent
-    , persistent-postgresql
-    , resource-pool
     , serialise
     , servant
-    , servant-multipart
     , servant-server
     , servant-websockets
     , text
-    , time
     , tomland
     , transformers
     , unliftio
     , unliftio-core
     , unordered-containers
     , vector
+    , websockets
+
+executable ogmios-datum-cache
+  import:         common-language
+  import:         common-configs
+  ghc-options:
+    -Wall -Wcompat -Wincomplete-uni-patterns -Wredundant-constraints
+    -Wmissing-export-lists -Wmissing-deriving-strategies -O2 -Werror
+
+  hs-source-dirs: app
+  main-is:        Main.hs
+  build-depends:
+    , aeson
+    , base
+    , data-default
+    , exceptions
+    , hasql
+    , monad-logger
+    , mtl
+    , ogmios-datum-cache
+    , servant
+    , servant-server
+    , text
+    , transformers
     , wai
     , wai-cors
-    , wai-extra
     , wai-logger
     , warp
-    , websockets
