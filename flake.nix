@@ -52,6 +52,7 @@
             fourmolu
             haskell-language-server
             cabal-install
+            cabal-fmt
             hlint
             apply-refact
             pkgs.postgresql
@@ -70,12 +71,13 @@
         {
           formatting-check = pkgs.runCommand "formatting-check"
             {
-              nativeBuildInputs = [ hpkgs.fourmolu pkgs.fd ];
+              nativeBuildInputs = [ hpkgs.fourmolu hpkgs.cabal-fmt pkgs.fd ];
             }
             ''
               cd ${self}
               fourmolu -m check -o -XTypeApplications -o -XImportQualifiedPost \
                 $(fd -ehs)
+              cabal-fmt --check $(fd -ecabal)
               touch $out
             '';
           lint-check = pkgs.runCommand "formatting-check"
