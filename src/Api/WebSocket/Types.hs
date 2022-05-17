@@ -17,7 +17,7 @@ data JsonWspRequest = JsonWspRequest
   { mirror :: Maybe Aeson.Value
   , method :: Method
   }
-  deriving stock (Generic)
+  deriving stock (Generic, Show, Eq)
 
 instance FromJSON JsonWspRequest where
   parseJSON = withObject "GetDatumByHash" $ \o ->
@@ -54,7 +54,7 @@ data Method
   | StartFetchBlocks Int64 Text (Maybe DatumFilter)
   | CancelFetchBlocks
   | GetHealthcheck
-  deriving stock (Show)
+  deriving stock (Show, Eq)
 
 data GetDatumsByHashesDatum = GetDatumsByHashesDatum
   { hash :: Text
