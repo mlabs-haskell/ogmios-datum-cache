@@ -46,7 +46,8 @@ executable ogmios-datum-cache
   import:         common-configs
   ghc-options:
     -Wall -Wcompat -Wincomplete-uni-patterns -Wredundant-constraints
-    -Wmissing-export-lists -Wmissing-deriving-strategies -O2 -Werror
+    -Wmissing-import-lists -Wmissing-export-lists
+    -Wmissing-deriving-strategies -O2 -Werror
 
   main-is:        Main.hs
   other-modules:
