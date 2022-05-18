@@ -47,7 +47,8 @@ library
   ghc-options:
     -Wall -Wcompat -Wincomplete-uni-patterns
     -Wincomplete-record-updates -Wredundant-constraints
-    -Wmissing-export-lists -Wmissing-deriving-strategies -Werror -O2
+    -Wmissing-import-lists -Wmissing-export-lists
+    -Wmissing-deriving-strategies -Werror -O2
 
   hs-source-dirs:  src
   exposed-modules:
