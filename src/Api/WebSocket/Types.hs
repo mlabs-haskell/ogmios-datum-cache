@@ -40,9 +40,12 @@ instance FromJSON JsonWspRequest where
             slot <- args .: "slot"
             blockId <- args .: "id"
             datumFilter <- args .:? "datumFilter"
-            pure $ StartFetchBlocks slot blockId datumFilter
+            token <- args .: "token"
+            pure $ StartFetchBlocks slot blockId datumFilter token
           "CancelFetchBlocks" -> do
-            pure CancelFetchBlocks
+            args <- o .: "args"
+            token <- args .: "token"
+            pure $ CancelFetchBlocks token
           "GetHealthcheck" -> do
             pure GetHealthcheck
           _ -> fail "Unexpected method"
@@ -51,8 +54,13 @@ data Method
   = GetDatumByHash Text
   | GetDatumsByHashes [Text]
   | GetBlock
-  | StartFetchBlocks Int64 Text (Maybe DatumFilter)
+  | StartFetchBlocks
+      Int64 -- slot
+      Text -- id
+      (Maybe DatumFilter) -- datum filter
+      (Maybe String) -- token
   | CancelFetchBlocks
+      (Maybe String) -- token
   | GetHealthcheck
   deriving stock (Show, Eq)
 

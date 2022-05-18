@@ -7,6 +7,7 @@ module Api.Types (
   GetDatumsByHashesResponse (..),
   StartBlockFetchingRequest (..),
   StartBlockFetchingResponse (..),
+  CancelBlockFetchingRequest (..),
   CancelBlockFetchingResponse (..),
 ) where
 
@@ -46,6 +47,7 @@ data StartBlockFetchingRequest = StartBlockFetchingRequest
   { slot :: Int64
   , id :: Text
   , datumFilter :: Maybe DatumFilter
+  , token :: Maybe String
   }
   deriving stock (Generic)
   deriving anyclass (FromJSON)
@@ -55,6 +57,12 @@ newtype StartBlockFetchingResponse = StartBlockFetchingResponse
   }
   deriving stock (Generic)
   deriving anyclass (ToJSON)
+
+newtype CancelBlockFetchingRequest = CancelBlockFetchingRequest
+  { token :: Maybe String
+  }
+  deriving stock (Generic)
+  deriving anyclass (FromJSON)
 
 newtype CancelBlockFetchingResponse = CancelBlockFetchingResponse
   { message :: Text

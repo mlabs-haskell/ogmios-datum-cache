@@ -12,6 +12,7 @@ import Servant.API.Generic (Generic, ToServantApi, genericApi, (:-))
 import Servant.API.WebSocket (WebSocket)
 
 import Api.Types (
+  CancelBlockFetchingRequest,
   CancelBlockFetchingResponse,
   GetDatumByHashResponse,
   GetDatumsByHashesRequest,
@@ -59,6 +60,7 @@ data ControlApi route = ControlApi
       route
         :- "cancel_fetch_blocks"
         :> Summary "Stop a block fetcher"
+        :> ReqBody '[JSON] CancelBlockFetchingRequest
         :> Post '[JSON] CancelBlockFetchingResponse
   }
   deriving stock (Generic)

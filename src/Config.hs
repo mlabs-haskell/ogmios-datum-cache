@@ -7,7 +7,7 @@ import Data.ByteString (ByteString)
 import Data.ByteString.Lazy qualified as LBS
 import Data.Int (Int64)
 import Data.Maybe (fromMaybe)
-import Toml (TomlCodec, dimap, (.=))
+import Toml (TomlCodec, dimap, dioptional, (.=))
 import Toml qualified
 
 import Block.Types (BlockInfo (BlockInfo), blockId, blockSlot)
@@ -22,6 +22,8 @@ data BlockFetcherConfig = BlockFetcherConfig
 data Config = Config
   { cfgDbConnectionString :: ByteString
   , cfgServerPort :: Int
+  , -- |if Nothing -- grant the full access
+    cfgServerControlApiToken :: Maybe String
   , cfgOgmiosAddress :: String
   , cfgOgmiosPort :: Int
   , cfgFetcher :: Maybe BlockFetcherConfig
@@ -67,6 +69,8 @@ configT :: TomlCodec Config
 configT = do
   cfgDbConnectionString <- Toml.byteString "dbConnectionString" .= cfgDbConnectionString
   cfgServerPort <- Toml.int "server.port" .= cfgServerPort
+  cfgServerControlApiToken <-
+    dioptional (Toml.string "server.controlApiToken") .= cfgServerControlApiToken
   cfgOgmiosAddress <- Toml.string "ogmios.address" .= cfgOgmiosAddress
   cfgOgmiosPort <- Toml.int "ogmios.port" .= cfgOgmiosPort
   cfgFetcher <- Toml.dioptional withFetcherT .= cfgFetcher

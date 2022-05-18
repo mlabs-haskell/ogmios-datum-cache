@@ -9,7 +9,7 @@ import Data.Maybe (fromMaybe)
 import Data.Text (Text)
 import Data.Text qualified as Text
 import Network.WebSockets qualified as WebSockets
-import Servant
+import Servant (err403, err404, err422, err500)
 import Servant.API.Generic (ToServant)
 import Servant.Server.Generic (AsServerT, genericServerT)
 
@@ -21,6 +21,7 @@ import Api (
  )
 import Api.Error (JsonError (JsonError), throwJsonError)
 import Api.Types (
+  CancelBlockFetchingRequest (CancelBlockFetchingRequest),
   CancelBlockFetchingResponse (CancelBlockFetchingResponse),
   GetDatumByHashResponse (GetDatumByHashResponse),
   GetDatumsByHashesDatum (GetDatumsByHashesDatum),
@@ -32,9 +33,17 @@ import Api.Types (
 import Api.WebSocket (websocketServer)
 import App (App)
 import Block.Fetch (
-  StartBlockFetcherError (StartBlockFetcherErrorAlreadyRunning),
-  StopBlockFetcherError (StopBlockFetcherErrorNotRunning),
+  StartBlockFetcherError (
+    StartBlockFetcherErrorAlreadyRunning,
+    StartBlockNoControlApiTokenGranted
+  ),
+  StopBlockFetcherError (
+    StopBlockFetcherErrorNotRunning,
+    StopBlockNoControlApiTokenGranted
+  ),
+  startBlockErrMsg,
   startBlockFetcher,
+  stopBlockErrMsg,
   stopBlockFetcher,
  )
 import Block.Types (BlockInfo (BlockInfo))
@@ -89,23 +98,29 @@ datumServiceHandlers = Routes {datumRoutes, controlRoutes, websocketRoutes}
     startBlockFetching ::
       StartBlockFetchingRequest ->
       App StartBlockFetchingResponse
-    startBlockFetching (StartBlockFetchingRequest firstBlockSlot firstBlockId datumFilter') = do
-      let datumFilter = fromMaybe def datumFilter'
-      res <- startBlockFetcher (BlockInfo firstBlockSlot firstBlockId) datumFilter
-      case res of
-        Left StartBlockFetcherErrorAlreadyRunning ->
-          throwJsonError err422 "Block fetcher already running"
-        Right () ->
-          pure $ StartBlockFetchingResponse "Started block fetcher"
+    startBlockFetching
+      (StartBlockFetchingRequest firstBlockSlot firstBlockId datumFilter' token) = do
+        let datumFilter = fromMaybe def datumFilter'
+        res <- startBlockFetcher (BlockInfo firstBlockSlot firstBlockId) datumFilter token
+        case res of
+          Left err@StartBlockFetcherErrorAlreadyRunning ->
+            throwJsonError err422 $ startBlockErrMsg err
+          Left err@StartBlockNoControlApiTokenGranted ->
+            throwJsonError err403 $ startBlockErrMsg err
+          Right () ->
+            pure $ StartBlockFetchingResponse "Started block fetcher"
 
-    cancelBlockFetching :: App CancelBlockFetchingResponse
-    cancelBlockFetching = do
-      res <- stopBlockFetcher
+    cancelBlockFetching ::
+      CancelBlockFetchingRequest ->
+      App CancelBlockFetchingResponse
+    cancelBlockFetching (CancelBlockFetchingRequest token) = do
+      res <- stopBlockFetcher token
       case res of
-        Left StopBlockFetcherErrorNotRunning ->
-          throwJsonError err422 "No block fetcher running"
-        Right () ->
-          pure $ CancelBlockFetchingResponse "Stopped block fetcher"
+        Left err@StopBlockFetcherErrorNotRunning ->
+          throwJsonError err422 $ stopBlockErrMsg err
+        Left err@StopBlockNoControlApiTokenGranted ->
+          throwJsonError err403 $ stopBlockErrMsg err
+        Right () -> pure $ CancelBlockFetchingResponse "Stopped block fetcher"
 
     websocketRoutes :: ToServant WebSocketApi (AsServerT App)
     websocketRoutes = genericServerT WebSocketApi {websocketApi}

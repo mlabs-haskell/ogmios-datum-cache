@@ -41,9 +41,9 @@ import Api.WebSocket.Types (
  )
 import App (App)
 import Block.Fetch (
-  StartBlockFetcherError (StartBlockFetcherErrorAlreadyRunning),
-  StopBlockFetcherError (StopBlockFetcherErrorNotRunning),
+  startBlockErrMsg,
   startBlockFetcher,
+  stopBlockErrMsg,
   stopBlockFetcher,
  )
 import Block.Filter (DatumFilter)
@@ -105,22 +105,24 @@ startFetchBlocks ::
   Int64 ->
   Text ->
   DatumFilter ->
+  Maybe String ->
   App WSResponse
-startFetchBlocks firstBlockSlot firstBlockId datumFilter = do
-  res <- startBlockFetcher (BlockInfo firstBlockSlot firstBlockId) datumFilter
+startFetchBlocks firstBlockSlot firstBlockId datumFilter token = do
+  res <- startBlockFetcher (BlockInfo firstBlockSlot firstBlockId) datumFilter token
   pure $ case res of
-    Left StartBlockFetcherErrorAlreadyRunning ->
-      Left $ mkStartFetchBlocksFault "Block fetcher already running"
+    Left err ->
+      Left $ mkStartFetchBlocksFault $ startBlockErrMsg err
     Right () ->
       Right mkStartFetchBlocksResponse
 
 cancelFetchBlocks ::
+  Maybe String ->
   App WSResponse
-cancelFetchBlocks = do
-  res <- stopBlockFetcher
+cancelFetchBlocks token = do
+  res <- stopBlockFetcher token
   pure $ case res of
-    Left StopBlockFetcherErrorNotRunning ->
-      Left $ mkCancelFetchBlocksFault "No block fetcher running"
+    Left err ->
+      Left $ mkCancelFetchBlocksFault $ stopBlockErrMsg err
     Right () ->
       Right mkCancelFetchBlocksResponse
 
@@ -144,11 +146,11 @@ websocketServer conn = forever $ do
           getDatumsByHashes hashes
         GetBlock ->
           getLastBlock
-        StartFetchBlocks firstBlockSlot firstBlockId datumFilter' -> do
+        StartFetchBlocks firstBlockSlot firstBlockId datumFilter' token -> do
           let datumFilter = fromMaybe def datumFilter'
-          startFetchBlocks firstBlockSlot firstBlockId datumFilter
-        CancelFetchBlocks ->
-          cancelFetchBlocks
+          startFetchBlocks firstBlockSlot firstBlockId datumFilter token
+        CancelFetchBlocks token ->
+          cancelFetchBlocks token
         GetHealthcheck ->
           getHealthcheck
       let jsonResp =
