@@ -36,6 +36,7 @@ import Control.Monad.Trans (liftIO)
 import Data.Aeson qualified as Aeson
 import Data.ByteString.Base64 qualified as Base64
 import Data.Map qualified as Map
+import Data.Maybe (isNothing)
 import Data.String (IsString)
 import Data.Text (Text)
 import Data.Text qualified as Text
@@ -82,7 +83,7 @@ withControlApiTokenToken err token action = do
   ControlApiToken expectToken <- ask
   case () of
     _
-      | expectToken == Nothing -> action
+      | isNothing expectToken -> action
       | expectToken == token -> action
       | otherwise -> pure $ Left err
 
