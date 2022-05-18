@@ -2,7 +2,7 @@ module Spec.Api.WebSocket.Types (spec) where
 
 import Api.WebSocket.Types (
   JsonWspRequest (JsonWspRequest),
-  Method (CancelFetchBlocks),
+  Method (GetHealthcheck),
  )
 import Data.Aeson (decode)
 import Test.Hspec (Spec, describe, it, shouldBe)
@@ -12,10 +12,10 @@ spec = do
   describe "Api.WebSocket.Types" $ do
     describe "decode JsonWspRequest with mirror argument" $ do
       it "mirror is a text" $ do
-        decode "{\"methodname\":\"CancelFetchBlocks\", \"mirror\": \"Text\"}"
+        decode "{\"methodname\":\"GetHealthcheck\", \"mirror\": \"Text\"}"
           `shouldBe` Just
-            (JsonWspRequest (Just "Text") CancelFetchBlocks)
+            (JsonWspRequest (Just "Text") GetHealthcheck)
       it "mirrot is an object " $ do
-        decode "{\"methodname\":\"CancelFetchBlocks\", \"mirror\": {\"field\": \"Text\"}}"
+        decode "{\"methodname\":\"GetHealthcheck\", \"mirror\": {\"field\": \"Text\"}}"
           `shouldBe` Just
-            (JsonWspRequest (decode "{\"field\": \"Text\"}") CancelFetchBlocks)
+            (JsonWspRequest (decode "{\"field\": \"Text\"}") GetHealthcheck)
