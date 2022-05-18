@@ -5,6 +5,18 @@ module Parameters (
 ) where
 
 import Options.Applicative
+    ( header,
+      fullDesc,
+      helper,
+      (<**>),
+      info,
+      execParser,
+      help,
+      value,
+      metavar,
+      long,
+      strOption,
+      Parser )
 
 newtype Parameters = Parameters
   { config :: FilePath }
@@ -18,14 +30,4 @@ argParser = Parameters
           <> help "filepath where config is loaded from")
 
 paramInfo :: IO Parameters
-paramInfo = execParser (
-  info (
-    argParser <**> helper
-    )
-  (
-      fullDesc
-      <> progDesc ""
-      <> header "Ogmios Datum Cache"
-
-    )
-  )
+paramInfo = execParser ( info ( argParser <**> helper ) ( fullDesc <> header "Ogmios Datum Cache" ) )
