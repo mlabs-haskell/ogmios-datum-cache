@@ -55,8 +55,8 @@ import Database qualified
 
 type WSResponse =
   Either
-    (Maybe Text -> JsonWspFault)
-    (Maybe Text -> JsonWspResponse)
+    (Maybe Aeson.Value -> JsonWspFault)
+    (Maybe Aeson.Value -> JsonWspResponse)
 
 getDatumByHash ::
   Text ->
