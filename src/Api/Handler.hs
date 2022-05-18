@@ -1,3 +1,5 @@
+{-# LANGUAGE NamedFieldPuns #-}
+
 module Api.Handler (datumServiceHandlers) where
 
 import Control.Monad.Catch (throwM)
@@ -42,10 +44,10 @@ import Database (
 import Database qualified
 
 datumServiceHandlers :: Routes (AsServerT App)
-datumServiceHandlers = Routes {..}
+datumServiceHandlers = Routes {datumRoutes, controlRoutes, websocketRoutes}
   where
     datumRoutes :: ToServant DatumApi (AsServerT App)
-    datumRoutes = genericServerT DatumApi {..}
+    datumRoutes = genericServerT DatumApi {getDatumByHash, getDatumsByHashes, getLastBlock, getHealthcheck}
 
     catchDatabaseError r = do
       case r of
@@ -82,7 +84,7 @@ datumServiceHandlers = Routes {..}
 
     -- control api
     controlRoutes :: ToServant ControlApi (AsServerT App)
-    controlRoutes = genericServerT ControlApi {..}
+    controlRoutes = genericServerT ControlApi {startBlockFetching, cancelBlockFetching}
 
     startBlockFetching ::
       StartBlockFetchingRequest ->
@@ -106,7 +108,7 @@ datumServiceHandlers = Routes {..}
           pure $ CancelBlockFetchingResponse "Stopped block fetcher"
 
     websocketRoutes :: ToServant WebSocketApi (AsServerT App)
-    websocketRoutes = genericServerT WebSocketApi {..}
+    websocketRoutes = genericServerT WebSocketApi {websocketApi}
 
     websocketApi :: WebSockets.Connection -> App ()
     websocketApi conn = do
