@@ -61,6 +61,7 @@ library
     Block.Fetch
     Config
     Database
+    Parameters
 
   other-modules:
     Api.Error
@@ -80,11 +81,13 @@ library
     , cborg
     , containers
     , data-default
+    , directory
     , exceptions
     , hasql
     , http-types
     , monad-logger
     , mtl
+    , optparse-applicative
     , serialise
     , servant
     , servant-server
