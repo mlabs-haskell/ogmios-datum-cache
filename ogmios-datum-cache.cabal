@@ -69,8 +69,8 @@ library
     Block.Filter
     Block.Types
     Config
-    Parameters
     Database
+    Parameters
     PlutusData
 
   build-depends:
