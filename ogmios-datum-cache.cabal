@@ -47,8 +47,7 @@ library
   ghc-options:
     -Wall -Wcompat -Wincomplete-uni-patterns
     -Wincomplete-record-updates -Wredundant-constraints
-    -Wmissing-import-lists -Wmissing-export-lists
-    -Wmissing-deriving-strategies -Werror -O2
+    -Wmissing-export-lists -Wmissing-deriving-strategies -Werror -O2
 
   hs-source-dirs:  src
   exposed-modules:
@@ -59,6 +58,7 @@ library
     Block.Fetch
     Config
     Database
+    Parameters
 
   other-modules:
     Api.Error
@@ -68,9 +68,6 @@ library
     Api.WebSocket.Types
     Block.Filter
     Block.Types
-    Config
-    Database
-    Parameters
     PlutusData
 
   build-depends:
@@ -84,11 +81,13 @@ library
     , cborg
     , containers
     , data-default
+    , directory
     , exceptions
     , hasql
     , http-types
     , monad-logger
     , mtl
+    , optparse-applicative
     , serialise
     , servant
     , servant-server
