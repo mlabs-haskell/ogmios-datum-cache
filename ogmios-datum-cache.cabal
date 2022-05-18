@@ -59,6 +59,7 @@ library
     App
     App.Env
     Block.Fetch
+    Block.Types
     Config
     Database
 
@@ -66,7 +67,6 @@ library
     Api.Error
     Api.Types
     Block.Filter
-    Block.Types
     PlutusData
 
   build-depends:
@@ -132,15 +132,23 @@ test-suite ogmios-datum-cache-test
   type:           exitcode-stdio-1.0
   hs-source-dirs: test
   main-is:        Spec.hs
-  other-modules:  Spec.Api.WebSocket.Types
+  other-modules:
+    Spec.Api.WebSocket.Types
+    Spec.Block.Fetch
+    Spec.Config
+
   ghc-options:
     -Wall -Wcompat -Wincomplete-uni-patterns
     -Wincomplete-record-updates -Wredundant-constraints
     -Wmissing-export-lists -Wmissing-deriving-strategies -Werror -O2
-    -Wunused-packages
+    -Wunused-packages -Wwarn
 
   build-depends:
     , aeson
     , base
+    , can-i-haz
+    , directory
     , hspec
     , ogmios-datum-cache
+    , string-interpolate
+    , temporary

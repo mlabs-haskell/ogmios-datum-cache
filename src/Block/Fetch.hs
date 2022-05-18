@@ -2,6 +2,7 @@ module Block.Fetch (
   OgmiosWorkerMVar (MkOgmiosWorkerMVar),
   OgmiosInfo (..),
   ControlApiToken (..),
+  withControlApiTokenToken,
   StartBlockFetcherError (..),
   startBlockErrMsg,
   StopBlockFetcherError (..),
@@ -72,6 +73,7 @@ data OgmiosInfo = OgmiosInfo
 newtype OgmiosWorkerMVar = MkOgmiosWorkerMVar (MVar (Async ()))
 
 newtype ControlApiToken = ControlApiToken (Maybe String)
+  deriving stock (Eq, Show)
 
 withControlApiTokenToken ::
   (MonadReader r m, Has ControlApiToken r) =>

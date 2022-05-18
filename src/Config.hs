@@ -17,7 +17,7 @@ data BlockFetcherConfig = BlockFetcherConfig
   , cfgFetcherFilterJson :: Maybe LBS.ByteString
   , cfgFetcherUseLatest :: Bool
   }
-  deriving stock (Show)
+  deriving stock (Show, Eq)
 
 data Config = Config
   { cfgDbConnectionString :: ByteString
@@ -28,7 +28,7 @@ data Config = Config
   , cfgOgmiosPort :: Int
   , cfgFetcher :: Maybe BlockFetcherConfig
   }
-  deriving stock (Show)
+  deriving stock (Show, Eq)
 
 withDefault :: a -> TomlCodec a -> TomlCodec a
 withDefault d c = dimap pure (fromMaybe d) (Toml.dioptional c)
