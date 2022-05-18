@@ -17,27 +17,21 @@
 
   outputs = { self, nixpkgs, ... }:
     let
-      supportedSystems = [
-        "x86_64-linux"
-        "x86_64-darwin"
-        "aarch64-linux"
-        "aarch64-darwin"
-      ];
+      supportedSystems =
+        [ "x86_64-linux" "x86_64-darwin" "aarch64-linux" "aarch64-darwin" ];
       perSystem = nixpkgs.lib.genAttrs supportedSystems;
       nixpkgsFor = system: import nixpkgs { inherit system; };
       hsPackageName = "ogmios-datum-cache";
-      hpkgsFor = system: (nixpkgsFor system).haskell.packages.ghc8107.override {
-        overrides = prev: _: {
-          "${hsPackageName}" =
-            prev.callCabal2nix hsPackageName self { };
+      hpkgsFor = system:
+        (nixpkgsFor system).haskell.packages.ghc8107.override {
+          overrides = prev: _: {
+            "${hsPackageName}" = prev.callCabal2nix hsPackageName self { };
+          };
         };
-      };
 
-    in
-    {
-      defaultPackage = perSystem (system:
-        self.packages.${system}."${hsPackageName}"
-      );
+    in {
+      defaultPackage =
+        perSystem (system: self.packages.${system}."${hsPackageName}");
       packages = perSystem (system: {
         "${hsPackageName}" = (hpkgsFor system)."${hsPackageName}";
       });
@@ -45,10 +39,9 @@
         let
           hpkgs = hpkgsFor system;
           pkgs = nixpkgsFor system;
-        in
-        hpkgs.shellFor {
+        in hpkgs.shellFor {
           packages = ps: [ ps."${hsPackageName}" ];
-          buildInputs = with hpkgs; [
+          buildInputs = [ pkgs.nixfmt ] ++ (with hpkgs; [
             fourmolu
             haskell-language-server
             cabal-install
@@ -57,7 +50,7 @@
             apply-refact
             pkgs.postgresql
             hoogle
-          ];
+          ]);
         });
       # TODO
       # There is no test suite currently, after tests are implemented we can run
@@ -67,36 +60,30 @@
         let
           hpkgs = hpkgsFor system;
           pkgs = nixpkgsFor system;
-        in
-        {
-          formatting-check = pkgs.runCommand "formatting-check"
-            {
-              nativeBuildInputs = [ hpkgs.fourmolu hpkgs.cabal-fmt pkgs.fd ];
-            }
-            ''
-              cd ${self}
-              fourmolu -m check -o -XTypeApplications -o -XImportQualifiedPost \
-                $(fd -ehs)
-              cabal-fmt --check $(fd -ecabal)
-              touch $out
-            '';
-          lint-check = pkgs.runCommand "formatting-check"
-            {
-              nativeBuildInputs = [ hpkgs.hlint ];
-            }
-            ''
-              cd ${self}
-              hlint .
-              touch $out
-            '';
+        in {
+          formatting-check = pkgs.runCommand "formatting-check" {
+            nativeBuildInputs =
+              [ hpkgs.fourmolu hpkgs.cabal-fmt pkgs.nixfmt pkgs.fd ];
+          } ''
+            cd ${self}
+            fourmolu -m check -o -XTypeApplications -o -XImportQualifiedPost \
+              $(fd -ehs)
+            cabal-fmt --check $(fd -ecabal)
+            nixfmt --check $(fd -enix)
+            touch $out
+          '';
+          lint-check = pkgs.runCommand "formatting-check" {
+            nativeBuildInputs = [ hpkgs.hlint ];
+          } ''
+            cd ${self}
+            hlint .
+            touch $out
+          '';
         });
       check = perSystem (system:
-        (nixpkgsFor system).runCommand "combined-test"
-          {
-            nativeBuildInputs = builtins.attrValues self.checks.${system}
-              ++ builtins.attrValues self.packages.${system};
-          }
-          "touch $out"
-      );
+        (nixpkgsFor system).runCommand "combined-test" {
+          nativeBuildInputs = builtins.attrValues self.checks.${system}
+            ++ builtins.attrValues self.packages.${system};
+        } "touch $out");
     };
 }
