@@ -36,7 +36,7 @@ import PlutusData qualified
 data JsonWspResponse = JsonWspResponse
   { methodname :: Text
   , result :: Aeson.Value
-  , reflection :: Maybe Text
+  , reflection :: Maybe Aeson.Value
   }
   deriving stock (Generic)
 
@@ -55,7 +55,7 @@ data JsonWspFault = JsonWspFault
   { methodname :: Text
   , faultCode :: Text
   , faultString :: Text
-  , reflection :: Maybe Text
+  , reflection :: Maybe Aeson.Value
   }
   deriving stock (Generic)
 
@@ -74,7 +74,7 @@ instance ToJSON JsonWspFault where
       , "reflection" .= reflection
       ]
 
-mkGetDatumByHashResponse :: Maybe PlutusData.Data -> Maybe Text -> JsonWspResponse
+mkGetDatumByHashResponse :: Maybe PlutusData.Data -> Maybe Aeson.Value -> JsonWspResponse
 mkGetDatumByHashResponse = \case
   Just datumValue ->
     JsonWspResponse "GetDatumByHash" (object ["DatumFound" .= value])
@@ -83,11 +83,11 @@ mkGetDatumByHashResponse = \case
   Nothing ->
     JsonWspResponse "GetDatumByHash" (object ["DatumNotFound" .= Null])
 
-mkGetDatumByHashFault :: Text -> Maybe Text -> JsonWspFault
+mkGetDatumByHashFault :: Text -> Maybe Aeson.Value -> JsonWspFault
 mkGetDatumByHashFault =
   JsonWspFault "GetDatumByHash" "client"
 
-mkGetDatumsByHashesResponse :: Maybe [Aeson.Value] -> Maybe Text -> JsonWspResponse
+mkGetDatumsByHashesResponse :: Maybe [Aeson.Value] -> Maybe Aeson.Value -> JsonWspResponse
 mkGetDatumsByHashesResponse = \case
   Just datumsWithValues ->
     JsonWspResponse "GetDatumsByHashes" (object ["DatumsFound" .= value])
@@ -96,32 +96,32 @@ mkGetDatumsByHashesResponse = \case
   Nothing ->
     JsonWspResponse "GetDatumsByHashes" (object ["DatumsNotFound" .= Null])
 
-mkGetDatumsByHashesFault :: Text -> Maybe Text -> JsonWspFault
+mkGetDatumsByHashesFault :: Text -> Maybe Aeson.Value -> JsonWspFault
 mkGetDatumsByHashesFault =
   JsonWspFault "GetDatumsByHashes" "client"
 
-mkGetBlockResponse :: BlockInfo -> Maybe Text -> JsonWspResponse
+mkGetBlockResponse :: BlockInfo -> Maybe Aeson.Value -> JsonWspResponse
 mkGetBlockResponse block = JsonWspResponse "GetBlock" (object ["block" .= block])
 
-mkGetBlockFault :: Maybe Text -> JsonWspFault
+mkGetBlockFault :: Maybe Aeson.Value -> JsonWspFault
 mkGetBlockFault = JsonWspFault "GetBlock" "notFound" ""
 
-mkStartFetchBlocksResponse :: Maybe Text -> JsonWspResponse
+mkStartFetchBlocksResponse :: Maybe Aeson.Value -> JsonWspResponse
 mkStartFetchBlocksResponse =
   JsonWspResponse "StartFetchBlocks" (object ["StartedBlockFetcher" .= Bool True])
 
-mkStartFetchBlocksFault :: Text -> Maybe Text -> JsonWspFault
+mkStartFetchBlocksFault :: Text -> Maybe Aeson.Value -> JsonWspFault
 mkStartFetchBlocksFault =
   JsonWspFault "StartFetchBlocks" "client"
 
-mkCancelFetchBlocksResponse :: Maybe Text -> JsonWspResponse
+mkCancelFetchBlocksResponse :: Maybe Aeson.Value -> JsonWspResponse
 mkCancelFetchBlocksResponse =
   JsonWspResponse "CancelFetchBlocks" (object ["StoppedBlockFetcher" .= Bool True])
 
-mkCancelFetchBlocksFault :: Text -> Maybe Text -> JsonWspFault
+mkCancelFetchBlocksFault :: Text -> Maybe Aeson.Value -> JsonWspFault
 mkCancelFetchBlocksFault =
   JsonWspFault "CancelFetchBlocks" "client"
 
-mkHealthcheckResponse :: Maybe Text -> JsonWspResponse
+mkHealthcheckResponse :: Maybe Aeson.Value -> JsonWspResponse
 mkHealthcheckResponse =
   JsonWspResponse "GetHealthcheck" (object [])

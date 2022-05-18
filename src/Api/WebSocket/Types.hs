@@ -5,6 +5,7 @@ module Api.WebSocket.Types (
 ) where
 
 import Data.Aeson (FromJSON, ToJSON, parseJSON, withObject, (.:), (.:?))
+import Data.Aeson qualified as Aeson
 import Data.Int (Int64)
 import Data.Text (Text)
 import GHC.Generics (Generic)
@@ -13,10 +14,10 @@ import Block.Filter (DatumFilter)
 import PlutusData qualified
 
 data JsonWspRequest = JsonWspRequest
-  { mirror :: Maybe Text
+  { mirror :: Maybe Aeson.Value
   , method :: Method
   }
-  deriving stock (Generic)
+  deriving stock (Generic, Show, Eq)
 
 instance FromJSON JsonWspRequest where
   parseJSON = withObject "GetDatumByHash" $ \o ->
@@ -53,7 +54,7 @@ data Method
   | StartFetchBlocks Int64 Text (Maybe DatumFilter)
   | CancelFetchBlocks
   | GetHealthcheck
-  deriving stock (Show)
+  deriving stock (Show, Eq)
 
 data GetDatumsByHashesDatum = GetDatumsByHashesDatum
   { hash :: Text

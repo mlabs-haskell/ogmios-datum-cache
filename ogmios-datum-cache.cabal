@@ -53,6 +53,9 @@ library
   exposed-modules:
     Api
     Api.Handler
+    Api.WebSocket
+    Api.WebSocket.Json
+    Api.WebSocket.Types
     App
     App.Env
     Block.Fetch
@@ -62,9 +65,6 @@ library
   other-modules:
     Api.Error
     Api.Types
-    Api.WebSocket
-    Api.WebSocket.Json
-    Api.WebSocket.Types
     Block.Filter
     Block.Types
     PlutusData
@@ -125,3 +125,22 @@ executable ogmios-datum-cache
     , wai-cors
     , wai-logger
     , warp
+
+test-suite ogmios-datum-cache-test
+  import:         common-language
+  import:         common-configs
+  type:           exitcode-stdio-1.0
+  hs-source-dirs: test
+  main-is:        Spec.hs
+  other-modules:  Spec.Api.WebSocket.Types
+  ghc-options:
+    -Wall -Wcompat -Wincomplete-uni-patterns
+    -Wincomplete-record-updates -Wredundant-constraints
+    -Wmissing-export-lists -Wmissing-deriving-strategies -Werror -O2
+    -Wunused-packages
+
+  build-depends:
+    , aeson
+    , base
+    , hspec
+    , ogmios-datum-cache

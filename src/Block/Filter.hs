@@ -14,7 +14,7 @@ data DatumFilter
   | AllFilter [DatumFilter]
   | DatumHashFilter Text
   | AddressFilter Text
-  deriving stock (Show)
+  deriving stock (Show, Eq)
 
 -- | Filter that accepts all datums
 defaultDatumFilter :: DatumFilter
