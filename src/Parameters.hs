@@ -1,33 +1,36 @@
 module Parameters (
-    Parameters(..),
-    argParser,
-    paramInfo
+  Parameters (..),
+  argParser,
+  paramInfo,
 ) where
 
-import Options.Applicative
-    ( header,
-      fullDesc,
-      helper,
-      (<**>),
-      info,
-      execParser,
-      help,
-      value,
-      metavar,
-      long,
-      strOption,
-      Parser )
+import Options.Applicative (
+  Parser,
+  execParser,
+  fullDesc,
+  header,
+  help,
+  helper,
+  info,
+  long,
+  metavar,
+  strOption,
+  value,
+  (<**>),
+ )
 
 newtype Parameters = Parameters
-  { config :: FilePath }
+  {config :: FilePath}
 
 argParser :: Parser Parameters
-argParser = Parameters
-        <$> strOption
-          ( long "config"
+argParser =
+  Parameters
+    <$> strOption
+      ( long "config"
           <> metavar "FILEPATH"
           <> value "config.toml"
-          <> help "filepath where config is loaded from")
+          <> help "filepath where config is loaded from"
+      )
 
 paramInfo :: IO Parameters
-paramInfo = execParser ( info ( argParser <**> helper ) ( fullDesc <> header "Ogmios Datum Cache" ) )
+paramInfo = execParser (info (argParser <**> helper) (fullDesc <> header "Ogmios Datum Cache"))

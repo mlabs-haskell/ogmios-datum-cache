@@ -18,7 +18,7 @@ import Network.Wai.Middleware.Cors (simpleCors)
 import Servant.API.Generic (ToServantApi)
 import Servant.Server (Application, Handler (..), ServerT, hoistServer, serve)
 import Servant.Server.Generic (genericServerT)
-import System.IO
+import System.IO (BufferMode (NoBuffering), hSetBuffering, stdout)
 
 import Api (Routes, datumCacheApi)
 import Api.Handler (datumServiceHandlers)
@@ -30,8 +30,8 @@ import Block.Fetch (
   startBlockFetcher,
  )
 import Config (BlockFetcherConfig (BlockFetcherConfig), Config (..), loadConfig)
-import Parameters (paramInfo)
 import Database (getLastBlock, initLastBlock, initTables, updateLastBlock)
+import Parameters (paramInfo)
 
 appService :: Env -> Application
 appService env = serve datumCacheApi appServer

@@ -7,10 +7,10 @@ import Data.ByteString (ByteString)
 import Data.ByteString.Lazy qualified as LBS
 import Data.Int (Int64)
 import Data.Maybe (fromMaybe)
+import Parameters (Parameters (Parameters, config))
 import System.Directory (doesFileExist)
 import Toml (TomlCodec, dimap, (.=))
 import Toml qualified
-import Parameters (Parameters(..))
 
 import Block.Types (BlockInfo (BlockInfo), blockId, blockSlot)
 import Control.Monad.IO.Unlift (liftIO)
@@ -76,7 +76,7 @@ configT = do
   pure Config {..}
 
 loadConfig :: MonadIO m => Parameters -> m Config
-loadConfig Parameters{..} = do
+loadConfig Parameters {..} = do
   fileExists <- liftIO $ doesFileExist config
   if fileExists
     then Toml.decodeFile configT config
