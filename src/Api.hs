@@ -56,11 +56,16 @@ data ControlApi route = ControlApi
         :> Summary "Start a block fetcher starting with the specified block"
         :> ReqBody '[JSON] StartBlockFetchingRequest
         :> Post '[JSON] StartBlockFetchingResponse
-  , cancelBlockFetching ::
+  , cancelBlockFetchingWithBody ::
       route
         :- "cancel_fetch_blocks"
         :> Summary "Stop a block fetcher"
         :> ReqBody '[JSON] CancelBlockFetchingRequest
+        :> Post '[JSON] CancelBlockFetchingResponse
+  , cancelBlockFetching ::
+      route
+        :- "cancel_fetch_blocks"
+        :> Summary "Stop a block fetcher"
         :> Post '[JSON] CancelBlockFetchingResponse
   }
   deriving stock (Generic)

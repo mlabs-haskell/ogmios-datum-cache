@@ -14,7 +14,7 @@ import Servant.API.Generic (ToServant)
 import Servant.Server.Generic (AsServerT, genericServerT)
 
 import Api (
-  ControlApi (ControlApi, cancelBlockFetching, startBlockFetching),
+  ControlApi (ControlApi, cancelBlockFetching, cancelBlockFetchingWithBody, startBlockFetching),
   DatumApi (DatumApi, getDatumByHash, getDatumsByHashes, getHealthcheck, getLastBlock),
   Routes (Routes, controlRoutes, datumRoutes, websocketRoutes),
   WebSocketApi (WebSocketApi, websocketApi),
@@ -93,7 +93,9 @@ datumServiceHandlers = Routes {datumRoutes, controlRoutes, websocketRoutes}
 
     -- control api
     controlRoutes :: ToServant ControlApi (AsServerT App)
-    controlRoutes = genericServerT ControlApi {startBlockFetching, cancelBlockFetching}
+    controlRoutes =
+      genericServerT
+        ControlApi {startBlockFetching, cancelBlockFetching, cancelBlockFetchingWithBody}
 
     startBlockFetching ::
       StartBlockFetchingRequest ->
@@ -110,10 +112,14 @@ datumServiceHandlers = Routes {datumRoutes, controlRoutes, websocketRoutes}
           Right () ->
             pure $ StartBlockFetchingResponse "Started block fetcher"
 
-    cancelBlockFetching ::
+    cancelBlockFetching :: App CancelBlockFetchingResponse
+    cancelBlockFetching =
+      cancelBlockFetchingWithBody $ CancelBlockFetchingRequest Nothing
+
+    cancelBlockFetchingWithBody ::
       CancelBlockFetchingRequest ->
       App CancelBlockFetchingResponse
-    cancelBlockFetching (CancelBlockFetchingRequest token) = do
+    cancelBlockFetchingWithBody (CancelBlockFetchingRequest token) = do
       res <- stopBlockFetcher token
       case res of
         Left err@StopBlockFetcherErrorNotRunning ->
