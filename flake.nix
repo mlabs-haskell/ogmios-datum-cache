@@ -66,7 +66,7 @@
               [ hpkgs.fourmolu hpkgs.cabal-fmt pkgs.nixfmt pkgs.fd ];
           } ''
             cd ${self}
-            fourmolu -m check -o -XTypeApplications -o -XImportQualifiedPost \
+            fourmolu -m check -o -XTypeApplications -o -XImportQualifiedPost -o -XQuasiQuotes \
               $(fd -ehs)
             cabal-fmt --check $(fd -ecabal)
             nixfmt --check $(fd -enix)

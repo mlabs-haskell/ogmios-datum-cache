@@ -1,3 +1,5 @@
+{-# LANGUAGE QuasiQuotes #-}
+
 module Spec.Api.WebSocket.Types (spec) where
 
 import Data.Aeson (decode)
