@@ -8,6 +8,7 @@ import System.IO.Temp (withSystemTempDirectory)
 import Test.Hspec (Spec, describe, it, shouldBe)
 
 import Config (Config (..), loadConfig)
+import Parameters (Parameters (Parameters))
 
 spec :: Spec
 spec = do
@@ -47,5 +48,5 @@ toml `configShouldBe` conf = do
   withSystemTempDirectory "ogmios-datum-cache-test" $ \path -> do
     setCurrentDirectory path
     writeFile "config.toml" toml
-    loadConfig >>= (`shouldBe` conf)
+    loadConfig (Parameters "config.toml") >>= (`shouldBe` conf)
   setCurrentDirectory wd
