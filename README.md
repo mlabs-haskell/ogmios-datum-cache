@@ -126,7 +126,7 @@ Responses:
 * 422 `{"error": "Another block fetcher was already running, cancelling worker thread"}`
 
 ### `POST /control/cancel_fetch_blocks`
-Request body:
+Optional request body:
 ```jsonc
 {
   // optional
