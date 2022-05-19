@@ -22,10 +22,10 @@ import System.IO
 
 import Api (Routes, datumCacheApi)
 import Api.Handler (datumServiceHandlers)
-import Api.WebSocket.Types (ControlApiToken (ControlApiToken))
 import App (App (..))
 import App.Env (Env (..))
 import Block.Fetch (
+  ControlApiToken (ControlApiToken),
   OgmiosInfo (OgmiosInfo),
   createStoppedFetcher,
   startBlockFetcher,
@@ -57,7 +57,7 @@ mkAppEnv Config {..} = do
       >>= either (throwM . DbConnectionAcquireException) pure
   let envOgmiosInfo = OgmiosInfo cfgOgmiosPort cfgOgmiosAddress
   envOgmiosWorker <- createStoppedFetcher
-  envControlApiToken <- ControlApiToken cfgServerControlApiToken
+  let envControlApiToken = ControlApiToken cfgServerControlApiToken
   return Env {..}
 
 initDbAndFetcher :: Env -> Config -> IO ()
@@ -82,7 +82,7 @@ initDbAndFetcher env Config {..} =
                     else blockInfo
             initLastBlock firstBlock
             updateLastBlock firstBlock
-            r <- startBlockFetcher firstBlock datumFilter
+            r <- startBlockFetcher firstBlock datumFilter cfgServerControlApiToken
             case r of
               Right () -> pure ()
               Left e -> logErrorNS "initDbAndFetcher" $ Text.pack $ show e
