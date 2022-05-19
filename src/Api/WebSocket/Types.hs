@@ -40,11 +40,11 @@ instance FromJSON JsonWspRequest where
             slot <- args .: "slot"
             blockId <- args .: "id"
             datumFilter <- args .:? "datumFilter"
-            token <- args .: "token"
+            token <- args .:? "token"
             pure $ StartFetchBlocks slot blockId datumFilter token
           "CancelFetchBlocks" -> do
-            args <- o .: "args"
-            token <- args .: "token"
+            args <- o .:? "args"
+            token <- maybe (return Nothing) (.:? "token") args
             pure $ CancelFetchBlocks token
           "GetHealthcheck" -> do
             pure GetHealthcheck
