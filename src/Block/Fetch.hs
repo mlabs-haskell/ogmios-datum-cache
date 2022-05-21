@@ -47,7 +47,7 @@ import Block.Types (
   AlonzoBlock (body, header, headerHash),
   AlonzoBlockHeader (slot),
   AlonzoTransaction (datums),
-  Block (OtherBlock, MkAlonzoBlock),
+  Block (MkAlonzoBlock, OtherBlock),
   BlockInfo (BlockInfo),
   FindIntersectResult (IntersectionFound, IntersectionNotFound),
   OgmiosFindIntersectResponse,

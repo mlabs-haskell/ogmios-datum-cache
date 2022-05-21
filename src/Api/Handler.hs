@@ -7,7 +7,7 @@ import Data.Maybe (fromMaybe)
 import Data.Text (Text)
 import Data.Text qualified as Text
 import Network.WebSockets qualified as WebSockets
-import Servant ( err404, err422, err500 )
+import Servant (err404, err422, err500)
 import Servant.API.Generic (ToServant)
 import Servant.Server.Generic (AsServerT, genericServerT)
 
