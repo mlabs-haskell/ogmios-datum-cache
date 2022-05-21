@@ -251,7 +251,7 @@ wsApp conn blockInfo datumFilter = do
     logInfoNS
       "wsApp"
       $ Text.pack $ "Starting fetcher from block: " <> show blockInfo
-    let findIntersectRequest = mkFindIntersectRequest blockInfo -- here
+    let findIntersectRequest = mkFindIntersectRequest blockInfo
     liftIO $ WebSockets.sendTextData conn (Aeson.encode findIntersectRequest)
     debounce
     Async.wait receiveWorker
