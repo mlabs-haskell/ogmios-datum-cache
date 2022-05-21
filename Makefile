@@ -13,8 +13,8 @@ usage:
 	@echo "  format_check        -- Check source code formatting without making changes"
 	@echo "  cabalfmt            -- Apply cabal formatting with cabal-fmt"
 	@echo "  cabalfmt_check      -- Check cabal files for formatting errors without making changes"
-	@echo "  nixpkgsfmt          -- Apply nix formatting with nixfmt"
-	@echo "  nixpkgsfmt_check    -- Check nix files for format errors"
+	@echo "  nixfmt          -- Apply nix formatting with nixfmt"
+	@echo "  nixfmt_check    -- Check nix files for format errors"
 	@echo "  format_all          -- Format haskell files, nix files and cabal files"
 	@echo "  format_check_all    -- Check haskell files, nix files and cabal files"
 	@echo "  lint                -- Check the sources with hlint"
@@ -41,8 +41,8 @@ FORMAT_EXTENSIONS := -o -XTypeApplications -o -XImportQualifiedPost
 # Extentions we need to tell Hlint about
 HLINT_EXTS := # None so far
 
-format_check_all: format_check nixpkgsfmt_check cabalfmt_check
-format_all: format cabalfmt nixpkgsfmt
+format_check_all: format_check nixfmt_check cabalfmt_check
+format_all: format cabalfmt nixfmt
 
 # Run fourmolu formatter
 format: requires_nix_shell
@@ -65,11 +65,11 @@ cabalfmt_check: requires_nix_shell
 # Nix files to format
 NIX_SOURCES := $(shell fd -enix)
 
-nixpkgsfmt: requires_nix_shell
-	nixpkgs-fmt $(NIX_SOURCES)
+nixfmt: requires_nix_shell
+	nixfmt $(NIX_SOURCES)
 
-nixpkgsfmt_check: requires_nix_shell
-	nixpkgs-fmt --check $(NIX_SOURCES)
+nixfmt_check: requires_nix_shell
+	nixfmt --check $(NIX_SOURCES)
 
 # Check with hlint
 lint: requires_nix_shell
