@@ -62,7 +62,7 @@ instance (ToJSON args, ToJSON mirror) => ToJSON (OgmiosRequest args mirror) wher
   toJSON =
     Aeson.genericToJSON Aeson.defaultOptions {Aeson.fieldLabelModifier = drop 1}
 
-type OgmiosFindIntersectRequest = OgmiosRequest CursorPoints OgmiosMirror
+type OgmiosFindIntersectRequest = OgmiosRequest [Text] OgmiosMirror
 
 type OgmiosRequestNextRequest = OgmiosRequest (Map Text Text) OgmiosMirror
 
@@ -73,12 +73,16 @@ mkFindIntersectRequest (BlockInfo firstBlockSlot firstBlockId) =
     , _version = "1.0"
     , _servicename = "ogmios"
     , _methodname = "FindIntersect"
-    , _args = points
+    , _args = payload
     , _mirror = 0
     }
   where
-    points =
-      CursorPoints [CursorPoint (fromIntegral firstBlockSlot) firstBlockId]
+    points = CursorPoints [CursorPoint (fromIntegral firstBlockSlot) firstBlockId]
+    payload :: [Text]
+    payload = case (firstBlockSlot, firstBlockId) of
+      (0, "0") ->
+        ["origin"]
+--      _ -> [Aeson.encode points]
 
 mkRequestNextRequest :: Int -> OgmiosRequestNextRequest
 mkRequestNextRequest n =
