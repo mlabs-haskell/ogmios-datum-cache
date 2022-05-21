@@ -17,6 +17,7 @@ module Api.WebSocket.Json (
 ) where
 
 import Data.Aeson
+    ( ToJSON(toJSON), object, Value(Bool, Null), KeyValue((.=)) )
 import Data.Aeson qualified as Aeson
 import Data.Text (Text)
 import GHC.Generics (Generic)

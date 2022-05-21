@@ -44,16 +44,16 @@ import UnliftIO.Concurrent (threadDelay)
 
 import Block.Filter (DatumFilter, runDatumFilter)
 import Block.Types (
-  AlonzoBlock (..),
-  AlonzoBlockHeader (..),
-  AlonzoTransaction (..),
-  Block (..),
+  AlonzoBlock (body, header, headerHash),
+  AlonzoBlockHeader (slot),
+  AlonzoTransaction (datums),
+  Block (OtherBlock, MkAlonzoBlock),
   BlockInfo (BlockInfo),
-  FindIntersectResult (..),
+  FindIntersectResult (IntersectionFound, IntersectionNotFound),
   OgmiosFindIntersectResponse,
   OgmiosRequestNextResponse,
-  OgmiosResponse (..),
-  RequestNextResult (..),
+  OgmiosResponse (_result),
+  RequestNextResult (RollBackward, RollForward),
   mkFindIntersectRequest,
   mkRequestNextRequest,
  )
@@ -251,7 +251,7 @@ wsApp conn blockInfo datumFilter = do
     logInfoNS
       "wsApp"
       $ Text.pack $ "Starting fetcher from block: " <> show blockInfo
-    let findIntersectRequest = mkFindIntersectRequest blockInfo
+    let findIntersectRequest = mkFindIntersectRequest blockInfo -- here
     liftIO $ WebSockets.sendTextData conn (Aeson.encode findIntersectRequest)
     debounce
     Async.wait receiveWorker
