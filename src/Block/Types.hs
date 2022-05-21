@@ -14,24 +14,44 @@ module Block.Types (
   OgmiosResponse (..),
   TxOut (..),
   BlockInfo (..),
+  blockId,
+  blockSlot,
 ) where
 
 import Data.Aeson (FromJSON, ToJSON, withObject, (.:), (.:?))
 import Data.Aeson qualified as Aeson
+import Data.ByteString.Lazy (toStrict)
 import Data.HashMap.Strict qualified as HashMap
 import Data.Int (Int64)
 import Data.Map (Map)
 import Data.Map qualified as Map
 import Data.Text (Text)
+import Data.Text.Encoding (decodeUtf8)
 import GHC.Exts (toList)
 import GHC.Generics (Generic)
 
-data BlockInfo = BlockInfo
-  { blockSlot :: Int64
-  , blockId :: Text
-  }
+data BlockInfo = BlockInfo Int64 Text | BlockOrigin
   deriving stock (Generic, Show)
-  deriving anyclass (ToJSON)
+
+instance ToJSON BlockInfo where
+  toJSON BlockOrigin =
+    Aeson.object
+      [ "blockSlot" Aeson..= (0 :: Int64)
+      , "blockId" Aeson..= ("0" :: Text)
+      ]
+  toJSON (BlockInfo slot' id') =
+    Aeson.object
+      [ "blockSlot" Aeson..= slot'
+      , "blockId" Aeson..= id'
+      ]
+
+blockSlot :: BlockInfo -> Int64
+blockSlot (BlockInfo slot' _) = slot'
+blockSlot BlockOrigin = 0
+
+blockId :: BlockInfo -> Text
+blockId (BlockInfo _ id') = id'
+blockId BlockOrigin = "0"
 
 type OgmiosMirror = Int
 
@@ -67,6 +87,15 @@ type OgmiosFindIntersectRequest = OgmiosRequest [Text] OgmiosMirror
 type OgmiosRequestNextRequest = OgmiosRequest (Map Text Text) OgmiosMirror
 
 mkFindIntersectRequest :: BlockInfo -> OgmiosFindIntersectRequest
+mkFindIntersectRequest BlockOrigin =
+  OgmiosRequest
+    { _type = "jsonwsp/request"
+    , _version = "1.0"
+    , _servicename = "ogmios"
+    , _methodname = "FindIntersect"
+    , _args = ["origin"]
+    , _mirror = 0
+    }
 mkFindIntersectRequest (BlockInfo firstBlockSlot firstBlockId) =
   OgmiosRequest
     { _type = "jsonwsp/request"
@@ -78,11 +107,7 @@ mkFindIntersectRequest (BlockInfo firstBlockSlot firstBlockId) =
     }
   where
     points = CursorPoints [CursorPoint (fromIntegral firstBlockSlot) firstBlockId]
-    payload :: [Text]
-    payload = case (firstBlockSlot, firstBlockId) of
-      (0, "0") ->
-        ["origin"]
---      _ -> [Aeson.encode points]
+    payload = [decodeUtf8 $ toStrict $ Aeson.encode points]
 
 mkRequestNextRequest :: Int -> OgmiosRequestNextRequest
 mkRequestNextRequest n =

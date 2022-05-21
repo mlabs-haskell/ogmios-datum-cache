@@ -31,7 +31,7 @@ import Hasql.Session (Session)
 import Hasql.Session qualified as Session
 import Hasql.Statement (Statement (Statement))
 
-import Block.Types (BlockInfo (BlockInfo))
+import Block.Types (BlockInfo (BlockInfo), blockId, blockSlot)
 import PlutusData qualified
 
 data Datum = Datum
@@ -120,7 +120,7 @@ initLastBlock ::
   ) =>
   BlockInfo ->
   m ()
-initLastBlock (BlockInfo slot hash) = do
+initLastBlock blockInfo = do
   let sql = "INSERT INTO last_block (slot, hash) VALUES ($1, $2) ON CONFLICT DO NOTHING"
       enc =
         mconcat
@@ -128,7 +128,7 @@ initLastBlock (BlockInfo slot hash) = do
           , snd >$< Encoders.param (Encoders.nonNullable Encoders.text)
           ]
       dec = Decoders.noResult
-      stmt = Session.statement (slot, hash) $ Statement sql enc dec True
+      stmt = Session.statement (blockSlot blockInfo, blockId blockInfo) $ Statement sql enc dec True
   dbConnection <- ask
   res <- liftIO $ Session.run stmt dbConnection
   case res of
@@ -145,7 +145,7 @@ updateLastBlock ::
   ) =>
   BlockInfo ->
   m ()
-updateLastBlock (BlockInfo slot hash) = do
+updateLastBlock blockInfo = do
   let sql = "UPDATE last_block SET slot = $1, hash = $2"
       enc =
         mconcat
@@ -153,7 +153,7 @@ updateLastBlock (BlockInfo slot hash) = do
           , snd >$< Encoders.param (Encoders.nonNullable Encoders.text)
           ]
       dec = Decoders.noResult
-      stmt = Session.statement (slot, hash) $ Statement sql enc dec True
+      stmt = Session.statement (blockSlot blockInfo, blockId blockInfo) $ Statement sql enc dec True
   dbConnection <- ask
   res <- liftIO $ Session.run stmt dbConnection
   case res of
