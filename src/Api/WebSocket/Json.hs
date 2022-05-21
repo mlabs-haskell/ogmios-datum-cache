@@ -16,7 +16,12 @@ module Api.WebSocket.Json (
   mkHealthcheckResponse,
 ) where
 
-import Data.Aeson
+import Data.Aeson (
+  KeyValue ((.=)),
+  ToJSON (toJSON),
+  Value (Bool, Null),
+  object,
+ )
 import Data.Aeson qualified as Aeson
 import Data.Text (Text)
 import GHC.Generics (Generic)
