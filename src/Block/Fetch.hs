@@ -203,7 +203,7 @@ receiveBlocksLoop conn datumFilter = forever $ do
       saveDatumsFromAlonzoBlock block datumFilter
       case headerHash block of
         Just headerHash' ->
-          updateLastBlock $ BlockInfo (slot $ header block) headerHash'
+          updateLastBlock (slot $ header block) headerHash'
         Nothing ->
           logWarnNS
             "receiveBlocksLoop"
