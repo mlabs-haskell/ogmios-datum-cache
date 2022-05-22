@@ -35,7 +35,7 @@ import Block.Fetch (
   startBlockFetcher,
   stopBlockFetcher,
  )
-import Block.Types (BlockInfo (BlockInfo))
+import Block.Types (BlockInfo)
 import Database (
   DatabaseError (DatabaseErrorDecodeError, DatabaseErrorNotFound),
  )
@@ -74,7 +74,7 @@ datumServiceHandlers = Routes {..}
     getLastBlock = do
       block' <- Database.getLastBlock
       case block' of
-        Just block -> pure block
+        Just blockInfo -> pure blockInfo
         Nothing -> throwM err404
 
     getHealthcheck :: App ()
@@ -89,7 +89,7 @@ datumServiceHandlers = Routes {..}
       App StartBlockFetchingResponse
     startBlockFetching (StartBlockFetchingRequest firstBlockSlot firstBlockId datumFilter') = do
       let datumFilter = fromMaybe def datumFilter'
-      res <- startBlockFetcher (BlockInfo firstBlockSlot firstBlockId) datumFilter
+      res <- startBlockFetcher firstBlockSlot firstBlockId datumFilter
       case res of
         Left StartBlockFetcherErrorAlreadyRunning ->
           throwJsonError err422 "Block fetcher already running"

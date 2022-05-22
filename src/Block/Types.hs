@@ -35,10 +35,7 @@ data BlockInfo = BlockInfo Int64 Text | BlockOrigin
 
 instance ToJSON BlockInfo where
   toJSON BlockOrigin =
-    Aeson.object
-      [ "blockSlot" Aeson..= (0 :: Int64)
-      , "blockId" Aeson..= ("0" :: Text)
-      ]
+    Aeson.String "origin"
   toJSON (BlockInfo slot' id') =
     Aeson.object
       [ "blockSlot" Aeson..= slot'
