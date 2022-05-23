@@ -1,3 +1,5 @@
+{-# LANGUAGE MultiWayIf #-}
+
 module Block.Fetch (
   OgmiosWorkerMVar (MkOgmiosWorkerMVar),
   OgmiosInfo (..),
@@ -83,8 +85,7 @@ withControlApiTokenToken ::
   m (Either e ())
 withControlApiTokenToken err token action = do
   ControlApiToken expectToken <- ask
-  case () of
-    _
+  if
       | isNothing expectToken -> action
       | expectToken == token -> action
       | otherwise -> pure $ Left err
