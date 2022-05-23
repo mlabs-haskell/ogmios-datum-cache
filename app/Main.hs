@@ -1,3 +1,5 @@
+{-# LANGUAGE NamedFieldPuns #-}
+
 module Main (
   main,
 ) where
@@ -9,23 +11,34 @@ import Control.Monad.Reader (runReaderT)
 import Data.Aeson (eitherDecode)
 import Data.Default (def)
 import Data.Maybe (fromMaybe)
+import Data.String (fromString)
 import Data.Text qualified as Text
 import Hasql.Connection qualified as Connection
 import Hasql.Connection qualified as Hasql
 import Network.Wai.Handler.Warp qualified as Warp
 import Network.Wai.Logger (withStdoutLogger)
 import Network.Wai.Middleware.Cors (simpleCors)
+import Servant.API.BasicAuth (BasicAuthData (BasicAuthData))
 import Servant.API.Generic (ToServantApi)
-import Servant.Server (Application, Handler (..), ServerT, hoistServer, serve)
+import Servant.Server (
+  Application,
+  BasicAuthCheck (BasicAuthCheck),
+  BasicAuthResult (Authorized, Unauthorized),
+  Context (EmptyContext, (:.)),
+  Handler (..),
+  ServerT,
+  hoistServerWithContext,
+  serveWithContext,
+ )
 import Servant.Server.Generic (genericServerT)
 import System.IO (BufferMode (NoBuffering), hSetBuffering, stdout)
 
-import Api (Routes, datumCacheApi)
+import Api (ControlApiAuthData (ControlApiAuthData), Routes, datumCacheApi, datumCacheContext)
 import Api.Handler (datumServiceHandlers)
 import App (App (..))
 import App.Env (Env (..))
 import Block.Fetch (
-  ControlApiToken (ControlApiToken),
+  ControlApiToken (ControlApiToken, unControlApiToken),
   OgmiosInfo (OgmiosInfo),
   createStoppedFetcher,
   startBlockFetcher,
@@ -35,16 +48,36 @@ import Database (getLastBlock, initLastBlock, initTables, updateLastBlock)
 import Parameters (paramInfo)
 
 appService :: Env -> Application
-appService env = serve datumCacheApi appServer
+appService env@Env {envControlApiToken} =
+  serveWithContext datumCacheApi serverContext appServer
   where
     appServer :: ServerT (ToServantApi Routes) Handler
-    appServer = hoistServer datumCacheApi hoistApp appServerT
+    appServer =
+      hoistServerWithContext
+        datumCacheApi
+        datumCacheContext
+        hoistApp
+        appServerT
 
     hoistApp :: App a -> Handler a
     hoistApp = Handler . ExceptT . try . runStdoutLoggingT . flip runReaderT env . unApp
 
     appServerT :: ServerT (ToServantApi Routes) App
     appServerT = genericServerT datumServiceHandlers
+
+    serverContext :: Context '[BasicAuthCheck ControlApiAuthData]
+    serverContext = controlApiAuthCheck :. EmptyContext
+
+    controlApiAuthCheck :: BasicAuthCheck ControlApiAuthData
+    controlApiAuthCheck =
+      BasicAuthCheck $ \(BasicAuthData usr pwd) ->
+        let expect = fromString <$> unControlApiToken envControlApiToken
+            passed = Just (usr <> ":" <> pwd)
+         in return
+              ( if expect == passed
+                  then Authorized ControlApiAuthData
+                  else Unauthorized
+              )
 
 newtype DbConnectionAcquireException
   = DbConnectionAcquireException Hasql.ConnectionError

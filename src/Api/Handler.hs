@@ -15,6 +15,7 @@ import Servant.Server.Generic (AsServerT, genericServerT)
 
 import Api (
   ControlApi (ControlApi, cancelBlockFetching, cancelBlockFetchingWithBody, startBlockFetching),
+  ControlApiAuthData (ControlApiAuthData),
   DatumApi (DatumApi, getDatumByHash, getDatumsByHashes, getHealthcheck, getLastBlock),
   Routes (Routes, controlRoutes, datumRoutes, websocketRoutes),
   WebSocketApi (WebSocketApi, websocketApi),
@@ -92,8 +93,8 @@ datumServiceHandlers = Routes {datumRoutes, controlRoutes, websocketRoutes}
     getHealthcheck = pure ()
 
     -- control api
-    controlRoutes :: ToServant ControlApi (AsServerT App)
-    controlRoutes =
+    controlRoutes :: ControlApiAuthData -> ToServant ControlApi (AsServerT App)
+    controlRoutes ControlApiAuthData =
       genericServerT
         ControlApi {startBlockFetching, cancelBlockFetching, cancelBlockFetchingWithBody}
 

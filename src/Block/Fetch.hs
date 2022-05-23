@@ -74,7 +74,7 @@ data OgmiosInfo = OgmiosInfo
 
 newtype OgmiosWorkerMVar = MkOgmiosWorkerMVar (MVar (Async ()))
 
-newtype ControlApiToken = ControlApiToken (Maybe String)
+newtype ControlApiToken = ControlApiToken {unControlApiToken :: Maybe String}
   deriving stock (Eq, Show)
 
 withControlApiTokenToken ::
