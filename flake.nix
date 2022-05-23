@@ -13,17 +13,29 @@
       # This is the revision that the project was using pre-flakes
       rev = "2cf9db0e3d45b9d00f16f2836cb1297bcadc475e";
     };
+    unstable_nixpkgs = {
+      type = "github";
+      owner = "NixOS";
+      repo = "nixpkgs";
+    };
   };
 
-  outputs = { self, nixpkgs, ... }:
+  outputs = { self, nixpkgs, unstable_nixpkgs, ... }:
     let
       supportedSystems =
         [ "x86_64-linux" "x86_64-darwin" "aarch64-linux" "aarch64-darwin" ];
       perSystem = nixpkgs.lib.genAttrs supportedSystems;
       nixpkgsFor = system: import nixpkgs { inherit system; };
+      unstableNixpkgsFor = system: import unstable_nixpkgs { inherit system; };
       hsPackageName = "ogmios-datum-cache";
       hpkgsFor = system:
         (nixpkgsFor system).haskell.packages.ghc8107.override {
+          overrides = prev: _: {
+            "${hsPackageName}" = prev.callCabal2nix hsPackageName self { };
+          };
+        };
+      unstableHpkgsFor = system:
+        (unstableNixpkgsFor system).haskell.packages.ghc8107.override {
           overrides = prev: _: {
             "${hsPackageName}" = prev.callCabal2nix hsPackageName self { };
           };
@@ -37,20 +49,20 @@
       });
       devShell = perSystem (system:
         let
-          hpkgs = hpkgsFor system;
           pkgs = nixpkgsFor system;
+          hpkgs = hpkgsFor system;
+          upkgs = unstableNixpkgsFor system;
+          uhpkgs = unstableHpkgsFor system;
         in hpkgs.shellFor {
           packages = ps: [ ps."${hsPackageName}" ];
-          buildInputs = [ pkgs.nixfmt pkgs.fd ] ++ (with hpkgs; [
-            fourmolu
-            haskell-language-server
-            cabal-install
-            cabal-fmt
-            hlint
-            apply-refact
-            pkgs.postgresql
-            hoogle
-          ]);
+          buildInputs = (with upkgs; [ nixfmt fd httpie ])
+            ++ (with hpkgs; [ cabal-install cabal-fmt hoogle ])
+            ++ (with uhpkgs; [
+              apply-refact
+              fourmolu
+              haskell-language-server
+              hlint
+            ]);
         });
       # TODO
       # There is no test suite currently, after tests are implemented we can run
@@ -58,22 +70,23 @@
       # built, as is the default with `callCabal2nix`)
       checks = perSystem (system:
         let
-          hpkgs = hpkgsFor system;
           pkgs = nixpkgsFor system;
+          hpkgs = hpkgsFor system;
+          upkgs = unstableNixpkgsFor system;
+          uhpkgs = unstableHpkgsFor system;
         in {
           formatting-check = pkgs.runCommand "formatting-check" {
             nativeBuildInputs =
-              [ hpkgs.fourmolu hpkgs.cabal-fmt pkgs.nixfmt pkgs.fd ];
+              [ hpkgs.cabal-fmt pkgs.fd pkgs.nixfmt uhpkgs.fourmolu ];
           } ''
             cd ${self}
-            fourmolu -m check -o -XTypeApplications -o -XImportQualifiedPost \
-              $(fd -ehs)
+            fourmolu -m check --cabal-default-extensions $(fd -ehs)
             cabal-fmt --check $(fd -ecabal)
             nixfmt --check $(fd -enix)
             touch $out
           '';
           lint-check = pkgs.runCommand "formatting-check" {
-            nativeBuildInputs = [ hpkgs.hlint ];
+            nativeBuildInputs = [ uhpkgs.hlint ];
           } ''
             cd ${self}
             hlint .
