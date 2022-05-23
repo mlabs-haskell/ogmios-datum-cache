@@ -120,7 +120,6 @@ Request body:
 Responses:
 * 200 `{"message": "Started block fetcher"}`
 * 422 `{"error": "Block fetcher already running"}`
-* 422 `{"error": "Another block fetcher was already running, cancelling worker thread"}`
 
 ### `POST /control/cancel_fetch_blocks`
 Responses:
