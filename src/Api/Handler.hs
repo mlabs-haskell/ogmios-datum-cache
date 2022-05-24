@@ -41,7 +41,10 @@ import Api.Types (
  )
 import Api.WebSocket (websocketServer)
 import App (App)
-import App.Env (ControlApiToken (unControlApiToken), Env (..))
+import App.Env (
+  ControlApiToken (unControlApiToken),
+  Env (Env, envControlApiToken),
+ )
 import Block.Fetch (
   StartBlockFetcherError (StartBlockFetcherErrorAlreadyRunning),
   StopBlockFetcherError (StopBlockFetcherErrorNotRunning),

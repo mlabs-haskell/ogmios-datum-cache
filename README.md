@@ -123,7 +123,6 @@ Responses:
 * 200 `{"message": "Started block fetcher"}`
 * 403 `{"error": "Control API token not granted"}`
 * 422 `{"error": "Block fetcher already running"}`
-* 422 `{"error": "Another block fetcher was already running, cancelling worker thread"}`
 
 ### `POST /control/cancel_fetch_blocks`
 Optional request body:

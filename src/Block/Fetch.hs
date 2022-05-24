@@ -47,16 +47,16 @@ import UnliftIO.Concurrent (threadDelay)
 
 import Block.Filter (DatumFilter, runDatumFilter)
 import Block.Types (
-  AlonzoBlock (..),
-  AlonzoBlockHeader (..),
-  AlonzoTransaction (..),
-  Block (..),
+  AlonzoBlock (body, header, headerHash),
+  AlonzoBlockHeader (slot),
+  AlonzoTransaction (datums),
+  Block (MkAlonzoBlock, OtherBlock),
   BlockInfo (BlockInfo),
-  FindIntersectResult (..),
+  FindIntersectResult (IntersectionFound, IntersectionNotFound),
   OgmiosFindIntersectResponse,
   OgmiosRequestNextResponse,
-  OgmiosResponse (..),
-  RequestNextResult (..),
+  OgmiosResponse (_result),
+  RequestNextResult (RollBackward, RollForward),
   mkFindIntersectRequest,
   mkRequestNextRequest,
  )

@@ -41,7 +41,7 @@
           pkgs = nixpkgsFor system;
         in hpkgs.shellFor {
           packages = ps: [ ps."${hsPackageName}" ];
-          buildInputs = [ pkgs.nixfmt ] ++ (with hpkgs; [
+          buildInputs = [ pkgs.nixfmt pkgs.fd ] ++ (with hpkgs; [
             fourmolu
             haskell-language-server
             cabal-install

@@ -10,7 +10,7 @@ import Data.Maybe (isNothing)
 import GHC.Generics (Generic)
 import Hasql.Connection qualified as Hasql
 
-import Block.Fetch
+import Block.Fetch (OgmiosInfo, OgmiosWorkerMVar)
 
 data Env = Env
   { -- TODO: Switch to pool of connections
