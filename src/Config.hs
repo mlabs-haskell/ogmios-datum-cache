@@ -12,6 +12,7 @@ import System.Directory (doesFileExist)
 import Toml (TomlCodec, dimap, dioptional, (.=))
 import Toml qualified
 
+import App.Env (AuthToken)
 import Block.Types (BlockInfo (BlockInfo), blockId, blockSlot)
 import Control.Monad.IO.Unlift (liftIO)
 
@@ -26,7 +27,7 @@ data Config = Config
   { cfgDbConnectionString :: ByteString
   , cfgServerPort :: Int
   , -- |if Nothing -- grant the full access
-    cfgServerControlApiToken :: Maybe String
+    cfgServerControlApiToken :: AuthToken
   , cfgOgmiosAddress :: String
   , cfgOgmiosPort :: Int
   , cfgFetcher :: Maybe BlockFetcherConfig

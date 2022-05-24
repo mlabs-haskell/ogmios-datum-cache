@@ -1,10 +1,6 @@
-{-# LANGUAGE MultiWayIf #-}
-
 module Block.Fetch (
   OgmiosWorkerMVar (MkOgmiosWorkerMVar),
   OgmiosInfo (..),
-  ControlApiToken (..),
-  withControlApiTokenToken,
   StartBlockFetcherError (..),
   startBlockErrMsg,
   StopBlockFetcherError (..),
@@ -39,7 +35,6 @@ import Control.Monad.Trans (liftIO)
 import Data.Aeson qualified as Aeson
 import Data.ByteString.Base64 qualified as Base64
 import Data.Map qualified as Map
-import Data.Maybe (isNothing)
 import Data.String (IsString)
 import Data.Text (Text)
 import Data.Text qualified as Text
@@ -74,30 +69,12 @@ data OgmiosInfo = OgmiosInfo
 
 newtype OgmiosWorkerMVar = MkOgmiosWorkerMVar (MVar (Async ()))
 
-newtype ControlApiToken = ControlApiToken {unControlApiToken :: Maybe String}
-  deriving stock (Eq, Show)
-
-withControlApiTokenToken ::
-  (MonadReader r m, Has ControlApiToken r) =>
-  e ->
-  Maybe String ->
-  m (Either e ()) ->
-  m (Either e ())
-withControlApiTokenToken err token action = do
-  ControlApiToken expectToken <- ask
-  if
-      | isNothing expectToken -> action
-      | expectToken == token -> action
-      | otherwise -> pure $ Left err
-
 data StartBlockFetcherError
   = StartBlockFetcherErrorAlreadyRunning
-  | StartBlockNoControlApiTokenGranted
   deriving stock (Show)
 
 startBlockErrMsg :: IsString s => StartBlockFetcherError -> s
 startBlockErrMsg StartBlockFetcherErrorAlreadyRunning = "Block fetcher already running"
-startBlockErrMsg StartBlockNoControlApiTokenGranted = "Control API token not granted"
 
 startBlockFetcher ::
   ( MonadIO m
@@ -106,66 +83,59 @@ startBlockFetcher ::
   , Has OgmiosWorkerMVar r
   , Has OgmiosInfo r
   , Has Hasql.Connection r
-  , Has ControlApiToken r
   ) =>
   BlockInfo ->
   DatumFilter ->
-  Maybe String ->
   m (Either StartBlockFetcherError ())
-startBlockFetcher blockInfo datumFilter token =
-  withControlApiTokenToken StartBlockNoControlApiTokenGranted token $ do
-    OgmiosInfo ogmiosPort ogmiosAddress <- ask
-    MkOgmiosWorkerMVar envOgmiosWorker <- ask
-    env <- Reader.ask
-    canStart <- liftIO newEmptyMVar
+startBlockFetcher blockInfo datumFilter = do
+  OgmiosInfo ogmiosPort ogmiosAddress <- ask
+  MkOgmiosWorkerMVar envOgmiosWorker <- ask
+  env <- Reader.ask
+  canStart <- liftIO newEmptyMVar
 
-    let runStack = runStdoutLoggingT . flip runReaderT env
+  let runStack = runStdoutLoggingT . flip runReaderT env
 
-    let errorHandler = runStack $ do
-          logErrorNS "ogmiosWorker" "Error starting ogmios client"
-          stopBlockFetcher token
+  let errorHandler = runStack $ do
+        logErrorNS "ogmiosWorker" "Error starting ogmios client"
+        stopBlockFetcher
 
-    let runOgmiosClient = do
-          takeMVar canStart
-          WebSockets.runClient ogmiosAddress ogmiosPort "" $ \wsConn ->
-            runStack $ Right <$> wsApp wsConn blockInfo datumFilter
+  let runOgmiosClient = do
+        takeMVar canStart
+        WebSockets.runClient ogmiosAddress ogmiosPort "" $ \wsConn ->
+          runStack $ Right <$> wsApp wsConn blockInfo datumFilter
 
-    ogmiosWorker <- liftIO $
-      Async.async $ do
-        runStdoutLoggingT $ logInfoNS "ogmiosWorker" "Starting ogmios client"
-        runOgmiosClient `onException` errorHandler
+  ogmiosWorker <- liftIO $
+    Async.async $ do
+      runStdoutLoggingT $ logInfoNS "ogmiosWorker" "Starting ogmios client"
+      runOgmiosClient `onException` errorHandler
 
-    putSuccessful <- liftIO $ tryPutMVar envOgmiosWorker $ void ogmiosWorker
-    if putSuccessful
-      then do
-        liftIO $ putMVar canStart ()
-        pure $ Right ()
-      else do
-        Async.cancel ogmiosWorker
-        pure $ Left StartBlockFetcherErrorAlreadyRunning
+  putSuccessful <- liftIO $ tryPutMVar envOgmiosWorker $ void ogmiosWorker
+  if putSuccessful
+    then do
+      liftIO $ putMVar canStart ()
+      pure $ Right ()
+    else do
+      Async.cancel ogmiosWorker
+      pure $ Left StartBlockFetcherErrorAlreadyRunning
 
 data StopBlockFetcherError
   = StopBlockFetcherErrorNotRunning
-  | StopBlockNoControlApiTokenGranted
   deriving stock (Show, Eq)
 
 stopBlockErrMsg :: IsString s => StopBlockFetcherError -> s
 stopBlockErrMsg StopBlockFetcherErrorNotRunning = "No block fetcher running"
-stopBlockErrMsg StopBlockNoControlApiTokenGranted = "Control API token not granted"
 
 stopBlockFetcher ::
-  (MonadIO m, MonadReader r m, Has OgmiosWorkerMVar r, Has ControlApiToken r) =>
-  Maybe String ->
+  (MonadIO m, MonadReader r m, Has OgmiosWorkerMVar r) =>
   m (Either StopBlockFetcherError ())
-stopBlockFetcher token =
-  withControlApiTokenToken StopBlockNoControlApiTokenGranted token $ do
-    MkOgmiosWorkerMVar envOgmiosWorker <- ask
-    ogmiosWorker' <- liftIO $ tryTakeMVar envOgmiosWorker
-    case ogmiosWorker' of
-      Just ogmiosWorker -> do
-        liftIO $ Async.cancel ogmiosWorker
-        pure . pure $ ()
-      Nothing -> pure $ Left StopBlockFetcherErrorNotRunning
+stopBlockFetcher = do
+  MkOgmiosWorkerMVar envOgmiosWorker <- ask
+  ogmiosWorker' <- liftIO $ tryTakeMVar envOgmiosWorker
+  case ogmiosWorker' of
+    Just ogmiosWorker -> do
+      liftIO $ Async.cancel ogmiosWorker
+      pure . pure $ ()
+    Nothing -> pure $ Left StopBlockFetcherErrorNotRunning
 
 createStoppedFetcher :: MonadIO m => m OgmiosWorkerMVar
 createStoppedFetcher = MkOgmiosWorkerMVar <$> liftIO newEmptyMVar

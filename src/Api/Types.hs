@@ -5,9 +5,9 @@ module Api.Types (
   GetDatumsByHashesRequest (..),
   GetDatumsByHashesDatum (..),
   GetDatumsByHashesResponse (..),
+  ControlApiAuthData (..),
   StartBlockFetchingRequest (..),
   StartBlockFetchingResponse (..),
-  CancelBlockFetchingRequest (..),
   CancelBlockFetchingResponse (..),
 ) where
 
@@ -43,11 +43,15 @@ newtype GetDatumsByHashesResponse = GetDatumsByHashesResponse
   deriving stock (Generic)
   deriving anyclass (ToJSON)
 
+-- newtype ControlApiToken = ControlApiToken {unControlApiToken :: Maybe String}
+--   deriving stock (Eq, Show)
+
+data ControlApiAuthData = ControlApiAuthData
+
 data StartBlockFetchingRequest = StartBlockFetchingRequest
   { slot :: Int64
   , id :: Text
   , datumFilter :: Maybe DatumFilter
-  , token :: Maybe String
   }
   deriving stock (Generic)
   deriving anyclass (FromJSON)
@@ -57,12 +61,6 @@ newtype StartBlockFetchingResponse = StartBlockFetchingResponse
   }
   deriving stock (Generic)
   deriving anyclass (ToJSON)
-
-newtype CancelBlockFetchingRequest = CancelBlockFetchingRequest
-  { token :: Maybe String
-  }
-  deriving stock (Generic)
-  deriving anyclass (FromJSON)
 
 newtype CancelBlockFetchingResponse = CancelBlockFetchingResponse
   { message :: Text

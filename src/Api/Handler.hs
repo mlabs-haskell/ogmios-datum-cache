@@ -1,29 +1,37 @@
 {-# LANGUAGE NamedFieldPuns #-}
 
-module Api.Handler (datumServiceHandlers) where
+module Api.Handler (
+  controlApiAuthCheck,
+  datumServiceHandlers,
+) where
 
 import Control.Monad.Catch (throwM)
 import Control.Monad.Logger (logInfoNS)
 import Data.Default (def)
 import Data.Maybe (fromMaybe)
+import Data.String (fromString)
 import Data.Text (Text)
 import Data.Text qualified as Text
 import Network.WebSockets qualified as WebSockets
-import Servant (err403, err404, err422, err500)
+import Servant (err404, err422, err500)
+import Servant.API.BasicAuth (BasicAuthData (BasicAuthData))
 import Servant.API.Generic (ToServant)
+import Servant.Server (
+  BasicAuthCheck (BasicAuthCheck),
+  BasicAuthResult (Authorized, Unauthorized),
+ )
 import Servant.Server.Generic (AsServerT, genericServerT)
 
 import Api (
-  ControlApi (ControlApi, cancelBlockFetching, cancelBlockFetchingWithBody, startBlockFetching),
-  ControlApiAuthData (ControlApiAuthData),
+  ControlApi (ControlApi, cancelBlockFetching, startBlockFetching),
   DatumApi (DatumApi, getDatumByHash, getDatumsByHashes, getHealthcheck, getLastBlock),
   Routes (Routes, controlRoutes, datumRoutes, websocketRoutes),
   WebSocketApi (WebSocketApi, websocketApi),
  )
 import Api.Error (JsonError (JsonError), throwJsonError)
 import Api.Types (
-  CancelBlockFetchingRequest (CancelBlockFetchingRequest),
   CancelBlockFetchingResponse (CancelBlockFetchingResponse),
+  ControlApiAuthData (ControlApiAuthData),
   GetDatumByHashResponse (GetDatumByHashResponse),
   GetDatumsByHashesDatum (GetDatumsByHashesDatum),
   GetDatumsByHashesRequest (GetDatumsByHashesRequest),
@@ -33,15 +41,10 @@ import Api.Types (
  )
 import Api.WebSocket (websocketServer)
 import App (App)
+import App.Env (ControlApiToken (unControlApiToken), Env (..))
 import Block.Fetch (
-  StartBlockFetcherError (
-    StartBlockFetcherErrorAlreadyRunning,
-    StartBlockNoControlApiTokenGranted
-  ),
-  StopBlockFetcherError (
-    StopBlockFetcherErrorNotRunning,
-    StopBlockNoControlApiTokenGranted
-  ),
+  StartBlockFetcherError (StartBlockFetcherErrorAlreadyRunning),
+  StopBlockFetcherError (StopBlockFetcherErrorNotRunning),
   startBlockErrMsg,
   startBlockFetcher,
   stopBlockErrMsg,
@@ -52,6 +55,16 @@ import Database (
   DatabaseError (DatabaseErrorDecodeError, DatabaseErrorNotFound),
  )
 import Database qualified
+
+controlApiAuthCheck :: Env -> BasicAuthCheck ControlApiAuthData
+controlApiAuthCheck Env {envControlApiToken} =
+  BasicAuthCheck $ \(BasicAuthData usr pwd) ->
+    let expect = fromString <$> unControlApiToken envControlApiToken
+        passed = Just (usr <> ":" <> pwd)
+     in pure $
+          if expect == passed
+            then Authorized ControlApiAuthData
+            else Unauthorized
 
 datumServiceHandlers :: Routes (AsServerT App)
 datumServiceHandlers = Routes {datumRoutes, controlRoutes, websocketRoutes}
@@ -96,37 +109,27 @@ datumServiceHandlers = Routes {datumRoutes, controlRoutes, websocketRoutes}
     controlRoutes :: ControlApiAuthData -> ToServant ControlApi (AsServerT App)
     controlRoutes ControlApiAuthData =
       genericServerT
-        ControlApi {startBlockFetching, cancelBlockFetching, cancelBlockFetchingWithBody}
+        ControlApi {startBlockFetching, cancelBlockFetching}
 
     startBlockFetching ::
       StartBlockFetchingRequest ->
       App StartBlockFetchingResponse
     startBlockFetching
-      (StartBlockFetchingRequest firstBlockSlot firstBlockId datumFilter' token) = do
+      (StartBlockFetchingRequest firstBlockSlot firstBlockId datumFilter') = do
         let datumFilter = fromMaybe def datumFilter'
-        res <- startBlockFetcher (BlockInfo firstBlockSlot firstBlockId) datumFilter token
+        res <- startBlockFetcher (BlockInfo firstBlockSlot firstBlockId) datumFilter
         case res of
           Left err@StartBlockFetcherErrorAlreadyRunning ->
             throwJsonError err422 $ startBlockErrMsg err
-          Left err@StartBlockNoControlApiTokenGranted ->
-            throwJsonError err403 $ startBlockErrMsg err
           Right () ->
             pure $ StartBlockFetchingResponse "Started block fetcher"
 
     cancelBlockFetching :: App CancelBlockFetchingResponse
-    cancelBlockFetching =
-      cancelBlockFetchingWithBody $ CancelBlockFetchingRequest Nothing
-
-    cancelBlockFetchingWithBody ::
-      CancelBlockFetchingRequest ->
-      App CancelBlockFetchingResponse
-    cancelBlockFetchingWithBody (CancelBlockFetchingRequest token) = do
-      res <- stopBlockFetcher token
+    cancelBlockFetching = do
+      res <- stopBlockFetcher
       case res of
         Left err@StopBlockFetcherErrorNotRunning ->
           throwJsonError err422 $ stopBlockErrMsg err
-        Left err@StopBlockNoControlApiTokenGranted ->
-          throwJsonError err403 $ stopBlockErrMsg err
         Right () -> pure $ CancelBlockFetchingResponse "Stopped block fetcher"
 
     websocketRoutes :: ToServant WebSocketApi (AsServerT App)

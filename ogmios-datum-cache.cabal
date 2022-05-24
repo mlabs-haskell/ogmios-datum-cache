@@ -53,6 +53,7 @@ library
   exposed-modules:
     Api
     Api.Handler
+    Api.Types
     Api.WebSocket
     Api.WebSocket.Json
     Api.WebSocket.Types
@@ -66,7 +67,6 @@ library
 
   other-modules:
     Api.Error
-    Api.Types
     Block.Filter
     PlutusData
 
@@ -137,7 +137,6 @@ test-suite ogmios-datum-cache-test
   main-is:        Spec.hs
   other-modules:
     Spec.Api.WebSocket.Types
-    Spec.Block.Fetch
     Spec.Config
 
   ghc-options:
@@ -149,7 +148,6 @@ test-suite ogmios-datum-cache-test
   build-depends:
     , aeson
     , base
-    , can-i-haz
     , directory
     , hspec
     , ogmios-datum-cache

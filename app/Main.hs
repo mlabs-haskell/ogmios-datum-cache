@@ -1,5 +1,3 @@
-{-# LANGUAGE NamedFieldPuns #-}
-
 module Main (
   main,
 ) where
@@ -11,19 +9,16 @@ import Control.Monad.Reader (runReaderT)
 import Data.Aeson (eitherDecode)
 import Data.Default (def)
 import Data.Maybe (fromMaybe)
-import Data.String (fromString)
 import Data.Text qualified as Text
 import Hasql.Connection qualified as Connection
 import Hasql.Connection qualified as Hasql
 import Network.Wai.Handler.Warp qualified as Warp
 import Network.Wai.Logger (withStdoutLogger)
 import Network.Wai.Middleware.Cors (simpleCors)
-import Servant.API.BasicAuth (BasicAuthData (BasicAuthData))
 import Servant.API.Generic (ToServantApi)
 import Servant.Server (
   Application,
-  BasicAuthCheck (BasicAuthCheck),
-  BasicAuthResult (Authorized, Unauthorized),
+  BasicAuthCheck,
   Context (EmptyContext, (:.)),
   Handler (..),
   ServerT,
@@ -33,12 +28,12 @@ import Servant.Server (
 import Servant.Server.Generic (genericServerT)
 import System.IO (BufferMode (NoBuffering), hSetBuffering, stdout)
 
-import Api (ControlApiAuthData (ControlApiAuthData), Routes, datumCacheApi, datumCacheContext)
-import Api.Handler (datumServiceHandlers)
+import Api (Routes, datumCacheApi, datumCacheContext)
+import Api.Handler (controlApiAuthCheck, datumServiceHandlers)
+import Api.Types (ControlApiAuthData)
 import App (App (..))
-import App.Env (Env (..))
+import App.Env (ControlApiToken (ControlApiToken), Env (..))
 import Block.Fetch (
-  ControlApiToken (ControlApiToken, unControlApiToken),
   OgmiosInfo (OgmiosInfo),
   createStoppedFetcher,
   startBlockFetcher,
@@ -48,7 +43,7 @@ import Database (getLastBlock, initLastBlock, initTables, updateLastBlock)
 import Parameters (paramInfo)
 
 appService :: Env -> Application
-appService env@Env {envControlApiToken} =
+appService env =
   serveWithContext datumCacheApi serverContext appServer
   where
     appServer :: ServerT (ToServantApi Routes) Handler
@@ -59,25 +54,14 @@ appService env@Env {envControlApiToken} =
         hoistApp
         appServerT
 
+    serverContext :: Context '[BasicAuthCheck ControlApiAuthData]
+    serverContext = controlApiAuthCheck env :. EmptyContext
+
     hoistApp :: App a -> Handler a
     hoistApp = Handler . ExceptT . try . runStdoutLoggingT . flip runReaderT env . unApp
 
     appServerT :: ServerT (ToServantApi Routes) App
     appServerT = genericServerT datumServiceHandlers
-
-    serverContext :: Context '[BasicAuthCheck ControlApiAuthData]
-    serverContext = controlApiAuthCheck :. EmptyContext
-
-    controlApiAuthCheck :: BasicAuthCheck ControlApiAuthData
-    controlApiAuthCheck =
-      BasicAuthCheck $ \(BasicAuthData usr pwd) ->
-        let expect = fromString <$> unControlApiToken envControlApiToken
-            passed = Just (usr <> ":" <> pwd)
-         in return
-              ( if expect == passed
-                  then Authorized ControlApiAuthData
-                  else Unauthorized
-              )
 
 newtype DbConnectionAcquireException
   = DbConnectionAcquireException Hasql.ConnectionError
@@ -116,7 +100,7 @@ initDbAndFetcher env Config {..} =
                     else blockInfo
             initLastBlock firstBlock
             updateLastBlock firstBlock
-            r <- startBlockFetcher firstBlock datumFilter cfgServerControlApiToken
+            r <- startBlockFetcher firstBlock datumFilter
             case r of
               Right () -> pure ()
               Left e -> logErrorNS "initDbAndFetcher" $ Text.pack $ show e

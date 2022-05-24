@@ -3,6 +3,7 @@ module Api.WebSocket (websocketServer) where
 import Control.Monad (forever)
 import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Logger (logErrorNS)
+import Control.Monad.Reader.Has (ask)
 import Data.Aeson qualified as Aeson
 import Data.Default (def)
 import Data.Int (Int64)
@@ -40,6 +41,7 @@ import Api.WebSocket.Types (
   ),
  )
 import App (App)
+import App.Env (AuthToken, ControlApiToken (ControlApiToken), checkControlApiToken)
 import Block.Fetch (
   startBlockErrMsg,
   startBlockFetcher,
@@ -101,25 +103,33 @@ getLastBlock = do
     Just block ->
       Right $ mkGetBlockResponse block
 
+withControlAuthToken :: AuthToken -> App WSResponse -> App WSResponse
+withControlAuthToken token action = do
+  ControlApiToken expectToken <- ask
+  if checkControlApiToken expectToken token
+    then action
+    else pure $ Left $ mkCancelFetchBlocksFault "Control API token not granted"
+
 startFetchBlocks ::
   Int64 ->
   Text ->
   DatumFilter ->
-  Maybe String ->
+  AuthToken ->
   App WSResponse
-startFetchBlocks firstBlockSlot firstBlockId datumFilter token = do
-  res <- startBlockFetcher (BlockInfo firstBlockSlot firstBlockId) datumFilter token
-  pure $ case res of
-    Left err ->
-      Left $ mkStartFetchBlocksFault $ startBlockErrMsg err
-    Right () ->
-      Right mkStartFetchBlocksResponse
+startFetchBlocks firstBlockSlot firstBlockId datumFilter token =
+  withControlAuthToken token $ do
+    res <- startBlockFetcher (BlockInfo firstBlockSlot firstBlockId) datumFilter
+    pure $ case res of
+      Left err ->
+        Left $ mkStartFetchBlocksFault $ startBlockErrMsg err
+      Right () ->
+        Right mkStartFetchBlocksResponse
 
 cancelFetchBlocks ::
-  Maybe String ->
+  AuthToken ->
   App WSResponse
-cancelFetchBlocks token = do
-  res <- stopBlockFetcher token
+cancelFetchBlocks token = withControlAuthToken token $ do
+  res <- stopBlockFetcher
   pure $ case res of
     Left err ->
       Left $ mkCancelFetchBlocksFault $ stopBlockErrMsg err
