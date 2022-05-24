@@ -33,7 +33,6 @@ import Hasql.Statement (Statement (Statement))
 
 import Block.Types (BlockInfo (BlockInfo))
 import PlutusData qualified
-import Data.Int (Int64)
 
 data Datum = Datum
   { hash :: Text
@@ -119,7 +118,7 @@ initLastBlock ::
   , MonadReader r m
   , Has Connection r
   ) =>
-  Int64 -> Text ->
+  BlockInfo ->
   m ()
 initLastBlock (BlockInfo slot hash) = do
   let sql = "INSERT INTO last_block (slot, hash) VALUES ($1, $2) ON CONFLICT DO NOTHING"
@@ -144,7 +143,7 @@ updateLastBlock ::
   , MonadReader r m
   , Has Connection r
   ) =>
-  Int64 -> Text ->
+  BlockInfo ->
   m ()
 updateLastBlock (BlockInfo slot hash) = do
   let sql = "UPDATE last_block SET slot = $1, hash = $2"
@@ -169,7 +168,7 @@ getLastBlock ::
   , MonadReader r m
   , Has Connection r
   ) =>
-  m (Maybe (Int64, Text))
+  m (Maybe BlockInfo)
 getLastBlock = do
   let sql = "SELECT slot, hash FROM last_block LIMIT 1"
       enc = Encoders.noParams
@@ -182,7 +181,7 @@ getLastBlock = do
   dbConnection <- ask
   res <- liftIO $ Session.run stmt dbConnection
   case res of
-    Right (BlockInfo slot blockid) -> pure . pure $ (slot, blockid)
+    Right x -> pure . pure $ x
     Left err -> do
       logErrorNS "getLastBlock" $ Text.pack $ show err
       pure Nothing

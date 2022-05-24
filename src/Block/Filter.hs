@@ -2,12 +2,11 @@ module Block.Filter (DatumFilter (..), defaultDatumFilter, runDatumFilter) where
 
 import Data.Aeson (FromJSON (parseJSON), Value (Bool, String), withObject)
 import Data.Default (Default (def))
-import Data.Maybe (mapMaybe, fromMaybe)
+import Data.Maybe (mapMaybe)
 import Data.Text (Text)
 import GHC.Exts (toList)
 
 import Block.Types (AlonzoTransaction (outputs), TxOut (address, datumHash))
-import Filters (Filter, Semiring (srconcat))
 
 data DatumFilter
   = ConstFilter Bool
@@ -38,15 +37,17 @@ instance FromJSON DatumFilter where
       [("address", String a)] -> pure $ AddressFilter a
       _ -> fail "Failed parsing DatumFilter"
 
-createDatumFilter :: DatumFilter -> Filter (AlonzoTransaction, (Text, Text))
-createDatumFilter (ConstFilter b) = const b
-createDatumFilter (AnyFilter list) = srconcat (map createDatumFilter list)
-createDatumFilter (AllFilter list) = mconcat (map createDatumFilter list)
-createDatumFilter (DatumHashFilter expectedHash) = \(_, (actualHash, _)) -> expectedHash == actualHash
-createDatumFilter (AddressFilter expectedAddress) = \(tx, (actualHash, _)) ->
-  let utxos = outputs tx
-      overall a b = srconcat (((==b) . address) <> (Just a==) . datumHash <$> utxos)
-   in overall actualHash expectedAddress
-
 runDatumFilter :: DatumFilter -> AlonzoTransaction -> (Text, Text) -> Bool
-runDatumFilter d a t = createDatumFilter d (a, t)
+runDatumFilter (ConstFilter b) _ _ = b
+runDatumFilter (AnyFilter filters) tx datum =
+  any (\f -> runDatumFilter f tx datum) filters
+runDatumFilter (AllFilter filters) tx datum =
+  all (\f -> runDatumFilter f tx datum) filters
+runDatumFilter (DatumHashFilter expectedHash) _ (actualHash, _) =
+  expectedHash == actualHash
+runDatumFilter (AddressFilter expectedAddress) tx (actualHash, _) =
+  let hashes =
+        mapMaybe datumHash $
+          filter ((== expectedAddress) . address) $
+            outputs tx
+   in actualHash `elem` hashes

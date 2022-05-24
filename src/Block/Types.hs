@@ -13,11 +13,7 @@ module Block.Types (
   AlonzoTransaction (..),
   OgmiosResponse (..),
   TxOut (..),
-<<<<<<< Updated upstream
   BlockInfo (..),
-=======
-  BlockInfo (..)
->>>>>>> Stashed changes
 ) where
 
 import Data.Aeson (FromJSON, ToJSON, withObject, (.:), (.:?))
