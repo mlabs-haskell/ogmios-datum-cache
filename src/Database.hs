@@ -184,7 +184,7 @@ getLastBlock = do
   dbConnection <- ask
   res <- liftIO $ Session.run stmt dbConnection
   case res of
-    Right blockInfo -> pure . pure $ blockInfo
+    Right x -> pure . pure $ x
     Left err -> do
       logErrorNS "getLastBlock" $ Text.pack $ show err
       pure Nothing
