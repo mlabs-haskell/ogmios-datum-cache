@@ -48,10 +48,10 @@ blockInfoT :: TomlCodec BlockInfo
 blockInfoT = do
   blockSlot' <-
     int64 "blockFetcher.firstBlock.slot"
-      .= (\(BlockInfo slot _)-> slot)
+      .= blockSlot
   blockId' <-
     Toml.text "blockFetcher.firstBlock.id"
-      .= (\(BlockInfo _ blockId)-> blockId)
+      .= blockId
   pure $ BlockInfo blockSlot' blockId'
 
 withFetcherT :: TomlCodec BlockFetcherConfig

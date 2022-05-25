@@ -84,27 +84,20 @@ type OgmiosFindIntersectRequest = OgmiosRequest [Text] OgmiosMirror
 type OgmiosRequestNextRequest = OgmiosRequest (Map Text Text) OgmiosMirror
 
 mkFindIntersectRequest :: BlockInfo -> OgmiosFindIntersectRequest
-mkFindIntersectRequest BlockOrigin =
+mkFindIntersectRequest blockInfo =
   OgmiosRequest
     { _type = "jsonwsp/request"
     , _version = "1.0"
     , _servicename = "ogmios"
     , _methodname = "FindIntersect"
-    , _args = ["origin"]
-    , _mirror = 0
-    }
-mkFindIntersectRequest (BlockInfo firstBlockSlot firstBlockId) =
-  OgmiosRequest
-    { _type = "jsonwsp/request"
-    , _version = "1.0"
-    , _servicename = "ogmios"
-    , _methodname = "FindIntersect"
-    , _args = payload
+    , _args = [payload]
     , _mirror = 0
     }
   where
-    points = CursorPoints [CursorPoint (fromIntegral firstBlockSlot) firstBlockId]
-    payload = [decodeUtf8 $ toStrict $ Aeson.encode points]
+    points s i = CursorPoints [CursorPoint (fromIntegral s) i]
+    payload = case blockInfo of
+      BlockOrigin -> "origin"
+      (BlockInfo firstBlockSlot firstBlockId) -> decodeUtf8 $ toStrict $ Aeson.encode $ points firstBlockSlot firstBlockId
 
 mkRequestNextRequest :: Int -> OgmiosRequestNextRequest
 mkRequestNextRequest n =
