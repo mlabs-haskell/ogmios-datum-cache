@@ -19,11 +19,11 @@ import Control.Monad.Trans.Except (except, runExceptT, throwE)
 import Data.ByteString (ByteString)
 import Data.ByteString.Lazy qualified as BSL
 import Data.Functor.Contravariant ((>$<))
+import Data.Int (Int64)
 import Data.List (foldl')
 import Data.Text (Text)
 import Data.Text qualified as Text
 import Data.Vector (Vector)
-import Data.Int (Int64)
 import Data.Vector qualified as Vector
 import Hasql.Connection (Connection)
 import Hasql.Decoders qualified as Decoders
