@@ -23,6 +23,7 @@ import Data.List (foldl')
 import Data.Text (Text)
 import Data.Text qualified as Text
 import Data.Vector (Vector)
+import Data.Int (Int64)
 import Data.Vector qualified as Vector
 import Hasql.Connection (Connection)
 import Hasql.Decoders qualified as Decoders
@@ -32,7 +33,6 @@ import Hasql.Session qualified as Session
 import Hasql.Statement (Statement (Statement))
 
 import Block.Types (BlockInfo (BlockInfo))
-import Data.Int (Int64)
 import PlutusData qualified
 
 data Datum = Datum
@@ -148,7 +148,7 @@ updateLastBlock ::
   Int64 ->
   Text ->
   m ()
-updateLastBlock slot blockid = do
+updateLastBlock slot hash = do
   let sql = "UPDATE last_block SET slot = $1, hash = $2"
       enc =
         mconcat
@@ -156,7 +156,7 @@ updateLastBlock slot blockid = do
           , snd >$< Encoders.param (Encoders.nonNullable Encoders.text)
           ]
       dec = Decoders.noResult
-      stmt = Session.statement (slot, blockid) $ Statement sql enc dec True
+      stmt = Session.statement (slot, hash) $ Statement sql enc dec True
   dbConnection <- ask
   res <- liftIO $ Session.run stmt dbConnection
   case res of
