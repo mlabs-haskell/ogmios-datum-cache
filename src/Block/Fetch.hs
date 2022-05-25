@@ -48,7 +48,7 @@ import Block.Types (
   AlonzoBlockHeader (slot),
   AlonzoTransaction (datums),
   Block (MkAlonzoBlock, OtherBlock),
-  BlockInfo (BlockInfo),
+  BlockInfo (),
   FindIntersectResult (IntersectionFound, IntersectionNotFound),
   OgmiosFindIntersectResponse,
   OgmiosRequestNextResponse,
@@ -57,7 +57,6 @@ import Block.Types (
   mkFindIntersectRequest,
   mkRequestNextRequest,
  )
-import Data.Int (Int64)
 import Database (saveDatums, updateLastBlock)
 
 data OgmiosInfo = OgmiosInfo
@@ -79,11 +78,10 @@ startBlockFetcher ::
   , Has OgmiosInfo r
   , Has Hasql.Connection r
   ) =>
-  Int64 ->
-  Text ->
+  BlockInfo ->
   DatumFilter ->
   m (Either StartBlockFetcherError ())
-startBlockFetcher slot blockid datumFilter = do
+startBlockFetcher blockInfo datumFilter = do
   OgmiosInfo ogmiosPort ogmiosAddress <- ask
   MkOgmiosWorkerMVar envOgmiosWorker <- ask
   env <- Reader.ask
@@ -98,7 +96,7 @@ startBlockFetcher slot blockid datumFilter = do
   let runOgmiosClient = do
         takeMVar canStart
         WebSockets.runClient ogmiosAddress ogmiosPort "" $ \wsConn ->
-          runStack $ Right <$> wsApp wsConn (BlockInfo slot blockid) datumFilter
+          runStack $ Right <$> wsApp wsConn blockInfo datumFilter
 
   ogmiosWorker <- liftIO $
     Async.async $ do

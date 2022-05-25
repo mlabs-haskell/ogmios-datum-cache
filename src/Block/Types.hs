@@ -31,7 +31,7 @@ import GHC.Exts (toList)
 import GHC.Generics (Generic)
 
 data BlockInfo = BlockInfo Int64 Text | BlockOrigin
-  deriving stock (Generic, Show)
+  deriving stock (Generic, Show, Eq)
 
 instance ToJSON BlockInfo where
   toJSON BlockOrigin =
@@ -41,6 +41,9 @@ instance ToJSON BlockInfo where
       [ "blockSlot" Aeson..= slot'
       , "blockId" Aeson..= id'
       ]
+
+instance FromJSON BlockInfo where
+  parseJSON x = error "do later"
 
 blockSlot :: BlockInfo -> Int64
 blockSlot (BlockInfo slot' _) = slot'
@@ -79,7 +82,7 @@ instance (ToJSON args, ToJSON mirror) => ToJSON (OgmiosRequest args mirror) wher
   toJSON =
     Aeson.genericToJSON Aeson.defaultOptions {Aeson.fieldLabelModifier = drop 1}
 
-type OgmiosFindIntersectRequest = OgmiosRequest [Text] OgmiosMirror
+type OgmiosFindIntersectRequest = OgmiosRequest Text OgmiosMirror
 
 type OgmiosRequestNextRequest = OgmiosRequest (Map Text Text) OgmiosMirror
 
@@ -90,14 +93,15 @@ mkFindIntersectRequest blockInfo =
     , _version = "1.0"
     , _servicename = "ogmios"
     , _methodname = "FindIntersect"
-    , _args = [payload]
+    , _args = payload
     , _mirror = 0
     }
   where
     points s i = CursorPoints [CursorPoint (fromIntegral s) i]
-    payload = case blockInfo of
-      BlockOrigin -> "origin"
-      (BlockInfo firstBlockSlot firstBlockId) -> decodeUtf8 $ toStrict $ Aeson.encode $ points firstBlockSlot firstBlockId
+    payload = decodeUtf8 $
+      toStrict $ case blockInfo of
+        (BlockInfo slot hash) -> Aeson.encode $ points slot hash
+        _ -> Aeson.encode BlockOrigin
 
 mkRequestNextRequest :: Int -> OgmiosRequestNextRequest
 mkRequestNextRequest n =

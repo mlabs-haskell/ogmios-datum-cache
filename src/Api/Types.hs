@@ -11,12 +11,12 @@ module Api.Types (
 ) where
 
 import Data.Aeson (FromJSON, ToJSON)
-import Data.Int (Int64)
 import Data.Text (Text)
 import Data.Vector (Vector)
 import Servant.API.Generic (Generic)
 
 import Block.Filter (DatumFilter)
+import Block.Types (BlockInfo ())
 import PlutusData qualified
 
 newtype GetDatumByHashResponse = GetDatumByHashResponse PlutusData.Data
@@ -43,8 +43,7 @@ newtype GetDatumsByHashesResponse = GetDatumsByHashesResponse
   deriving anyclass (ToJSON)
 
 data StartBlockFetchingRequest = StartBlockFetchingRequest
-  { slot :: Int64
-  , id :: Text
+  { blockInfo :: BlockInfo
   , datumFilter :: Maybe DatumFilter
   }
   deriving stock (Generic)

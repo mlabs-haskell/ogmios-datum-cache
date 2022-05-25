@@ -5,7 +5,6 @@ import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Logger (logErrorNS)
 import Data.Aeson qualified as Aeson
 import Data.Default (def)
-import Data.Int (Int64)
 import Data.Maybe (fromMaybe)
 import Data.Text (Text)
 import Data.Text qualified as Text
@@ -47,6 +46,7 @@ import Block.Fetch (
   stopBlockFetcher,
  )
 import Block.Filter (DatumFilter)
+import Block.Types (BlockInfo)
 import Database (
   DatabaseError (DatabaseErrorDecodeError, DatabaseErrorNotFound),
  )
@@ -100,12 +100,11 @@ getLastBlock = do
     Just blockInfo ->
       Right $ mkGetBlockResponse blockInfo
 startFetchBlocks ::
-  Int64 ->
-  Text ->
+  BlockInfo ->
   DatumFilter ->
   App WSResponse
-startFetchBlocks firstBlockSlot firstBlockId datumFilter = do
-  res <- startBlockFetcher firstBlockSlot firstBlockId datumFilter
+startFetchBlocks blockInfo datumFilter = do
+  res <- startBlockFetcher blockInfo datumFilter
   pure $ case res of
     Left StartBlockFetcherErrorAlreadyRunning ->
       Left $ mkStartFetchBlocksFault "Block fetcher already running"
@@ -142,9 +141,9 @@ websocketServer conn = forever $ do
           getDatumsByHashes hashes
         GetBlock ->
           getLastBlock
-        StartFetchBlocks firstBlockSlot firstBlockId datumFilter' -> do
+        StartFetchBlocks blockInfo datumFilter' -> do
           let datumFilter = fromMaybe def datumFilter'
-          startFetchBlocks firstBlockSlot firstBlockId datumFilter
+          startFetchBlocks blockInfo datumFilter
         CancelFetchBlocks ->
           cancelFetchBlocks
         GetHealthcheck ->

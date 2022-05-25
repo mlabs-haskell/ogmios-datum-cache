@@ -87,9 +87,9 @@ datumServiceHandlers = Routes {..}
     startBlockFetching ::
       StartBlockFetchingRequest ->
       App StartBlockFetchingResponse
-    startBlockFetching (StartBlockFetchingRequest firstBlockSlot firstBlockId datumFilter') = do
+    startBlockFetching (StartBlockFetchingRequest blockInfo datumFilter') = do
       let datumFilter = fromMaybe def datumFilter'
-      res <- startBlockFetcher firstBlockSlot firstBlockId datumFilter
+      res <- startBlockFetcher blockInfo datumFilter
       case res of
         Left StartBlockFetcherErrorAlreadyRunning ->
           throwJsonError err422 "Block fetcher already running"

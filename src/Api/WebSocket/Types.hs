@@ -6,11 +6,11 @@ module Api.WebSocket.Types (
 
 import Data.Aeson (FromJSON, ToJSON, parseJSON, withObject, (.:), (.:?))
 import Data.Aeson qualified as Aeson
-import Data.Int (Int64)
 import Data.Text (Text)
 import GHC.Generics (Generic)
 
 import Block.Filter (DatumFilter)
+import Block.Types (BlockInfo (BlockInfo))
 import PlutusData qualified
 
 data JsonWspRequest = JsonWspRequest
@@ -40,7 +40,7 @@ instance FromJSON JsonWspRequest where
             slot <- args .: "slot"
             blockId <- args .: "id"
             datumFilter <- args .:? "datumFilter"
-            pure $ StartFetchBlocks slot blockId datumFilter
+            pure $ StartFetchBlocks (BlockInfo slot blockId) datumFilter
           "CancelFetchBlocks" -> do
             pure CancelFetchBlocks
           "GetHealthcheck" -> do
@@ -51,7 +51,7 @@ data Method
   = GetDatumByHash Text
   | GetDatumsByHashes [Text]
   | GetBlock
-  | StartFetchBlocks Int64 Text (Maybe DatumFilter)
+  | StartFetchBlocks BlockInfo (Maybe DatumFilter)
   | CancelFetchBlocks
   | GetHealthcheck
   deriving stock (Show, Eq)
