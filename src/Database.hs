@@ -122,7 +122,7 @@ initLastBlock ::
   Int64 ->
   Text ->
   m ()
-initLastBlock slot blockid = do
+initLastBlock slot hash = do
   let sql = "INSERT INTO last_block (slot, hash) VALUES ($1, $2) ON CONFLICT DO NOTHING"
       enc =
         mconcat
@@ -130,7 +130,7 @@ initLastBlock slot blockid = do
           , snd >$< Encoders.param (Encoders.nonNullable Encoders.text)
           ]
       dec = Decoders.noResult
-      stmt = Session.statement (slot, blockid) $ Statement sql enc dec True
+      stmt = Session.statement (slot, hash) $ Statement sql enc dec True
   dbConnection <- ask
   res <- liftIO $ Session.run stmt dbConnection
   case res of
