@@ -74,7 +74,7 @@ datumServiceHandlers = Routes {..}
     getLastBlock = do
       block' <- Database.getLastBlock
       case block' of
-        Just blockInfo -> pure blockInfo
+        Just block -> pure block
         Nothing -> throwM err404
 
     getHealthcheck :: App ()

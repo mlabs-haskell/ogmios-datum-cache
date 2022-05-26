@@ -18,7 +18,7 @@ module Block.Types (
   blockSlot,
 ) where
 
-import Data.Aeson (FromJSON, ToJSON, withObject, (.:), (.:?))
+import Data.Aeson (FromJSON, ToJSON, Value (Object, String), withObject, withText, (.:), (.:?))
 import Data.Aeson qualified as Aeson
 import Data.ByteString.Lazy (toStrict)
 import Data.HashMap.Strict qualified as HashMap
@@ -43,7 +43,14 @@ instance ToJSON BlockInfo where
       ]
 
 instance FromJSON BlockInfo where
-  parseJSON x = error "do later"
+  -- super ugly
+  parseJSON val =
+    ( case val of
+        (Object _) -> withObject "BlockInfo" $ \object -> BlockInfo <$> (object .: "blockSlot") <*> (object .: "blockId")
+        (String "origin") -> withText "BlockInfo" $ \_ -> return BlockOrigin
+        _ -> error ""
+    )
+      val
 
 blockSlot :: BlockInfo -> Int64
 blockSlot (BlockInfo slot' _) = slot'
@@ -100,8 +107,8 @@ mkFindIntersectRequest blockInfo =
     points s i = CursorPoints [CursorPoint (fromIntegral s) i]
     payload = decodeUtf8 $
       toStrict $ case blockInfo of
-        (BlockInfo slot hash) -> Aeson.encode $ points slot hash
-        _ -> Aeson.encode BlockOrigin
+        BlockInfo slot hash -> Aeson.encode $ points slot hash
+        BlockOrigin -> Aeson.encode [BlockOrigin]
 
 mkRequestNextRequest :: Int -> OgmiosRequestNextRequest
 mkRequestNextRequest n =
