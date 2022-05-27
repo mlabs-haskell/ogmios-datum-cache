@@ -9,7 +9,7 @@ import Control.Monad.Catch (throwM)
 import Control.Monad.Logger (logInfoNS)
 import Data.Default (def)
 import Data.Maybe (fromMaybe)
-import Data.String (fromString)
+import Data.String.ToString (toString)
 import Data.Text (Text)
 import Data.Text qualified as Text
 import Network.WebSockets qualified as WebSockets
@@ -44,6 +44,7 @@ import App (App)
 import App.Env (
   ControlApiToken (unControlApiToken),
   Env (Env, envControlApiToken),
+  checkControlApiToken,
  )
 import Block.Fetch (
   StartBlockFetcherError (StartBlockFetcherErrorAlreadyRunning),
@@ -62,10 +63,10 @@ import Database qualified
 controlApiAuthCheck :: Env -> BasicAuthCheck ControlApiAuthData
 controlApiAuthCheck Env {envControlApiToken} =
   BasicAuthCheck $ \(BasicAuthData usr pwd) ->
-    let expect = fromString <$> unControlApiToken envControlApiToken
-        passed = Just (usr <> ":" <> pwd)
+    let expect = unControlApiToken envControlApiToken
+        passed = Just $ toString (usr <> ":" <> pwd)
      in pure $
-          if expect == passed
+          if checkControlApiToken expect passed
             then Authorized ControlApiAuthData
             else Unauthorized
 
