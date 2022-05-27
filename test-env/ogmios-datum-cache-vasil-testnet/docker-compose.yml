@@ -1,0 +1,49 @@
+version: "3.5"
+
+services:
+  cardano-node:
+    image: inputoutput/cardano-node:vasil-testnet-v1
+    command: run --config /config/config.json --topology /config/topology.json --database-path /data --socket-path /ipc/node.socket
+    volumes:
+      - node-db:/data
+      - node-ipc:/ipc
+      - node-config:/config
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "400k"
+        max-file: "20"
+
+  ogmios:
+    image: cardanosolutions/ogmios:latest-testnet
+    restart: on-failure
+    command: [
+      "--host", "0.0.0.0",
+      "--node-socket", "/ipc/node.socket",
+      "--node-config", "/config/config.json"
+    ]
+    volumes:
+      - node-config:/config
+      - node-ipc:/ipc
+    ports:
+      - ${OGMIOS_PORT:-1337}:1337
+
+  postgresql:
+    image: postgres:14
+    environment:
+      POSTGRES_DB: ogmios-datum-cache
+      POSTGRES_USER: aske
+      POSTGRES_HOST_AUTH_METHOD: trust
+    command: [ "-c", "stats_temp_directory=/tmp" ]
+    ports:
+      - 5432:5432
+    volumes:
+      - ogmios-datum-cache-db:/var/lib/postgresql/data
+
+volumes:
+  # How to setup volume to local path:
+  # { driver: local, driver_opts: { type: none, o: bind, device: /db } }
+  node-db: { driver: local, driver_opts: { type: none, o: bind, device: $PWD/node-db } }
+  node-ipc: { driver: local, driver_opts: { type: none, o: bind, device: $PWD/node-ipc } }
+  node-config: { driver: local, driver_opts: { type: none, o: bind, device: $PWD/node-config } }
+  ogmios-datum-cache-db: { driver: local, driver_opts: { type: none, o: bind, device: $PWD/ogmios-datum-cache-postgresql } }
