@@ -40,8 +40,8 @@ import Api.WebSocket.Types (
     StartFetchBlocks
   ),
  )
-import App (App)
 import App.Env (AuthToken, ControlApiToken (ControlApiToken), checkControlApiToken)
+import App.Types (App)
 import Block.Fetch (
   startBlockErrMsg,
   startBlockFetcher,

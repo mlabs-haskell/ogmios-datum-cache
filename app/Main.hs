@@ -2,81 +2,23 @@ module Main (
   main,
 ) where
 
-import Control.Monad.Catch (Exception, throwM, try)
-import Control.Monad.Except (ExceptT (..))
 import Control.Monad.Logger (logErrorNS, logInfoNS, runStdoutLoggingT)
 import Control.Monad.Reader (runReaderT)
 import Data.Aeson (eitherDecode)
 import Data.Default (def)
 import Data.Maybe (fromMaybe)
 import Data.Text qualified as Text
-import Hasql.Connection qualified as Connection
-import Hasql.Connection qualified as Hasql
 import Network.Wai.Handler.Warp qualified as Warp
 import Network.Wai.Logger (withStdoutLogger)
 import Network.Wai.Middleware.Cors (simpleCors)
-import Servant.API.Generic (ToServantApi)
-import Servant.Server (
-  Application,
-  BasicAuthCheck,
-  Context (EmptyContext, (:.)),
-  Handler (..),
-  ServerT,
-  hoistServerWithContext,
-  serveWithContext,
- )
-import Servant.Server.Generic (genericServerT)
 import System.IO (BufferMode (NoBuffering), hSetBuffering, stdout)
 
-import Api (Routes, datumCacheApi, datumCacheContext)
-import Api.Handler (controlApiAuthCheck, datumServiceHandlers)
-import Api.Types (ControlApiAuthData)
-import App (App (..))
-import App.Env (ControlApiToken (ControlApiToken), Env (..))
-import Block.Fetch (
-  OgmiosInfo (OgmiosInfo),
-  createStoppedFetcher,
-  startBlockFetcher,
- )
+import App (appService, mkAppEnv)
+import App.Env (Env (..))
+import Block.Fetch (startBlockFetcher)
 import Config (BlockFetcherConfig (BlockFetcherConfig), Config (..), loadConfig)
 import Database (getLastBlock, initLastBlock, initTables, updateLastBlock)
 import Parameters (paramInfo)
-
-appService :: Env -> Application
-appService env =
-  serveWithContext datumCacheApi serverContext appServer
-  where
-    appServer :: ServerT (ToServantApi Routes) Handler
-    appServer =
-      hoistServerWithContext
-        datumCacheApi
-        datumCacheContext
-        hoistApp
-        appServerT
-
-    serverContext :: Context '[BasicAuthCheck ControlApiAuthData]
-    serverContext = controlApiAuthCheck env :. EmptyContext
-
-    hoistApp :: App a -> Handler a
-    hoistApp = Handler . ExceptT . try . runStdoutLoggingT . flip runReaderT env . unApp
-
-    appServerT :: ServerT (ToServantApi Routes) App
-    appServerT = genericServerT datumServiceHandlers
-
-newtype DbConnectionAcquireException
-  = DbConnectionAcquireException Hasql.ConnectionError
-  deriving stock (Eq, Show)
-  deriving anyclass (Exception)
-
-mkAppEnv :: Config -> IO Env
-mkAppEnv Config {..} = do
-  envDbConnection <-
-    Connection.acquire cfgDbConnectionString
-      >>= either (throwM . DbConnectionAcquireException) pure
-  let envOgmiosInfo = OgmiosInfo cfgOgmiosPort cfgOgmiosAddress
-  envOgmiosWorker <- createStoppedFetcher
-  let envControlApiToken = ControlApiToken cfgServerControlApiToken
-  return Env {..}
 
 initDbAndFetcher :: Env -> Config -> IO ()
 initDbAndFetcher env Config {..} =

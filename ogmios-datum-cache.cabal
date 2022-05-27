@@ -60,6 +60,7 @@ library
     Api.WebSocket.Types
     App
     App.Env
+    App.Types
     Block.Fetch
     Block.Types
     Config
@@ -138,20 +139,28 @@ test-suite ogmios-datum-cache-test
   hs-source-dirs: test
   main-is:        Spec.hs
   other-modules:
+    Spec.Api.Handlers
     Spec.Api.WebSocket.Types
     Spec.Config
 
   ghc-options:
     -Wall -Wcompat -Wincomplete-uni-patterns
     -Wincomplete-record-updates -Wredundant-constraints
-    -Wmissing-export-lists -Wmissing-deriving-strategies -Werror -O2
-    -Wunused-packages -Wwarn
+    -Wmissing-import-lists -Wmissing-export-lists
+    -Wmissing-deriving-strategies -Werror -O2 -Wunused-packages
 
   build-depends:
     , aeson
     , base
+    , bytestring
     , directory
+    , exceptions
     , hspec
+    , hspec-wai
+    , hspec-wai-json
+    , http-types
     , ogmios-datum-cache
+    , servant-server
     , string-interpolate
     , temporary
+    , wai-extra

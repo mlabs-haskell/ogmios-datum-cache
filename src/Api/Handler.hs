@@ -40,12 +40,12 @@ import Api.Types (
   StartBlockFetchingResponse (StartBlockFetchingResponse),
  )
 import Api.WebSocket (websocketServer)
-import App (App)
 import App.Env (
   ControlApiToken (unControlApiToken),
   Env (Env, envControlApiToken),
   checkControlApiToken,
  )
+import App.Types (App)
 import Block.Fetch (
   StartBlockFetcherError (StartBlockFetcherErrorAlreadyRunning),
   StopBlockFetcherError (StopBlockFetcherErrorNotRunning),
@@ -62,13 +62,13 @@ import Database qualified
 
 controlApiAuthCheck :: Env -> BasicAuthCheck ControlApiAuthData
 controlApiAuthCheck Env {envControlApiToken} =
-  BasicAuthCheck $ \(BasicAuthData usr pwd) ->
+  BasicAuthCheck $ \(BasicAuthData usr pwd) -> do
     let expect = unControlApiToken envControlApiToken
         passed = Just $ toString (usr <> ":" <> pwd)
-     in pure $
-          if checkControlApiToken expect passed
-            then Authorized ControlApiAuthData
-            else Unauthorized
+    pure $
+      if checkControlApiToken expect passed
+        then Authorized ControlApiAuthData
+        else Unauthorized
 
 datumServiceHandlers :: Routes (AsServerT App)
 datumServiceHandlers = Routes {datumRoutes, controlRoutes, websocketRoutes}
