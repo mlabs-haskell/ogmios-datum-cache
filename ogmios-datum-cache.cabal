@@ -60,6 +60,7 @@ library
     App
     App.Env
     Block.Fetch
+    Block.Types
     Config
     Database
     Parameters
@@ -68,7 +69,6 @@ library
     Api.Error
     Api.Types
     Block.Filter
-    Block.Types
     PlutusData
 
   build-depends:
