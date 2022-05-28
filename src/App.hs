@@ -57,8 +57,8 @@ newtype DbConnectionAcquireException
   deriving stock (Eq, Show)
   deriving anyclass (Exception)
 
-appService :: Env -> Application
-appService env =
+appService :: Bool -> Env -> Application
+appService withAuth env =
   serveWithContext datumCacheApi serverContext appServer
   where
     appServer :: ServerT (ToServantApi Routes) Handler
@@ -76,4 +76,4 @@ appService env =
     hoistApp = Handler . ExceptT . try . runStdoutLoggingT . flip runReaderT env . unApp
 
     appServerT :: ServerT (ToServantApi Routes) App
-    appServerT = genericServerT datumServiceHandlers
+    appServerT = genericServerT (datumServiceHandlers withAuth)

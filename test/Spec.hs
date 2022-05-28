@@ -21,10 +21,10 @@ main :: IO ()
 main = do
   cfg <- loadConfig $ Parameters "config.toml"
   app <-
-    (Right . appService <$> mkAppEnv cfg)
+    (Right . appService False <$> mkAppEnv cfg)
       `catch` (return . Left . show @DbConnectionAcquireException)
   appWithAuth <-
-    (Right . appService <$> mkAppEnv cfg {cfgServerControlApiToken = Just "test:test"})
+    (Right . appService True <$> mkAppEnv cfg {cfgServerControlApiToken = Just "test:test"})
       `catch` (return . Left . show @DbConnectionAcquireException)
   let apps = case partitionEithers [app, appWithAuth] of
         ([], [app', appWithAuth']) -> Right (app', appWithAuth')

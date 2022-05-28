@@ -6,7 +6,7 @@ import Control.Monad.Logger (logErrorNS, logInfoNS, runStdoutLoggingT)
 import Control.Monad.Reader (runReaderT)
 import Data.Aeson (eitherDecode)
 import Data.Default (def)
-import Data.Maybe (fromMaybe)
+import Data.Maybe (fromMaybe, isJust)
 import Data.Text qualified as Text
 import Network.Wai.Handler.Warp qualified as Warp
 import Network.Wai.Logger (withStdoutLogger)
@@ -52,6 +52,7 @@ main = do
   hSetBuffering stdout NoBuffering
   parameters <- paramInfo
   cfg@Config {..} <- loadConfig parameters
+  let withAuth = isJust cfgServerControlApiToken
   print cfg
   env <- mkAppEnv cfg
   initDbAndFetcher env cfg
@@ -59,4 +60,4 @@ main = do
     let warpSettings =
           Warp.setPort cfgServerPort $
             Warp.setLogger logger Warp.defaultSettings
-    Warp.runSettings warpSettings $ simpleCors (appService env)
+    Warp.runSettings warpSettings $ simpleCors $ appService withAuth env

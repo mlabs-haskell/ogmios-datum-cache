@@ -7,11 +7,11 @@ import Data.ByteString.Base64 (encode)
 import Network.HTTP.Types.Method (methodPost)
 import Network.Wai.Test (SResponse)
 import Servant.Server (Application)
-import Test.Hspec (Spec, describe, expectationFailure, it, xit)
+import Test.Hspec (Spec, describe, expectationFailure, it)
 import Test.Hspec.Wai (
+  ResponseMatcher (matchStatus),
   WaiSession,
   get,
-  matchStatus,
   post,
   request,
   shouldRespondWith,
@@ -32,35 +32,42 @@ withoutAuthSpec :: Application -> Spec
 withoutAuthSpec app =
   describe "Protect Privileged API is not configured" $
     with (return app) $ do
-      it "healthcheck" $ get "/healthcheck" `shouldRespondWith` 200
-      -- FIXME: require endpoint without auth
-      xit "cancel_fetch_blocks" $ do
+      it "/healthcheck - 200" $ get "/healthcheck" `shouldRespondWith` 200
+      it "/control/cancel_fetch_blocks - 422 Unprocessable Entity" $ do
         post "/control/cancel_fetch_blocks" ""
           `shouldRespondWith` [json|{"error": "No block fetcher running"}|]
             { matchStatus = 422
             }
-      it "cancel_fetch_blocks" $ do
+      it "/control/cancel_fetch_blocks with auth - 422 Unprocessable Entity" $ do
         postWithAuth "test:test" "/control/cancel_fetch_blocks"
           `shouldRespondWith` [json|{"error": "No block fetcher running"}|]
             { matchStatus = 422
             }
+      it "/restricted_control/cancel_fetch_blocks - 401 Unauthorized" $ do
+        post "/restricted_control/cancel_fetch_blocks" ""
+          `shouldRespondWith` 401
+      it "/restricted_control/cancel_fetch_blocks with any auth - 403 Forbidden" $ do
+        postWithAuth "any:any" "/restricted_control/cancel_fetch_blocks"
+          `shouldRespondWith` 403
 
 withAuthSpec :: Application -> Spec
 withAuthSpec appWithAuth =
   describe "Protect Privileged API is configured" $
     with (return appWithAuth) $ do
-      it "healthcheck" $ get "/healthcheck" `shouldRespondWith` 200
-      it "cancel_fetch_blocks without auth" $ do
-        post "/control/cancel_fetch_blocks" ""
+      it "/healthcheck - 200" $ get "/healthcheck" `shouldRespondWith` 200
+      it "/control/cancel_fetch_blocks - 303 See Other" $ do
+        post "/control/cancel_fetch_blocks" "" `shouldRespondWith` 303
+      it "/restricted_control/cancel_fetch_blocks - 401 Unauthorized" $ do
+        post "/restricted_control/cancel_fetch_blocks" ""
           `shouldRespondWith` 401
-      it "cancel_fetch_blocks with wrong auth" $ do
-        postWithAuth "wrong:wrong" "/control/cancel_fetch_blocks"
-          `shouldRespondWith` 403
-      it "cancel_fetch_blocks with auth" $ do
-        postWithAuth "test:test" "/control/cancel_fetch_blocks"
+      it "/restricted_control/cancel_fetch_blocks with auth - 422 Unprocessable Entity" $ do
+        postWithAuth "test:test" "/restricted_control/cancel_fetch_blocks"
           `shouldRespondWith` [json|{"error": "No block fetcher running"}|]
             { matchStatus = 422
             }
+      it "/restricted_control/cancel_fetch_blocks with wrong auth - 403 Forbidden" $ do
+        postWithAuth "wrong:wrong" "/restricted_control/cancel_fetch_blocks"
+          `shouldRespondWith` 403
 
 postWithAuth :: ByteString -> ByteString -> WaiSession st SResponse
 postWithAuth auth path = request methodPost path headers ""

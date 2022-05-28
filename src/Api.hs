@@ -79,6 +79,10 @@ data Routes route = Routes
   , controlRoutes ::
       route
         :- "control"
+        :> ToServantApi ControlApi
+  , restrictedControlRoutes ::
+      route
+        :- "restricted_control"
         :> BasicAuth "control-api-realm" ControlApiAuthData
         :> ToServantApi ControlApi
   , websocketRoutes :: route :- "ws" :> ToServantApi WebSocketApi

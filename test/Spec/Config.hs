@@ -7,7 +7,18 @@ import System.Directory (getCurrentDirectory, setCurrentDirectory)
 import System.IO.Temp (withSystemTempDirectory)
 import Test.Hspec (Spec, describe, it, shouldBe)
 
-import Config (Config (..), loadConfig)
+import Config (
+  Config (
+    Config,
+    cfgDbConnectionString,
+    cfgFetcher,
+    cfgOgmiosAddress,
+    cfgOgmiosPort,
+    cfgServerControlApiToken,
+    cfgServerPort
+  ),
+  loadConfig,
+ )
 import Parameters (Parameters (Parameters))
 
 spec :: Spec
