@@ -59,6 +59,7 @@ library
     Api.WebSocket.Types
     App
     App.Env
+    App.Types
     Block.Fetch
     Config
     Database

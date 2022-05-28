@@ -2,60 +2,23 @@ module Main (
   main,
 ) where
 
-import Control.Monad.Catch (Exception, throwM, try)
-import Control.Monad.Except (ExceptT (..))
 import Control.Monad.Logger (logErrorNS, logInfoNS, runStdoutLoggingT)
 import Control.Monad.Reader (runReaderT)
 import Data.Aeson (eitherDecode)
 import Data.Default (def)
 import Data.Maybe (fromMaybe)
 import Data.Text qualified as Text
-import Hasql.Connection qualified as Connection
-import Hasql.Connection qualified as Hasql
 import Network.Wai.Handler.Warp qualified as Warp
 import Network.Wai.Logger (withStdoutLogger)
 import Network.Wai.Middleware.Cors (simpleCors)
-import Servant.API.Generic (ToServantApi)
-import Servant.Server (Application, Handler (..), ServerT, hoistServer, serve)
-import Servant.Server.Generic (genericServerT)
 import System.IO (BufferMode (NoBuffering), hSetBuffering, stdout)
 
-import Api (Routes, datumCacheApi)
-import Api.Handler (datumServiceHandlers)
-import App (App (..))
+import App (appService, mkAppEnv)
 import App.Env (Env (..))
-import Block.Fetch (
-  OgmiosInfo (OgmiosInfo),
-  createStoppedFetcher,
-  startBlockFetcher,
- )
+import Block.Fetch (startBlockFetcher)
 import Config (BlockFetcherConfig (BlockFetcherConfig), Config (..), loadConfig)
 import Database (getLastBlock, initLastBlock, initTables, updateLastBlock)
 import Parameters (paramInfo)
-
-appService :: Env -> Application
-appService env = serve datumCacheApi appServer
-  where
-    appServer :: ServerT (ToServantApi Routes) Handler
-    appServer = hoistServer datumCacheApi hoistApp appServerT
-
-    hoistApp :: App a -> Handler a
-    hoistApp = Handler . ExceptT . try . runStdoutLoggingT . flip runReaderT env . unApp
-
-    appServerT :: ServerT (ToServantApi Routes) App
-    appServerT = genericServerT datumServiceHandlers
-
-newtype DbConnectionAcquireException
-  = DbConnectionAcquireException Hasql.ConnectionError
-  deriving stock (Eq, Show)
-  deriving anyclass (Exception)
-
-mkAppEnv :: Config -> IO Env
-mkAppEnv Config {..} = do
-  pgConn <-
-    Connection.acquire cfgDbConnectionString
-      >>= either (throwM . DbConnectionAcquireException) pure
-  Env pgConn (OgmiosInfo cfgOgmiosPort cfgOgmiosAddress) <$> createStoppedFetcher
 
 initDbAndFetcher :: Env -> Config -> IO ()
 initDbAndFetcher env Config {..} =
@@ -96,4 +59,4 @@ main = do
     let warpSettings =
           Warp.setPort cfgServerPort $
             Warp.setLogger logger Warp.defaultSettings
-    Warp.runSettings warpSettings $ simpleCors (appService env)
+    Warp.runSettings warpSettings $ simpleCors $ appService env
