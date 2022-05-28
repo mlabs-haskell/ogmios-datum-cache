@@ -152,6 +152,7 @@ test-suite ogmios-datum-cache-test
   build-depends:
     , aeson
     , base
+    , base64-bytestring
     , bytestring
     , directory
     , exceptions
