@@ -8,7 +8,6 @@ import Control.Monad.Logger (logErrorNS, logInfoNS, runStdoutLoggingT)
 import Control.Monad.Reader (runReaderT)
 import Data.Aeson (eitherDecode)
 import Data.Default (def)
-import Data.Maybe (fromMaybe)
 import Data.Text qualified as Text
 import Hasql.Connection qualified as Connection
 import Hasql.Connection qualified as Hasql
@@ -29,6 +28,7 @@ import Block.Fetch (
   createStoppedFetcher,
   startBlockFetcher,
  )
+import Block.Types (BlockInfo (BlockInfo, BlockOrigin))
 import Config (BlockFetcherConfig (BlockFetcherConfig), Config (..), loadConfig)
 import Database (getLastBlock, initLastBlock, initTables, updateLastBlock)
 import Parameters (paramInfo)
@@ -75,10 +75,14 @@ initDbAndFetcher env Config {..} =
             latestBlock' <- getLastBlock
             let firstBlock =
                   if useLatest
-                    then fromMaybe blockInfo latestBlock'
+                    then maybe blockInfo (uncurry BlockInfo) latestBlock'
                     else blockInfo
-            initLastBlock firstBlock
-            updateLastBlock firstBlock
+            case firstBlock of
+              (BlockInfo slot hash) -> do
+                initLastBlock slot hash
+                updateLastBlock slot hash
+              BlockOrigin ->
+                error ""
             r <- startBlockFetcher firstBlock datumFilter
             case r of
               Right () -> pure ()

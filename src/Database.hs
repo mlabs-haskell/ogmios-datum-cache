@@ -32,7 +32,7 @@ import Hasql.Session (Session)
 import Hasql.Session qualified as Session
 import Hasql.Statement (Statement (Statement))
 
-import Block.Types (BlockInfo (BlockInfo))
+import Block.Types (BlockInfo (BlockInfo, BlockOrigin))
 import PlutusData qualified
 
 data Datum = Datum
@@ -171,7 +171,7 @@ getLastBlock ::
   , MonadReader r m
   , Has Connection r
   ) =>
-  m (Maybe BlockInfo)
+  m (Maybe (Int64, Text))
 getLastBlock = do
   let sql = "SELECT slot, hash FROM last_block LIMIT 1"
       enc = Encoders.noParams
@@ -184,7 +184,10 @@ getLastBlock = do
   dbConnection <- ask
   res <- liftIO $ Session.run stmt dbConnection
   case res of
-    Right x -> pure . pure $ x
+    Right (BlockInfo slot hash) -> pure . pure $ (slot, hash)
+    Right BlockOrigin -> do
+      logErrorNS "getLastBlock" $ Text.pack "db returned BlockOrigin"
+      pure Nothing
     Left err -> do
       logErrorNS "getLastBlock" $ Text.pack $ show err
       pure Nothing

@@ -35,7 +35,7 @@ import Block.Fetch (
   startBlockFetcher,
   stopBlockFetcher,
  )
-import Block.Types (BlockInfo)
+import Block.Types (BlockInfo (BlockInfo))
 import Database (
   DatabaseError (DatabaseErrorDecodeError, DatabaseErrorNotFound),
  )
@@ -72,7 +72,8 @@ datumServiceHandlers = Routes {..}
 
     getLastBlock :: App BlockInfo
     getLastBlock = do
-      block' <- Database.getLastBlock
+      slot_hash <- Database.getLastBlock
+      let block' = fmap (uncurry BlockInfo) slot_hash
       case block' of
         Just block -> pure block
         Nothing -> throwM err404

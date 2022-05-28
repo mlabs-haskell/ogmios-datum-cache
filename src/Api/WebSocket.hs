@@ -46,7 +46,7 @@ import Block.Fetch (
   stopBlockFetcher,
  )
 import Block.Filter (DatumFilter)
-import Block.Types (BlockInfo)
+import Block.Types (BlockInfo (BlockInfo))
 import Database (
   DatabaseError (DatabaseErrorDecodeError, DatabaseErrorNotFound),
  )
@@ -93,7 +93,8 @@ getDatumsByHashes hashes = do
 
 getLastBlock :: App WSResponse
 getLastBlock = do
-  block' <- Database.getLastBlock
+  slot_hash <- Database.getLastBlock
+  let block' = fmap (uncurry BlockInfo) slot_hash
   pure $ case block' of
     Nothing ->
       Left mkGetBlockFault
