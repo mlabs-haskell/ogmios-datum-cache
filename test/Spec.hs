@@ -30,6 +30,6 @@ main = do
         ([], [app', appWithAuth']) -> Right (app', appWithAuth')
         (errs, _) -> Left $ intercalate "; " errs
   hspec $ do
+    Spec.Api.Handlers.spec apps
     Spec.Api.WebSocket.Types.spec
     Spec.Config.spec
-    Spec.Api.Handlers.spec apps
