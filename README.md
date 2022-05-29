@@ -110,31 +110,54 @@ Response
 ## Control API
 
 ### `POST /control/fetch_blocks`
+Available only if `server.controlApiToken` is not defined.
+
 Request body:
 ```jsonc
 {
   "slot": 44366242,
   "id": "d2a4249fe3d0607535daa26caf12a38da2233586bc51e79ed0b3a36170471bf5",
-  // optional
-  "token": "SECRET_CONTROL_API_TOKEN"
 }
 ```
 Responses:
 * 200 `{"message": "Started block fetcher"}`
-* 403 `{"error": "Control API token not granted"}`
+* 303 Reason: `Control API is restricted by the admin. Access by /restricted_control with Basic authentication.`
 * 422 `{"error": "Block fetcher already running"}`
 
 ### `POST /control/cancel_fetch_blocks`
-Optional request body:
-```jsonc
-{
-  // optional
-  "token": "SECRET_CONTROL_API_TOKEN"
-}
-```
+Available only if `server.controlApiToken` is not defined.
+
 Responses:
 * 200 `{"message": "Stopped block fetcher"}`
-* 403 `{"error": "Control API token not granted"}`
+* 303 Reason: `Control API is restricted by the admin. Access by /restricted_control with Basic authentication.`
+* 422 `{"error": "No block fetcher running"}`
+
+### `POST /restricted_control/fetch_blocks`
+Request header:
+* Basic access authentication: `Authorization: Basic AXVubzpwQDU1dzByYM==`, where `dXNlcjpwYXNzd29yZA==` is `user:password` string in Base64 encoding. 
+  
+Request body:
+```jsonc
+{
+  "slot": 44366242,
+  "id": "d2a4249fe3d0607535daa26caf12a38da2233586bc51e79ed0b3a36170471bf5",
+}
+```
+
+Responses:
+* 200 `{"message": "Started block fetcher"}`
+* 401 Unauthorized
+* 403 Forbidden
+* 422 `{"error": "Block fetcher already running"}`
+
+### `POST /restricted_control/cancel_fetch_blocks`
+Request header:
+* Basic access authentication: `Authorization: Basic AXVubzpwQDU1dzByYM==`, where `dXNlcjpwYXNzd29yZA==` is `user:password` string in Base64 encoding. 
+  
+Responses:
+* 200 `{"message": "Stopped block fetcher"}`
+* 401 Unauthorized
+* 403 Forbidden
 * 422 `{"error": "No block fetcher running"}`
 
 ### `GET /healthcheck`
@@ -635,7 +658,7 @@ Modify `config.toml` in the app working directory (currently `/home/ubuntu/seabu
 
 * `server.port` defines port of ogmios-datum-chahe server
 
-* `server.controlApiToken` defines the secrete token, required for control API call
+* `server.controlApiToken` defines the secrete token, required for control API call. Format: `user:password`
 
 * `blockFetcher.autoStart` defines if initial block fetcher should start automatically.
 
