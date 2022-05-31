@@ -1,0 +1,17 @@
+version: "3.5"
+
+services:
+  postgresql:
+    image: postgres:14
+    environment:
+      POSTGRES_DB: ogmios-datum-cache
+      POSTGRES_USER: aske
+      POSTGRES_HOST_AUTH_METHOD: trust
+    command: [ "-c", "stats_temp_directory=/tmp" ]
+    ports:
+      - 5432:5432
+    volumes:
+      - ogmios-datum-cache-db:/var/lib/postgresql/data
+
+volumes:
+  ogmios-datum-cache-db:
