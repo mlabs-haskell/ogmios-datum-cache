@@ -21,5 +21,19 @@ jobs:
         with:
           name: mlabs
           authToken: "${{ secrets.CACHIXKEY }}"
-      - name: Build all project components
-        run: nix build -L .#check.x86_64-linux
+      # - name: Build all project components
+      #   run: |
+      #     nix build -L .#check.x86_64-linux
+      - name: Setup test environment
+        working-directory: ./test-env/ogmios-datum-cache-testnet
+        run: |
+          mkdir node-db node-ipc ogmios-datum-cache-postgresql
+          docker-compose up -d
+      - name: Trace
+        run: |
+          docker ps -a
+      - name: Integral tests
+        run: nix develop -c cabal run ogmios-datum-cache-test
+      - name: Halt test environment
+        working-directory: ./test-env/ogmios-datum-cache-testnet
+        run: docker-compose down
