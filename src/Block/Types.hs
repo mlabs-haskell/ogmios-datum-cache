@@ -43,12 +43,11 @@ instance ToJSON BlockInfo where
       ]
 
 instance FromJSON BlockInfo where
-  -- super ugly
   parseJSON val =
     ( case val of
         (Object _) -> withObject "BlockInfo" $ \object -> BlockInfo <$> (object .: "blockSlot") <*> (object .: "blockId")
-        (String "origin") -> withText "BlockInfo" $ \_ -> return BlockOrigin
-        _ -> error ""
+        (String "origin") -> withText "BlockInfo" $ const $ return BlockOrigin
+        _ -> error "Somehow origin was read in from Ogmios"
     )
       val
 
@@ -104,7 +103,9 @@ mkFindIntersectRequest blockInfo =
     , _mirror = 0
     }
   where
+    points :: Int64 -> Text -> CursorPoints
     points s i = CursorPoints [CursorPoint (fromIntegral s) i]
+    payload :: Text
     payload = decodeUtf8 $
       toStrict $ case blockInfo of
         BlockInfo slot hash -> Aeson.encode $ points slot hash

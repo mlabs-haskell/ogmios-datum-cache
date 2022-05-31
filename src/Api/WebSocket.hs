@@ -93,8 +93,7 @@ getDatumsByHashes hashes = do
 
 getLastBlock :: App WSResponse
 getLastBlock = do
-  slot_hash <- Database.getLastBlock
-  let block' = fmap (uncurry BlockInfo) slot_hash
+  block' <- fmap (uncurry BlockInfo) <$> Database.getLastBlock
   pure $ case block' of
     Nothing ->
       Left mkGetBlockFault
