@@ -72,8 +72,7 @@ datumServiceHandlers = Routes {..}
 
     getLastBlock :: App BlockInfo
     getLastBlock = do
-      slotHash <- Database.getLastBlock
-      let block' = fmap (uncurry BlockInfo) slotHash
+      block' <- fmap (uncurry BlockInfo) <$> Database.getLastBlock
       case block' of
         Just block -> pure block
         Nothing -> throwM err404
