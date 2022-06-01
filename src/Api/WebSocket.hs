@@ -46,7 +46,7 @@ import Block.Fetch (
   startBlockFetcher,
   stopBlockFetcher,
  )
-import Block.Filter (DatumFilter)
+import Block.Filter (DatumFilter, TxFilter)
 import Block.Types (BlockInfo (BlockInfo))
 import Database (
   DatabaseError (DatabaseErrorDecodeError, DatabaseErrorNotFound),
@@ -104,10 +104,10 @@ getLastBlock = do
 startFetchBlocks ::
   Int64 ->
   Text ->
-  DatumFilter ->
+  TxFilter ->
   App WSResponse
-startFetchBlocks firstBlockSlot firstBlockId datumFilter = do
-  res <- startBlockFetcher (BlockInfo firstBlockSlot firstBlockId) datumFilter
+startFetchBlocks firstBlockSlot firstBlockId txFilter = do
+  res <- startBlockFetcher (BlockInfo firstBlockSlot firstBlockId) txFilter
   pure $ case res of
     Left StartBlockFetcherErrorAlreadyRunning ->
       Left $ mkStartFetchBlocksFault "Block fetcher already running"

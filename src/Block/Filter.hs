@@ -1,4 +1,4 @@
-module Block.Filter (DatumFilter (..), defaultDatumFilter, runDatumFilter) where
+module Block.Filter (DatumFilter (..), defaultDatumFilter, runDatumFilter, TxFilter, runFilter) where
 
 import Data.Aeson (FromJSON (parseJSON), Value (Bool, String), withObject)
 import Data.Default (Default (def))
@@ -51,3 +51,8 @@ runDatumFilter (AddressFilter expectedAddress) tx (actualHash, _) =
           filter ((== expectedAddress) . address) $
             outputs tx
    in actualHash `elem` hashes
+
+data TxFilter = TxFilter ()
+
+runFilter :: TxFilter -> AlonzoTransaction -> Bool
+runFilter = error ""

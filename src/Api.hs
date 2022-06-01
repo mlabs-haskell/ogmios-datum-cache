@@ -1,7 +1,7 @@
 module Api (
   Routes (..),
-  datumCacheApi,
-  DatumApi (..),
+  txCacheApi,
+  CacheApi (..),
   ControlApi (..),
   WebSocketApi (..),
 ) where
@@ -16,12 +16,17 @@ import Api.Types (
   GetDatumByHashResponse,
   GetDatumsByHashesRequest,
   GetDatumsByHashesResponse,
+  {-
+  GetTransactionByIdResponse,
+  GetTransactionsByIdsRequest,
+  GetTransactionsByIdsResponse
+  -}
   StartBlockFetchingRequest,
   StartBlockFetchingResponse,
  )
 import Block.Types (BlockInfo)
 
-data DatumApi route = DatumApi
+data CacheApi route = CacheApi
   { getDatumByHash ::
       route
         :- "datum"
@@ -71,11 +76,11 @@ newtype WebSocketApi route = WebSocketApi
   deriving stock (Generic)
 
 data Routes route = Routes
-  { datumRoutes :: route :- ToServantApi DatumApi
+  { cacheRoutes :: route :- ToServantApi CacheApi
   , controlRoutes :: route :- "control" :> ToServantApi ControlApi
   , websocketRoutes :: route :- "ws" :> ToServantApi WebSocketApi
   }
   deriving stock (Generic)
 
-datumCacheApi :: Proxy (ToServantApi Routes)
-datumCacheApi = genericApi (Proxy :: Proxy Routes)
+txCacheApi :: Proxy (ToServantApi Routes)
+txCacheApi = genericApi (Proxy :: Proxy Routes)

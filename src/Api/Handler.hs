@@ -1,4 +1,4 @@
-module Api.Handler (datumServiceHandlers) where
+module Api.Handler (cacheServiceHandlers) where
 
 import Control.Monad.Catch (throwM)
 import Control.Monad.Logger (logInfoNS)
@@ -13,8 +13,8 @@ import Servant.Server.Generic (AsServerT, genericServerT)
 
 import Api (
   ControlApi (ControlApi, cancelBlockFetching, startBlockFetching),
-  DatumApi (DatumApi, getDatumByHash, getDatumsByHashes, getHealthcheck, getLastBlock),
-  Routes (Routes, controlRoutes, datumRoutes, websocketRoutes),
+  CacheApi (CacheApi, getDatumByHash, getDatumsByHashes, getHealthcheck, getLastBlock),
+  Routes (Routes, controlRoutes, cacheRoutes, websocketRoutes),
   WebSocketApi (WebSocketApi, websocketApi),
  )
 import Api.Error (JsonError (JsonError), throwJsonError)
@@ -40,12 +40,13 @@ import Database (
   DatabaseError (DatabaseErrorDecodeError, DatabaseErrorNotFound),
  )
 import Database qualified
+import Block.Filter (DatumFilter, TxFilter)
 
-datumServiceHandlers :: Routes (AsServerT App)
-datumServiceHandlers = Routes {..}
+cacheServiceHandlers :: Routes (AsServerT App)
+cacheServiceHandlers = Routes {..}
   where
-    datumRoutes :: ToServant DatumApi (AsServerT App)
-    datumRoutes = genericServerT DatumApi {..}
+    cacheRoutes :: ToServant CacheApi (AsServerT App)
+    cacheRoutes = genericServerT CacheApi {..}
 
     catchDatabaseError r = do
       case r of
@@ -89,7 +90,8 @@ datumServiceHandlers = Routes {..}
       App StartBlockFetchingResponse
     startBlockFetching (StartBlockFetchingRequest firstBlockSlot firstBlockId datumFilter') = do
       let datumFilter = fromMaybe def datumFilter'
-      res <- startBlockFetcher (BlockInfo firstBlockSlot firstBlockId) datumFilter
+          txFilter = txFilterFromDatumFilter datumFilter
+      res <- startBlockFetcher (BlockInfo firstBlockSlot firstBlockId) txFilter
       case res of
         Left StartBlockFetcherErrorAlreadyRunning ->
           throwJsonError err422 "Block fetcher already running"
@@ -112,3 +114,6 @@ datumServiceHandlers = Routes {..}
     websocketApi conn = do
       logInfoNS "websocketApi" "New WS connection established"
       websocketServer conn
+
+txFilterFromDatumFilter :: DatumFilter -> TxFilter
+txFilterFromDatumFilter = error "not implemented"

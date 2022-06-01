@@ -42,7 +42,7 @@ import UnliftIO.Async (Async)
 import UnliftIO.Async qualified as Async
 import UnliftIO.Concurrent (threadDelay)
 
-import Block.Filter (DatumFilter, runDatumFilter)
+import Block.Filter (DatumFilter, runDatumFilter, TxFilter, runFilter)
 import Block.Types (
   AlonzoBlock (body, header, headerHash),
   AlonzoBlockHeader (slot),
@@ -57,7 +57,7 @@ import Block.Types (
   mkFindIntersectRequest,
   mkRequestNextRequest,
  )
-import Database (saveDatums, updateLastBlock)
+import Database (saveTransactions, updateLastBlock)
 
 data OgmiosInfo = OgmiosInfo
   { ogmiosPort :: Int
@@ -79,9 +79,9 @@ startBlockFetcher ::
   , Has Hasql.Connection r
   ) =>
   BlockInfo ->
-  DatumFilter ->
+  TxFilter ->
   m (Either StartBlockFetcherError ())
-startBlockFetcher blockInfo datumFilter = do
+startBlockFetcher blockInfo txFilter = do
   OgmiosInfo ogmiosPort ogmiosAddress <- ask
   MkOgmiosWorkerMVar envOgmiosWorker <- ask
   env <- Reader.ask
@@ -96,7 +96,7 @@ startBlockFetcher blockInfo datumFilter = do
   let runOgmiosClient = do
         takeMVar canStart
         WebSockets.runClient ogmiosAddress ogmiosPort "" $ \wsConn ->
-          runStack $ Right <$> wsApp wsConn blockInfo datumFilter
+          runStack $ Right <$> wsApp wsConn blockInfo txFilter
 
   ogmiosWorker <- liftIO $
     Async.async $ do
@@ -139,9 +139,9 @@ receiveLoop ::
   , Has Hasql.Connection r
   ) =>
   WebSockets.Connection ->
-  DatumFilter ->
+  TxFilter ->
   m ()
-receiveLoop conn datumFilter = do
+receiveLoop conn txFilter = do
   jsonMsg <- liftIO $ WebSockets.receiveData conn
   let msg = Aeson.decode @OgmiosFindIntersectResponse jsonMsg
   case _result <$> msg of
@@ -156,7 +156,7 @@ receiveLoop conn datumFilter = do
       logInfoNS
         "receiveLoop"
         "Find intersection: intersection found, starting RequestNext loop"
-      Async.withAsync (receiveBlocksLoop conn datumFilter) $
+      Async.withAsync (receiveBlocksLoop conn txFilter) $
         \receiveBlocksWorker -> do
           Async.link receiveBlocksWorker
           requestRemainingBlocks conn
@@ -179,9 +179,9 @@ requestRemainingBlocks conn = forever $ do
 receiveBlocksLoop ::
   (MonadIO m, MonadLogger m, MonadReader r m, Has Hasql.Connection r) =>
   WebSockets.Connection ->
-  DatumFilter ->
+  TxFilter ->
   m ()
-receiveBlocksLoop conn datumFilter = forever $ do
+receiveBlocksLoop conn txFilter = forever $ do
   jsonMsg <- liftIO $ WebSockets.receiveData conn
   let msg = Aeson.eitherDecode @OgmiosRequestNextResponse jsonMsg
   case _result <$> msg of
@@ -200,7 +200,7 @@ receiveBlocksLoop conn datumFilter = forever $ do
         Text.pack $
           "Processing block: "
             <> show (slot $ header block, headerHash block)
-      saveDatumsFromAlonzoBlock block datumFilter
+      saveTransactionsFromAlonzoBlock block txFilter
       case headerHash block of
         Just headerHash' ->
           updateLastBlock $ BlockInfo (slot $ header block) headerHash'
@@ -209,20 +209,15 @@ receiveBlocksLoop conn datumFilter = forever $ do
             "receiveBlocksLoop"
             $ Text.pack $ "Block without header hash: " <> show block
 
-saveDatumsFromAlonzoBlock ::
+saveTransactionsFromAlonzoBlock ::
   (MonadIO m, MonadLogger m, MonadReader r m, Has Hasql.Connection r) =>
   AlonzoBlock ->
-  DatumFilter ->
+  TxFilter ->
   m ()
-saveDatumsFromAlonzoBlock block datumFilter = do
+saveTransactionsFromAlonzoBlock block txFilter = do
   let txs = body block
-      getFilteredDatums tx =
-        filter (runDatumFilter datumFilter tx) . Map.toList . datums $ tx
-      requestedDatums =
-        Map.fromList
-          . concatMap getFilteredDatums
-          $ txs
-      decodeDatumValue = Base64.decodeBase64 . Text.encodeUtf8
+      requestedTransactions = filter (runFilter txFilter) txs
+      {-decodeDatumValue = Base64.decodeBase64 . Text.encodeUtf8
       (failedDecodings, requestedDatumsWithDecodedValues) =
         Map.mapEither decodeDatumValue requestedDatums
   unless (null failedDecodings) $ do
@@ -230,8 +225,9 @@ saveDatumsFromAlonzoBlock block datumFilter = do
       "Error decoding values for datums: "
         <> Text.intercalate ", " (Map.keys failedDecodings)
     pure ()
-  let datums = Map.toList requestedDatumsWithDecodedValues
-  unless (null datums) $ saveDatums datums
+  -- let datums = Map.toList requestedDatumsWithDecodedValues-}
+  let rTx = requestedTransactions
+  unless (null rTx) $ saveTransactions rTx
 
 wsApp ::
   ( MonadIO m
@@ -242,11 +238,11 @@ wsApp ::
   ) =>
   WebSockets.Connection ->
   BlockInfo ->
-  DatumFilter ->
+  TxFilter ->
   m ()
-wsApp conn blockInfo datumFilter = do
+wsApp conn blockInfo txFilter = do
   logInfoNS "wsApp" "Connected to ogmios websocket"
-  Async.withAsync (receiveLoop conn datumFilter) $ \receiveWorker -> do
+  Async.withAsync (receiveLoop conn txFilter) $ \receiveWorker -> do
     Async.link receiveWorker
     logInfoNS
       "wsApp"

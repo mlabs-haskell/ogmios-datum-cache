@@ -5,6 +5,7 @@ module Database (
   getDatumByHash,
   getDatumsByHashes,
   saveDatums,
+  saveTransactions,
   initLastBlock,
   updateLastBlock,
   getLastBlock,
@@ -31,7 +32,7 @@ import Hasql.Session (Session)
 import Hasql.Session qualified as Session
 import Hasql.Statement (Statement (Statement))
 
-import Block.Types (BlockInfo (BlockInfo))
+import Block.Types (BlockInfo (BlockInfo), AlonzoTransaction (AlonzoTransaction))
 import PlutusData qualified
 
 data Datum = Datum
@@ -238,6 +239,26 @@ getDatumsByHashes hashes = runExceptT $ do
   case res' of
     Left _ -> throwE DatabaseErrorNotFound
     Right datums -> except $ toPlutusDataMany datums
+
+{-
+  saveTransactions will explicitely discard datums
+  saveDatums will discard everything but datums
+  Api will by default call both- in order to get current functionality,
+  you would filter out all transactions, but keep datums.
+
+  TxFilter will be capable of being applied to datums and transactions.
+-}
+
+saveTransactions :: 
+  ( MonadIO m
+  , MonadLogger m
+  , MonadReader r m
+  , Has Connection r
+  ) => 
+  [AlonzoTransaction] ->
+  m ()
+saveTransactions transactions = do
+  pure ()
 
 saveDatums ::
   ( MonadIO m
