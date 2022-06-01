@@ -3,6 +3,7 @@ module Main (main) where
 import Control.Monad.Catch (catch)
 import Data.Either (partitionEithers)
 import Data.List (intercalate)
+import System.Environment (lookupEnv)
 import Test.Hspec (hspec)
 
 import App (
@@ -19,13 +20,15 @@ import Spec.Config qualified
 
 main :: IO ()
 main = do
+  ci <- (== Just "true") <$> lookupEnv "CI"
+  let handleDbException err
+        | ci = error $ "Test environment is not running: " <> show err
+        | otherwise = return $ Left $ show @DbConnectionAcquireException err
   cfg <- loadConfig $ Parameters "config.toml"
-  app <-
-    (Right . appService False <$> mkAppEnv cfg)
-      `catch` (return . Left . show @DbConnectionAcquireException)
+  app <- (Right . appService False <$> mkAppEnv cfg) `catch` handleDbException
   appWithAuth <-
     (Right . appService True <$> mkAppEnv cfg {cfgServerControlApiToken = Just "test:test"})
-      `catch` (return . Left . show @DbConnectionAcquireException)
+      `catch` handleDbException
   let apps = case partitionEithers [app, appWithAuth] of
         ([], [app', appWithAuth']) -> Right (app', appWithAuth')
         (errs, _) -> Left $ intercalate "; " errs

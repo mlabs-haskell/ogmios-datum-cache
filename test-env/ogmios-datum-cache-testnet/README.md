@@ -1,4 +1,4 @@
-# Environment for integral tests with vasil network
+# Environment for integral tests with test network
 
 ## Prerequisite
 
