@@ -20,8 +20,8 @@ import Servant.Server (Application, Handler (..), ServerT, hoistServer, serve)
 import Servant.Server.Generic (genericServerT)
 import System.IO (BufferMode (NoBuffering), hSetBuffering, stdout)
 
-import Api (Routes, datumCacheApi)
-import Api.Handler (datumServiceHandlers)
+import Api (Routes, txCacheApi)
+import Api.Handler (txServiceHandlers)
 import App (App (..))
 import App.Env (Env (..))
 import Block.Fetch (
@@ -34,16 +34,16 @@ import Database (getLastBlock, initLastBlock, initTables, updateLastBlock)
 import Parameters (paramInfo)
 
 appService :: Env -> Application
-appService env = serve datumCacheApi appServer
+appService env = serve txCacheApi appServer
   where
     appServer :: ServerT (ToServantApi Routes) Handler
-    appServer = hoistServer datumCacheApi hoistApp appServerT
+    appServer = hoistServer txCacheApi hoistApp appServerT
 
     hoistApp :: App a -> Handler a
     hoistApp = Handler . ExceptT . try . runStdoutLoggingT . flip runReaderT env . unApp
 
     appServerT :: ServerT (ToServantApi Routes) App
-    appServerT = genericServerT datumServiceHandlers
+    appServerT = genericServerT txServiceHandlers
 
 newtype DbConnectionAcquireException
   = DbConnectionAcquireException Hasql.ConnectionError
@@ -64,14 +64,14 @@ initDbAndFetcher env Config {..} =
     case cfgFetcher of
       Nothing -> pure ()
       Just (BlockFetcherConfig blockInfo filterJson' useLatest) -> do
-        let datumFilter' = case filterJson' of
+        let txFilter' = case filterJson' of
               Just filterJson -> eitherDecode filterJson
               Nothing -> pure def
-        case datumFilter' of
+        case txFilter' of
           Left e -> logErrorNS "initDbAndFetcher" $ Text.pack $ show e
-          Right datumFilter -> do
+          Right txFilter -> do
             logInfoNS "initDbAndFetcher" $
-              Text.pack $ "Filter: " <> show datumFilter
+              Text.pack $ "Filter: " <> show txFilter
             latestBlock' <- getLastBlock
             let firstBlock =
                   if useLatest
@@ -79,7 +79,7 @@ initDbAndFetcher env Config {..} =
                     else blockInfo
             initLastBlock firstBlock
             updateLastBlock firstBlock
-            r <- startBlockFetcher firstBlock datumFilter
+            r <- startBlockFetcher firstBlock txFilter
             case r of
               Right () -> pure ()
               Left e -> logErrorNS "initDbAndFetcher" $ Text.pack $ show e
