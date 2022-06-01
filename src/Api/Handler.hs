@@ -13,8 +13,7 @@ import Data.String.ToString (toString)
 import Data.Text (Text)
 import Data.Text qualified as Text
 import Network.WebSockets qualified as WebSockets
-import Servant (err303, err404, err422, err500, errReasonPhrase)
-import Servant.API (type (:<|>) ((:<|>)))
+import Servant (err404, err422, err500)
 import Servant.API.BasicAuth (BasicAuthData (BasicAuthData))
 import Servant.API.Generic (ToServant)
 import Servant.Server (
@@ -26,7 +25,7 @@ import Servant.Server.Generic (AsServerT, genericServerT)
 import Api (
   ControlApi (ControlApi, cancelBlockFetching, startBlockFetching),
   DatumApi (DatumApi, getDatumByHash, getDatumsByHashes, getHealthcheck, getLastBlock),
-  Routes (Routes, controlRoutes, datumRoutes, restrictedControlRoutes, websocketRoutes),
+  Routes (Routes, controlRoutes, datumRoutes, websocketRoutes),
   WebSocketApi (WebSocketApi, websocketApi),
  )
 import Api.Error (JsonError (JsonError), throwJsonError)
@@ -41,7 +40,7 @@ import Api.Types (
   StartBlockFetchingResponse (StartBlockFetchingResponse),
  )
 import Api.WebSocket (websocketServer)
-import App.Env (ControlApiToken (unControlApiToken), Env (Env, envControlApiToken))
+import App.Env (ControlApiToken (ControlApiToken), Env (Env, envControlApiToken))
 import App.Types (App)
 import Block.Fetch (
   StartBlockFetcherError (StartBlockFetcherErrorAlreadyRunning),
@@ -58,16 +57,16 @@ import Database qualified
 controlApiAuthCheck :: Env -> BasicAuthCheck ControlApiAuthData
 controlApiAuthCheck Env {envControlApiToken} =
   BasicAuthCheck $ \(BasicAuthData usr pwd) -> do
-    let expect = unControlApiToken envControlApiToken
-        passed = Just $ toString (usr <> ":" <> pwd)
+    let expect = envControlApiToken
+        passed = ControlApiToken $ toString (usr <> ":" <> pwd)
     pure $
-      if expect == passed
+      if expect == Just passed
         then Authorized ControlApiAuthData
         else Unauthorized
 
-datumServiceHandlers :: Bool -> Routes (AsServerT App)
-datumServiceHandlers withAuth =
-  Routes {datumRoutes, controlRoutes, restrictedControlRoutes, websocketRoutes}
+datumServiceHandlers :: Routes (AsServerT App)
+datumServiceHandlers =
+  Routes {datumRoutes, controlRoutes, websocketRoutes}
   where
     datumRoutes :: ToServant DatumApi (AsServerT App)
     datumRoutes = genericServerT DatumApi {getDatumByHash, getDatumsByHashes, getLastBlock, getHealthcheck}
@@ -105,22 +104,8 @@ datumServiceHandlers withAuth =
     getHealthcheck :: App ()
     getHealthcheck = pure ()
 
-    -- control api
-    controlRoutes :: ToServant ControlApi (AsServerT App)
-    controlRoutes
-      | withAuth =
-        let e =
-              throwM
-                err303
-                  { errReasonPhrase =
-                      "Control API is restricted by the admin. \
-                      \Access by /restricted_control with Basic authentication."
-                  }
-         in const e :<|> e
-      | otherwise = restrictedControlRoutes ControlApiAuthData
-
-    restrictedControlRoutes :: ControlApiAuthData -> ToServant ControlApi (AsServerT App)
-    restrictedControlRoutes ControlApiAuthData =
+    controlRoutes :: ControlApiAuthData -> ToServant ControlApi (AsServerT App)
+    controlRoutes ControlApiAuthData =
       genericServerT
         ControlApi {startBlockFetching, cancelBlockFetching}
 

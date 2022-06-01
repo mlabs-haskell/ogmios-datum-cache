@@ -37,8 +37,7 @@ spec = do
               }
             }
           |]
-          `shouldBe` Just
-            (JsonWspRequest Nothing $ StartFetchBlocks 1 "ID" Nothing Nothing)
+          `shouldBe` Nothing @JsonWspRequest
       it "without token" $ do
         decode
           [i|
@@ -52,20 +51,17 @@ spec = do
             }
           |]
           `shouldBe` Just
-            (JsonWspRequest Nothing $ StartFetchBlocks 1 "ID" Nothing $ Just "X")
+            (JsonWspRequest Nothing $ StartFetchBlocks 1 "ID" Nothing "X")
     describe "parseJSON CancelFetchBlocks method" $ do
       it "with token" $ do
         decode
           [i|{"methodname": "CancelFetchBlocks", "args": {"token": "X"}}|]
           `shouldBe` Just
-            (JsonWspRequest Nothing $ CancelFetchBlocks $ Just "X")
+            (JsonWspRequest Nothing $ CancelFetchBlocks "X")
       it "without token in args" $ do
-        decode
-          [i|{"methodname": "CancelFetchBlocks", "args": {}}|]
-          `shouldBe` Just
-            (JsonWspRequest Nothing $ CancelFetchBlocks Nothing)
+        decode [i|{"methodname": "CancelFetchBlocks", "args": {}}|]
+          `shouldBe` Nothing @JsonWspRequest
+
       it "without args" $ do
-        decode
-          [i|{"methodname": "CancelFetchBlocks"}|]
-          `shouldBe` Just
-            (JsonWspRequest Nothing $ CancelFetchBlocks Nothing)
+        decode [i|{"methodname": "CancelFetchBlocks"}|]
+          `shouldBe` Nothing @JsonWspRequest

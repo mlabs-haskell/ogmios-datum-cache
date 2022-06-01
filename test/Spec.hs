@@ -25,9 +25,9 @@ main = do
         | ci = error $ "Test environment is not running: " <> show err
         | otherwise = return $ Left $ show @DbConnectionAcquireException err
   cfg <- loadConfig $ Parameters "config.toml"
-  app <- (Right . appService False <$> mkAppEnv cfg) `catch` handleDbException
+  app <- (Right . appService <$> mkAppEnv cfg) `catch` handleDbException
   appWithAuth <-
-    (Right . appService True <$> mkAppEnv cfg {cfgServerControlApiToken = Just "test:test"})
+    (Right . appService <$> mkAppEnv cfg {cfgServerControlApiToken = Just "test:test"})
       `catch` handleDbException
   let apps = case partitionEithers [app, appWithAuth] of
         ([], [app', appWithAuth']) -> Right (app', appWithAuth')

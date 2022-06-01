@@ -4,6 +4,7 @@ module Api.WebSocket.Types (
   GetDatumsByHashesDatum (..),
 ) where
 
+import App.Env (ControlApiToken (ControlApiToken))
 import Data.Aeson (FromJSON, ToJSON, parseJSON, withObject, (.:), (.:?))
 import Data.Aeson qualified as Aeson
 import Data.Int (Int64)
@@ -40,11 +41,11 @@ instance FromJSON JsonWspRequest where
             slot <- args .: "slot"
             blockId <- args .: "id"
             datumFilter <- args .:? "datumFilter"
-            token <- args .:? "token"
+            token <- ControlApiToken <$> args .: "token"
             pure $ StartFetchBlocks slot blockId datumFilter token
           "CancelFetchBlocks" -> do
-            args <- o .:? "args"
-            token <- maybe (return Nothing) (.:? "token") args
+            args <- o .: "args"
+            token <- ControlApiToken <$> args .: "token"
             pure $ CancelFetchBlocks token
           "GetHealthcheck" -> do
             pure GetHealthcheck
@@ -58,9 +59,8 @@ data Method
       Int64 -- slot
       Text -- id
       (Maybe DatumFilter) -- datum filter
-      (Maybe String) -- token
-  | CancelFetchBlocks
-      (Maybe String) -- token
+      ControlApiToken
+  | CancelFetchBlocks ControlApiToken
   | GetHealthcheck
   deriving stock (Show, Eq)
 

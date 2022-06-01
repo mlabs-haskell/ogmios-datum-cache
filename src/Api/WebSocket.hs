@@ -40,7 +40,7 @@ import Api.WebSocket.Types (
     StartFetchBlocks
   ),
  )
-import App.Env (AuthToken, ControlApiToken (ControlApiToken), checkControlApiToken)
+import App.Env (ControlApiToken)
 import App.Types (App)
 import Block.Fetch (
   startBlockErrMsg,
@@ -103,10 +103,10 @@ getLastBlock = do
     Just block ->
       Right $ mkGetBlockResponse block
 
-withControlAuthToken :: AuthToken -> App WSResponse -> App WSResponse
+withControlAuthToken :: ControlApiToken -> App WSResponse -> App WSResponse
 withControlAuthToken token action = do
-  ControlApiToken expectToken <- ask
-  if checkControlApiToken expectToken token
+  expectToken <- ask
+  if expectToken == Just token
     then action
     else pure $ Left $ mkCancelFetchBlocksFault "Control API token not granted"
 
@@ -114,7 +114,7 @@ startFetchBlocks ::
   Int64 ->
   Text ->
   DatumFilter ->
-  AuthToken ->
+  ControlApiToken ->
   App WSResponse
 startFetchBlocks firstBlockSlot firstBlockId datumFilter token =
   withControlAuthToken token $ do
@@ -126,7 +126,7 @@ startFetchBlocks firstBlockSlot firstBlockId datumFilter token =
         Right mkStartFetchBlocksResponse
 
 cancelFetchBlocks ::
-  AuthToken ->
+  ControlApiToken ->
   App WSResponse
 cancelFetchBlocks token = withControlAuthToken token $ do
   res <- stopBlockFetcher

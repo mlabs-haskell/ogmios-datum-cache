@@ -11,7 +11,6 @@ import Api (Routes, datumCacheApi, datumCacheContext)
 import Api.Handler (controlApiAuthCheck, datumServiceHandlers)
 import Api.Types (ControlApiAuthData)
 import App.Env (
-  ControlApiToken (ControlApiToken),
   Env (Env, envControlApiToken, envDbConnection, envOgmiosInfo, envOgmiosWorker),
  )
 import App.Types (App (unApp))
@@ -49,7 +48,7 @@ mkAppEnv Config {..} = do
       >>= either (throwM . DbConnectionAcquireException) pure
   let envOgmiosInfo = OgmiosInfo cfgOgmiosPort cfgOgmiosAddress
   envOgmiosWorker <- createStoppedFetcher
-  let envControlApiToken = ControlApiToken cfgServerControlApiToken
+  let envControlApiToken = cfgServerControlApiToken
   return Env {..}
 
 newtype DbConnectionAcquireException
@@ -57,8 +56,8 @@ newtype DbConnectionAcquireException
   deriving stock (Eq, Show)
   deriving anyclass (Exception)
 
-appService :: Bool -> Env -> Application
-appService withAuth env =
+appService :: Env -> Application
+appService env =
   serveWithContext datumCacheApi serverContext appServer
   where
     appServer :: ServerT (ToServantApi Routes) Handler
@@ -76,4 +75,4 @@ appService withAuth env =
     hoistApp = Handler . ExceptT . try . runStdoutLoggingT . flip runReaderT env . unApp
 
     appServerT :: ServerT (ToServantApi Routes) App
-    appServerT = genericServerT (datumServiceHandlers withAuth)
+    appServerT = genericServerT datumServiceHandlers

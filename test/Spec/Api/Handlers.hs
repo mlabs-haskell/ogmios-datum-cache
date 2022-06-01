@@ -32,21 +32,11 @@ withoutAuthSpec app =
   describe "Protect Privileged API is not configured" $
     with (return app) $ do
       it "/healthcheck - 200" $ get "/healthcheck" `shouldRespondWith` 200
-      it "/control/cancel_fetch_blocks - 422 Unprocessable Entity" $ do
+      it "/control/cancel_fetch_blocks - 401 Unauthorized" $ do
         post "/control/cancel_fetch_blocks" ""
-          `shouldRespondWith` [json|{"error": "No block fetcher running"}|]
-            { matchStatus = 422
-            }
-      it "/control/cancel_fetch_blocks with auth - 422 Unprocessable Entity" $ do
-        postWithAuth "test:test" "/control/cancel_fetch_blocks"
-          `shouldRespondWith` [json|{"error": "No block fetcher running"}|]
-            { matchStatus = 422
-            }
-      it "/restricted_control/cancel_fetch_blocks - 401 Unauthorized" $ do
-        post "/restricted_control/cancel_fetch_blocks" ""
           `shouldRespondWith` 401
-      it "/restricted_control/cancel_fetch_blocks with any auth - 403 Forbidden" $ do
-        postWithAuth "any:any" "/restricted_control/cancel_fetch_blocks"
+      it "/control/cancel_fetch_blocks with auth - 403 Forbidden" $ do
+        postWithAuth "test:test" "/control/cancel_fetch_blocks"
           `shouldRespondWith` 403
 
 withAuthSpec :: Application -> Spec
@@ -54,18 +44,16 @@ withAuthSpec appWithAuth =
   describe "Protect Privileged API is configured" $
     with (return appWithAuth) $ do
       it "/healthcheck - 200" $ get "/healthcheck" `shouldRespondWith` 200
-      it "/control/cancel_fetch_blocks - 303 See Other" $ do
-        post "/control/cancel_fetch_blocks" "" `shouldRespondWith` 303
-      it "/restricted_control/cancel_fetch_blocks - 401 Unauthorized" $ do
-        post "/restricted_control/cancel_fetch_blocks" ""
+      it "/control/cancel_fetch_blocks - 401 Unauthorized" $ do
+        post "/control/cancel_fetch_blocks" ""
           `shouldRespondWith` 401
-      it "/restricted_control/cancel_fetch_blocks with auth - 422 Unprocessable Entity" $ do
-        postWithAuth "test:test" "/restricted_control/cancel_fetch_blocks"
+      it "/control/cancel_fetch_blocks with auth - 422 Unprocessable Entity" $ do
+        postWithAuth "test:test" "/control/cancel_fetch_blocks"
           `shouldRespondWith` [json|{"error": "No block fetcher running"}|]
             { matchStatus = 422
             }
-      it "/restricted_control/cancel_fetch_blocks with wrong auth - 403 Forbidden" $ do
-        postWithAuth "wrong:wrong" "/restricted_control/cancel_fetch_blocks"
+      it "/control/cancel_fetch_blocks with wrong auth - 403 Forbidden" $ do
+        postWithAuth "wrong:wrong" "/control/cancel_fetch_blocks"
           `shouldRespondWith` 403
 
 postWithAuth :: ByteString -> ByteString -> WaiSession st SResponse

@@ -12,7 +12,7 @@ import System.Directory (doesFileExist)
 import Toml (TomlCodec, dimap, dioptional, (.=))
 import Toml qualified
 
-import App.Env (AuthToken)
+import App.Env (ControlApiToken (ControlApiToken))
 import Block.Types (BlockInfo (BlockInfo), blockId, blockSlot)
 import Control.Monad.IO.Unlift (liftIO)
 
@@ -27,7 +27,7 @@ data Config = Config
   { cfgDbConnectionString :: ByteString
   , cfgServerPort :: Int
   , -- |if Nothing -- grant the full access
-    cfgServerControlApiToken :: AuthToken
+    cfgServerControlApiToken :: Maybe ControlApiToken
   , cfgOgmiosAddress :: String
   , cfgOgmiosPort :: Int
   , cfgFetcher :: Maybe BlockFetcherConfig
@@ -74,7 +74,7 @@ configT = do
   cfgDbConnectionString <- Toml.byteString "dbConnectionString" .= cfgDbConnectionString
   cfgServerPort <- Toml.int "server.port" .= cfgServerPort
   cfgServerControlApiToken <-
-    dioptional (Toml.string "server.controlApiToken") .= cfgServerControlApiToken
+    dioptional (Toml.diwrap (Toml.string "server.controlApiToken")) .= cfgServerControlApiToken
   cfgOgmiosAddress <- Toml.string "ogmios.address" .= cfgOgmiosAddress
   cfgOgmiosPort <- Toml.int "ogmios.port" .= cfgOgmiosPort
   cfgFetcher <- Toml.dioptional withFetcherT .= cfgFetcher
