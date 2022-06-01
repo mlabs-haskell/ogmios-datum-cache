@@ -47,7 +47,7 @@ instance FromJSON BlockInfo where
     ( case val of
         (Object _) -> withObject "BlockInfo" $ \object -> BlockInfo <$> (object .: "blockSlot") <*> (object .: "blockId")
         (String "origin") -> withText "BlockInfo" $ const $ return BlockOrigin
-        _ -> error "Somehow origin was read in from Ogmios"
+        _ -> return $ fail "Somehow origin was read in from Ogmios"
     )
       val
 

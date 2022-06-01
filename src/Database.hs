@@ -32,7 +32,6 @@ import Hasql.Session (Session)
 import Hasql.Session qualified as Session
 import Hasql.Statement (Statement (Statement))
 
-import Block.Types (BlockInfo (BlockInfo, BlockOrigin))
 import PlutusData qualified
 
 data Datum = Datum
@@ -177,17 +176,14 @@ getLastBlock = do
       enc = Encoders.noParams
       dec =
         Decoders.singleRow $
-          BlockInfo
+          (,)
             <$> Decoders.column (Decoders.nonNullable Decoders.int8)
             <*> Decoders.column (Decoders.nonNullable Decoders.text)
       stmt = Session.statement () $ Statement sql enc dec True
   dbConnection <- ask
   res <- liftIO $ Session.run stmt dbConnection
   case res of
-    Right (BlockInfo slot hash) -> pure . pure $ (slot, hash)
-    Right BlockOrigin -> do
-      logErrorNS "getLastBlock" $ Text.pack "db returned BlockOrigin"
-      pure Nothing
+    Right (slot, hash) -> pure . pure $ (slot, hash)
     Left err -> do
       logErrorNS "getLastBlock" $ Text.pack $ show err
       pure Nothing

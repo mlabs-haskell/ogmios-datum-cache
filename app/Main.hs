@@ -82,7 +82,7 @@ initDbAndFetcher env Config {..} =
                 initLastBlock slot hash
                 updateLastBlock slot hash
               BlockOrigin ->
-                error ""
+                pure Nothing
             r <- startBlockFetcher firstBlock datumFilter
             case r of
               Right () -> pure ()
