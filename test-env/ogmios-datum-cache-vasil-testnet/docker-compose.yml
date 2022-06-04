@@ -15,7 +15,9 @@ services:
         max-file: "20"
 
   ogmios:
-    image: cardanosolutions/ogmios:latest-testnet
+    build:
+      context: https://github.com/CardanoSolutions/ogmios.git#8b08ce856c5dda12f7918cd21718a8da5fc4904f
+      target: ogmios
     restart: on-failure
     command: [
       "--host", "0.0.0.0",
