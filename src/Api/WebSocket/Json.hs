@@ -8,6 +8,8 @@ module Api.WebSocket.Json (
   mkGetBlockResponse,
   mkGetBlockFault,
   mkHealthcheckResponse,
+  mkSetStartingBlockResponse,
+  mkSetDatumFilterResponse,
 ) where
 
 import Data.Aeson (
@@ -108,3 +110,11 @@ mkGetBlockFault = JsonWspFault "GetBlock" "notFound" ""
 mkHealthcheckResponse :: Maybe Aeson.Value -> JsonWspResponse
 mkHealthcheckResponse =
   JsonWspResponse "GetHealthcheck" (object [])
+
+mkSetStartingBlockResponse :: Maybe Aeson.Value -> JsonWspResponse
+mkSetStartingBlockResponse =
+  JsonWspResponse "SetStartingBlock" (object [])
+
+mkSetDatumFilterResponse :: Maybe Aeson.Value -> JsonWspResponse
+mkSetDatumFilterResponse =
+  JsonWspResponse "SetDatumFilter" (object [])

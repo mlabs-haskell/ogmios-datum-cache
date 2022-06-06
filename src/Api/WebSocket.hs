@@ -20,6 +20,8 @@ import Api.WebSocket.Json (
   mkGetDatumsByHashesFault,
   mkGetDatumsByHashesResponse,
   mkHealthcheckResponse,
+  mkSetDatumFilterResponse,
+  mkSetStartingBlockResponse,
  )
 import Api.WebSocket.Types (
   GetDatumsByHashesDatum (GetDatumsByHashesDatum),
@@ -28,10 +30,15 @@ import Api.WebSocket.Types (
     GetBlock,
     GetDatumByHash,
     GetDatumsByHashes,
-    GetHealthcheck
+    GetHealthcheck,
+    SetDatumFilter,
+    SetStartingBlock
   ),
  )
 import App (App)
+import Block.Fetch (changeDatumFilter, changeStartingBlock)
+import Block.Filter (DatumFilter)
+import Block.Types (BlockInfo)
 import Database (
   DatabaseError (DatabaseErrorDecodeError, DatabaseErrorNotFound),
  )
@@ -90,6 +97,16 @@ getHealthcheck :: App WSResponse
 getHealthcheck = do
   pure $ Right mkHealthcheckResponse
 
+setStartingBlock :: BlockInfo -> App WSResponse
+setStartingBlock blockInfo = do
+  changeStartingBlock blockInfo
+  pure $ Right mkSetStartingBlockResponse
+
+setDatumFilter :: DatumFilter -> App WSResponse
+setDatumFilter datumFilter = do
+  changeDatumFilter datumFilter
+  pure $ Right mkSetDatumFilterResponse
+
 websocketServer ::
   WebSockets.Connection ->
   App ()
@@ -108,6 +125,11 @@ websocketServer conn = forever $ do
           getLastBlock
         GetHealthcheck ->
           getHealthcheck
+        SetStartingBlock block ->
+          setStartingBlock block
+        SetDatumFilter datumFilter ->
+          setDatumFilter datumFilter
+
       let jsonResp =
             either
               (\l -> Aeson.encode $ l mirror)
