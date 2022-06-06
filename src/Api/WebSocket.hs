@@ -3,10 +3,8 @@ module Api.WebSocket (websocketServer) where
 import Control.Monad (forever)
 import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Logger (logErrorNS)
+import Control.Monad.Reader.Has (ask)
 import Data.Aeson qualified as Aeson
-import Data.Default (def)
-import Data.Int (Int64)
-import Data.Maybe (fromMaybe)
 import Data.Text (Text)
 import Data.Text qualified as Text
 import Data.Vector qualified as Vector
@@ -15,8 +13,6 @@ import Network.WebSockets qualified as WebSockets
 import Api.WebSocket.Json (
   JsonWspFault,
   JsonWspResponse,
-  mkCancelFetchBlocksFault,
-  mkCancelFetchBlocksResponse,
   mkGetBlockFault,
   mkGetBlockResponse,
   mkGetDatumByHashFault,
@@ -24,30 +20,18 @@ import Api.WebSocket.Json (
   mkGetDatumsByHashesFault,
   mkGetDatumsByHashesResponse,
   mkHealthcheckResponse,
-  mkStartFetchBlocksFault,
-  mkStartFetchBlocksResponse,
  )
 import Api.WebSocket.Types (
   GetDatumsByHashesDatum (GetDatumsByHashesDatum),
   JsonWspRequest (JsonWspRequest),
   Method (
-    CancelFetchBlocks,
     GetBlock,
     GetDatumByHash,
     GetDatumsByHashes,
-    GetHealthcheck,
-    StartFetchBlocks
+    GetHealthcheck
   ),
  )
 import App (App)
-import Block.Fetch (
-  StartBlockFetcherError (StartBlockFetcherErrorAlreadyRunning),
-  StopBlockFetcherError (StopBlockFetcherErrorNotRunning),
-  startBlockFetcher,
-  stopBlockFetcher,
- )
-import Block.Filter (DatumFilter)
-import Block.Types (BlockInfo (BlockInfo))
 import Database (
   DatabaseError (DatabaseErrorDecodeError, DatabaseErrorNotFound),
  )
@@ -94,35 +78,13 @@ getDatumsByHashes hashes = do
 
 getLastBlock :: App WSResponse
 getLastBlock = do
-  block' <- Database.getLastBlock
+  dbConn <- ask
+  block' <- Database.getLastBlock dbConn
   pure $ case block' of
     Nothing ->
       Left mkGetBlockFault
     Just block ->
       Right $ mkGetBlockResponse block
-
-startFetchBlocks ::
-  Int64 ->
-  Text ->
-  DatumFilter ->
-  App WSResponse
-startFetchBlocks firstBlockSlot firstBlockId datumFilter = do
-  res <- startBlockFetcher (BlockInfo firstBlockSlot firstBlockId) datumFilter
-  pure $ case res of
-    Left StartBlockFetcherErrorAlreadyRunning ->
-      Left $ mkStartFetchBlocksFault "Block fetcher already running"
-    Right () ->
-      Right mkStartFetchBlocksResponse
-
-cancelFetchBlocks ::
-  App WSResponse
-cancelFetchBlocks = do
-  res <- stopBlockFetcher
-  pure $ case res of
-    Left StopBlockFetcherErrorNotRunning ->
-      Left $ mkCancelFetchBlocksFault "No block fetcher running"
-    Right () ->
-      Right mkCancelFetchBlocksResponse
 
 getHealthcheck :: App WSResponse
 getHealthcheck = do
@@ -144,11 +106,6 @@ websocketServer conn = forever $ do
           getDatumsByHashes hashes
         GetBlock ->
           getLastBlock
-        StartFetchBlocks firstBlockSlot firstBlockId datumFilter' -> do
-          let datumFilter = fromMaybe def datumFilter'
-          startFetchBlocks firstBlockSlot firstBlockId datumFilter
-        CancelFetchBlocks ->
-          cancelFetchBlocks
         GetHealthcheck ->
           getHealthcheck
       let jsonResp =

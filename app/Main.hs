@@ -26,8 +26,7 @@ import App (App (..))
 import App.Env (Env (..))
 import Block.Fetch (
   OgmiosInfo (OgmiosInfo),
-  createStoppedFetcher,
-  startBlockFetcher,
+  startBlockFetcherAndProcessor,
  )
 import Config (BlockFetcherConfig (BlockFetcherConfig), Config (..), loadConfig)
 import Database (getLastBlock, initLastBlock, initTables, updateLastBlock)
@@ -55,7 +54,7 @@ mkAppEnv Config {..} = do
   pgConn <-
     Connection.acquire cfgDbConnectionString
       >>= either (throwM . DbConnectionAcquireException) pure
-  Env pgConn (OgmiosInfo cfgOgmiosPort cfgOgmiosAddress) <$> createStoppedFetcher
+  pure $ Env pgConn (OgmiosInfo cfgOgmiosPort cfgOgmiosAddress)
 
 initDbAndFetcher :: Env -> Config -> IO ()
 initDbAndFetcher env Config {..} =
@@ -72,17 +71,14 @@ initDbAndFetcher env Config {..} =
           Right datumFilter -> do
             logInfoNS "initDbAndFetcher" $
               Text.pack $ "Filter: " <> show datumFilter
-            latestBlock' <- getLastBlock
+            latestBlock' <- getLastBlock env.envDbConnection
             let firstBlock =
                   if useLatest
                     then fromMaybe blockInfo latestBlock'
                     else blockInfo
             initLastBlock firstBlock
-            updateLastBlock firstBlock
-            r <- startBlockFetcher firstBlock datumFilter
-            case r of
-              Right () -> pure ()
-              Left e -> logErrorNS "initDbAndFetcher" $ Text.pack $ show e
+            updateLastBlock env.envDbConnection firstBlock
+            startBlockFetcherAndProcessor env.envOgmiosInfo env.envDbConnection firstBlock datumFilter
 
 main :: IO ()
 main = do

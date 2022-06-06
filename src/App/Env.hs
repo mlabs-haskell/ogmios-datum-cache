@@ -4,13 +4,12 @@ import Control.Monad.Reader.Has (Has)
 import GHC.Generics (Generic)
 import Hasql.Connection qualified as Hasql
 
-import Block.Fetch (OgmiosInfo, OgmiosWorkerMVar)
+import Block.Fetch (OgmiosInfo)
 
 data Env = Env
   { -- TODO: Switch to pool of connections
     envDbConnection :: Hasql.Connection
   , envOgmiosInfo :: OgmiosInfo
-  , envOgmiosWorker :: OgmiosWorkerMVar
   }
   deriving stock (Generic)
-  deriving anyclass (Has Hasql.Connection, Has OgmiosWorkerMVar, Has OgmiosInfo)
+  deriving anyclass (Has Hasql.Connection, Has OgmiosInfo)

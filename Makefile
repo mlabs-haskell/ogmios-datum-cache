@@ -37,7 +37,7 @@ build: project
 ## Formatting
 
 # Extensions we need to tell fourmolu about
-FORMAT_EXTENSIONS := -o -XTypeApplications -o -XImportQualifiedPost
+FORMAT_EXTENSIONS := -o -XTypeApplications -o -XImportQualifiedPost -o -fplugin=RecordDotPreprocessor
 # Extentions we need to tell Hlint about
 HLINT_EXTS := # None so far
 

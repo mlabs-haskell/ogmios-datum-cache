@@ -2,7 +2,7 @@
 
 module Config (loadConfig, Config (..), BlockFetcherConfig (..)) where
 
-import Control.Monad.IO.Class (MonadIO)
+import Control.Monad.IO.Class (MonadIO (liftIO))
 import Data.ByteString (ByteString)
 import Data.ByteString.Lazy qualified as LBS
 import Data.Int (Int64)
@@ -13,7 +13,6 @@ import Toml (TomlCodec, dimap, (.=))
 import Toml qualified
 
 import Block.Types (BlockInfo (BlockInfo), blockId, blockSlot)
-import Control.Monad.IO.Unlift (liftIO)
 
 data BlockFetcherConfig = BlockFetcherConfig
   { cfgFetcherBlock :: BlockInfo

@@ -1,5 +1,3 @@
-{-# LANGUAGE DuplicateRecordFields #-}
-
 module Api.WebSocket.Json (
   JsonWspResponse,
   JsonWspFault,
@@ -9,17 +7,13 @@ module Api.WebSocket.Json (
   mkGetDatumsByHashesFault,
   mkGetBlockResponse,
   mkGetBlockFault,
-  mkStartFetchBlocksResponse,
-  mkStartFetchBlocksFault,
-  mkCancelFetchBlocksResponse,
-  mkCancelFetchBlocksFault,
   mkHealthcheckResponse,
 ) where
 
 import Data.Aeson (
   KeyValue ((.=)),
   ToJSON (toJSON),
-  Value (Bool, Null),
+  Value (Null),
   object,
  )
 import Data.Aeson qualified as Aeson
@@ -110,22 +104,6 @@ mkGetBlockResponse block = JsonWspResponse "GetBlock" (object ["block" .= block]
 
 mkGetBlockFault :: Maybe Aeson.Value -> JsonWspFault
 mkGetBlockFault = JsonWspFault "GetBlock" "notFound" ""
-
-mkStartFetchBlocksResponse :: Maybe Aeson.Value -> JsonWspResponse
-mkStartFetchBlocksResponse =
-  JsonWspResponse "StartFetchBlocks" (object ["StartedBlockFetcher" .= Bool True])
-
-mkStartFetchBlocksFault :: Text -> Maybe Aeson.Value -> JsonWspFault
-mkStartFetchBlocksFault =
-  JsonWspFault "StartFetchBlocks" "client"
-
-mkCancelFetchBlocksResponse :: Maybe Aeson.Value -> JsonWspResponse
-mkCancelFetchBlocksResponse =
-  JsonWspResponse "CancelFetchBlocks" (object ["StoppedBlockFetcher" .= Bool True])
-
-mkCancelFetchBlocksFault :: Text -> Maybe Aeson.Value -> JsonWspFault
-mkCancelFetchBlocksFault =
-  JsonWspFault "CancelFetchBlocks" "client"
 
 mkHealthcheckResponse :: Maybe Aeson.Value -> JsonWspResponse
 mkHealthcheckResponse =

@@ -16,6 +16,7 @@ common common-language
     DeriveLift
     DeriveTraversable
     DerivingStrategies
+    DuplicateRecordFields
     ExplicitForAll
     FlexibleContexts
     FlexibleInstances
@@ -37,6 +38,7 @@ common common-language
     TypeFamilies
     TypeOperators
     TypeSynonymInstances
+    UndecidableInstances
 
 common common-configs
   default-language: Haskell2010
@@ -49,6 +51,7 @@ library
     -Wincomplete-record-updates -Wredundant-constraints
     -Wmissing-import-lists -Wmissing-export-lists
     -Wmissing-deriving-strategies -Werror -O2
+    -fplugin=RecordDotPreprocessor
 
   hs-source-dirs:  src
   exposed-modules:
@@ -73,7 +76,6 @@ library
 
   build-depends:
     , aeson
-    , async
     , base
     , base16
     , base64
@@ -89,18 +91,20 @@ library
     , monad-logger
     , mtl
     , optparse-applicative
+    , record-dot-preprocessor
+    , record-hasfield
     , serialise
     , servant
     , servant-server
     , servant-websockets
+    , stm
     , text
     , tomland
     , transformers
-    , unliftio
-    , unliftio-core
     , unordered-containers
     , vector
     , websockets
+    , network
 
 executable ogmios-datum-cache
   import:         common-language
@@ -109,6 +113,7 @@ executable ogmios-datum-cache
     -Wall -Wcompat -Wincomplete-uni-patterns
     -Wincomplete-record-updates -Wredundant-constraints
     -Wmissing-export-lists -Wmissing-deriving-strategies -Werror -O2
+    -fplugin=RecordDotPreprocessor
 
   hs-source-dirs: app
   main-is:        Main.hs
@@ -121,6 +126,8 @@ executable ogmios-datum-cache
     , monad-logger
     , mtl
     , ogmios-datum-cache
+    , record-dot-preprocessor
+    , record-hasfield
     , servant
     , servant-server
     , text
@@ -141,10 +148,12 @@ test-suite ogmios-datum-cache-test
     -Wall -Wcompat -Wincomplete-uni-patterns
     -Wincomplete-record-updates -Wredundant-constraints
     -Wmissing-export-lists -Wmissing-deriving-strategies -Werror -O2
-    -Wunused-packages
+    -Wunused-packages -fplugin=RecordDotPreprocessor
 
   build-depends:
     , aeson
     , base
     , hspec
     , ogmios-datum-cache
+    , record-dot-preprocessor
+    , record-hasfield

@@ -2,40 +2,30 @@ module Api.Handler (datumServiceHandlers) where
 
 import Control.Monad.Catch (throwM)
 import Control.Monad.Logger (logInfoNS)
-import Data.Default (def)
-import Data.Maybe (fromMaybe)
 import Data.Text (Text)
 import Data.Text qualified as Text
 import Network.WebSockets qualified as WebSockets
-import Servant (err404, err422, err500)
+import Servant (err404, err500)
 import Servant.API.Generic (ToServant)
 import Servant.Server.Generic (AsServerT, genericServerT)
 
 import Api (
-  ControlApi (ControlApi, cancelBlockFetching, startBlockFetching),
+  ControlApi (ControlApi),
   DatumApi (DatumApi, getDatumByHash, getDatumsByHashes, getHealthcheck, getLastBlock),
   Routes (Routes, controlRoutes, datumRoutes, websocketRoutes),
   WebSocketApi (WebSocketApi, websocketApi),
  )
 import Api.Error (JsonError (JsonError), throwJsonError)
 import Api.Types (
-  CancelBlockFetchingResponse (CancelBlockFetchingResponse),
   GetDatumByHashResponse (GetDatumByHashResponse),
   GetDatumsByHashesDatum (GetDatumsByHashesDatum),
   GetDatumsByHashesRequest (GetDatumsByHashesRequest),
   GetDatumsByHashesResponse (GetDatumsByHashesResponse),
-  StartBlockFetchingRequest (StartBlockFetchingRequest),
-  StartBlockFetchingResponse (StartBlockFetchingResponse),
  )
 import Api.WebSocket (websocketServer)
 import App (App)
-import Block.Fetch (
-  StartBlockFetcherError (StartBlockFetcherErrorAlreadyRunning),
-  StopBlockFetcherError (StopBlockFetcherErrorNotRunning),
-  startBlockFetcher,
-  stopBlockFetcher,
- )
-import Block.Types (BlockInfo (BlockInfo))
+import Block.Types (BlockInfo)
+import Control.Monad.Reader.Has (ask)
 import Database (
   DatabaseError (DatabaseErrorDecodeError, DatabaseErrorNotFound),
  )
@@ -72,7 +62,8 @@ datumServiceHandlers = Routes {..}
 
     getLastBlock :: App BlockInfo
     getLastBlock = do
-      block' <- Database.getLastBlock
+      dbConn <- ask
+      block' <- Database.getLastBlock dbConn
       case block' of
         Just block -> pure block
         Nothing -> throwM err404
@@ -82,28 +73,7 @@ datumServiceHandlers = Routes {..}
 
     -- control api
     controlRoutes :: ToServant ControlApi (AsServerT App)
-    controlRoutes = genericServerT ControlApi {..}
-
-    startBlockFetching ::
-      StartBlockFetchingRequest ->
-      App StartBlockFetchingResponse
-    startBlockFetching (StartBlockFetchingRequest firstBlockSlot firstBlockId datumFilter') = do
-      let datumFilter = fromMaybe def datumFilter'
-      res <- startBlockFetcher (BlockInfo firstBlockSlot firstBlockId) datumFilter
-      case res of
-        Left StartBlockFetcherErrorAlreadyRunning ->
-          throwJsonError err422 "Block fetcher already running"
-        Right () ->
-          pure $ StartBlockFetchingResponse "Started block fetcher"
-
-    cancelBlockFetching :: App CancelBlockFetchingResponse
-    cancelBlockFetching = do
-      res <- stopBlockFetcher
-      case res of
-        Left StopBlockFetcherErrorNotRunning ->
-          throwJsonError err422 "No block fetcher running"
-        Right () ->
-          pure $ CancelBlockFetchingResponse "Stopped block fetcher"
+    controlRoutes = genericServerT $ ControlApi getHealthcheck
 
     websocketRoutes :: ToServant WebSocketApi (AsServerT App)
     websocketRoutes = genericServerT WebSocketApi {..}

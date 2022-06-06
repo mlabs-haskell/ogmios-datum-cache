@@ -4,10 +4,9 @@ module Api.Error (
 ) where
 
 import Control.Monad.Catch (MonadThrow, throwM)
-import Data.Aeson (ToJSON, encode)
+import Data.Aeson (ToJSON (toJSON), encode, object, (.=))
 import Data.String (IsString)
 import Data.Text (Text)
-import GHC.Generics (Generic)
 import Network.HTTP.Types (hContentType)
 import Servant (
   ServerError,
@@ -16,11 +15,12 @@ import Servant (
  )
 
 newtype JsonError = JsonError
-  { error :: Text
+  { jsonError :: Text
   }
-  deriving stock (Generic)
-  deriving anyclass (ToJSON)
   deriving newtype (IsString)
+
+instance ToJSON JsonError where
+  toJSON err = object ["error" .= err.jsonError]
 
 -- fourmolu is broken :(
 {- ORMOLU_DISABLE -}
