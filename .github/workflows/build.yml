@@ -23,3 +23,8 @@ jobs:
           authToken: "${{ secrets.CACHIXKEY }}"
       - name: Build all project components
         run: nix build -L .#check.x86_64-linux
+      - name: Setup environment for integral tests
+        working-directory: ./test-env/ogmios-datum-cache-integral-tests
+        run: docker-compose up -d
+      - name: Integral tests
+        run: nix develop -c cabal run ogmios-datum-cache-test
