@@ -27,7 +27,7 @@ import Api.Types (
 import Api.WebSocket (websocketServer)
 import App (App)
 import Block.Fetch (changeDatumFilter, changeStartingBlock)
-import Block.Types (BlockInfo)
+import Block.Types (BlockInfo, CursorPoint)
 import Control.Monad.Reader.Has (ask)
 import Database (
   DatabaseError (DatabaseErrorDecodeError, DatabaseErrorNotFound),
@@ -78,9 +78,14 @@ datumServiceHandlers = Routes {..}
     controlRoutes :: ToServant ControlApi (AsServerT App)
     controlRoutes = genericServerT $ ControlApi setStartingBlock setDatumFilter
 
+    setStartingBlock :: SetStartingBlockRequest -> App CursorPoint
     setStartingBlock (SetStartingBlockRequest blockInfo) = do
-      changeStartingBlock blockInfo
+      intersection' <- changeStartingBlock blockInfo
+      case intersection' of
+        Nothing -> throwM err404
+        Just x -> pure x
 
+    setDatumFilter :: SetDatumFilterRequest -> App ()
     setDatumFilter (SetDatumFilterRequest datumFilter) = do
       changeDatumFilter datumFilter
 

@@ -18,7 +18,7 @@ import Api.Types (
   SetDatumFilterRequest,
   SetStartingBlockRequest,
  )
-import Block.Types (BlockInfo)
+import Block.Types (BlockInfo, CursorPoint)
 
 data DatumApi route = DatumApi
   { getDatumByHash ::
@@ -53,7 +53,7 @@ data ControlApi route = ControlApi
         :- "block"
         :> Summary "Set starting block for block fetcher"
         :> ReqBody '[JSON] SetStartingBlockRequest
-        :> Post '[JSON] ()
+        :> Post '[JSON] CursorPoint
   , setDatumFilter ::
       route
         :- "datumFilter"

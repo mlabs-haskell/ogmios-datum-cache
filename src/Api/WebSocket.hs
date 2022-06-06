@@ -21,6 +21,7 @@ import Api.WebSocket.Json (
   mkGetDatumsByHashesResponse,
   mkHealthcheckResponse,
   mkSetDatumFilterResponse,
+  mkSetStartingBlockFault,
   mkSetStartingBlockResponse,
  )
 import Api.WebSocket.Types (
@@ -99,8 +100,12 @@ getHealthcheck = do
 
 setStartingBlock :: BlockInfo -> App WSResponse
 setStartingBlock blockInfo = do
-  changeStartingBlock blockInfo
-  pure $ Right mkSetStartingBlockResponse
+  intersection' <- changeStartingBlock blockInfo
+  pure $ case intersection' of
+    Nothing ->
+      Left mkSetStartingBlockFault
+    Just x ->
+      Right $ mkSetStartingBlockResponse x
 
 setDatumFilter :: DatumFilter -> App WSResponse
 setDatumFilter datumFilter = do

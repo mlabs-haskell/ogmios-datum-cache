@@ -120,7 +120,8 @@ Request body:
 }
 ```
 Responses:
-* 200 `[]`
+* 200 `{"hash":"7c8aec019a21ffd0049d64b0c9874d93376ed5662b4cf7d78e186b5958ecb00d","slot":59809992`
+* 404 - if intersection is not found
 
 ### `POST /control/datumFilter`
 Request body:
@@ -376,6 +377,8 @@ Response:
 {
   "methodname": "SetStartingBlock",
   "result": {
+    "hash":"7c8aec019a21ffd0049d64b0c9874d93376ed5662b4cf7d78e186b5958ecb00d",
+    "slot":59809992
   },
   "version": "1.0",
   "servicename": "ogmios-datum-cache",
@@ -384,6 +387,19 @@ Response:
 }
 ```
 
+Response (fault):
+```
+{
+  methodname: SetStartingBlock,
+  version: '1.0',
+  fault: {
+    string: 'notFound',
+    code: 'client'
+  },
+  servicename: 'ogmios-datum-cache',
+  type: 'jsonwsp/fault',
+  reflection: "foo"
+}
 
 #### SetDatumFilter
 Request:

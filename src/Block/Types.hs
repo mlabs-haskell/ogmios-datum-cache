@@ -14,6 +14,7 @@ module Block.Types (
   OgmiosResponse (..),
   TxOut (..),
   BlockInfo (..),
+  CursorPoint (..),
 ) where
 
 import Data.Aeson (FromJSON, ToJSON, withObject, (.:), (.:?))

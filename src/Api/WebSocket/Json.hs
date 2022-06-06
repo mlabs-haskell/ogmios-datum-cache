@@ -9,6 +9,7 @@ module Api.WebSocket.Json (
   mkGetBlockFault,
   mkHealthcheckResponse,
   mkSetStartingBlockResponse,
+  mkSetStartingBlockFault,
   mkSetDatumFilterResponse,
 ) where
 
@@ -22,7 +23,7 @@ import Data.Aeson qualified as Aeson
 import Data.Text (Text)
 import GHC.Generics (Generic)
 
-import Block.Types (BlockInfo)
+import Block.Types (BlockInfo, CursorPoint)
 import PlutusData qualified
 
 -- {
@@ -111,9 +112,12 @@ mkHealthcheckResponse :: Maybe Aeson.Value -> JsonWspResponse
 mkHealthcheckResponse =
   JsonWspResponse "GetHealthcheck" (object [])
 
-mkSetStartingBlockResponse :: Maybe Aeson.Value -> JsonWspResponse
-mkSetStartingBlockResponse =
-  JsonWspResponse "SetStartingBlock" (object [])
+mkSetStartingBlockResponse :: CursorPoint -> Maybe Aeson.Value -> JsonWspResponse
+mkSetStartingBlockResponse point =
+  JsonWspResponse "SetStartingBlock" (object ["Intersecton" .= point])
+
+mkSetStartingBlockFault :: Maybe Aeson.Value -> JsonWspFault
+mkSetStartingBlockFault = JsonWspFault "SetStartingBlock" "notFound" ""
 
 mkSetDatumFilterResponse :: Maybe Aeson.Value -> JsonWspResponse
 mkSetDatumFilterResponse =

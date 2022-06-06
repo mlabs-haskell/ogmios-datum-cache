@@ -19,8 +19,9 @@ import Control.Concurrent.MVar (
  )
 import Control.Concurrent.STM (atomically)
 import Control.Concurrent.STM.TBQueue (TBQueue, newTBQueueIO, readTBQueue, writeTBQueue)
+import Control.Concurrent.STM.TVar (TVar, newTVarIO, readTVar, writeTVar)
 import Control.Exception (SomeException, handle)
-import Control.Monad (forever, unless, void)
+import Control.Monad (forever, guard, unless, void)
 import Control.Monad.IO.Class (MonadIO)
 import Control.Monad.Logger (
   LoggingT,
@@ -32,11 +33,14 @@ import Control.Monad.Logger (
   runStdoutLoggingT,
  )
 import Control.Monad.Reader (MonadReader, ReaderT, ask, runReaderT)
+import Control.Monad.Reader.Has (Has)
+import Control.Monad.Reader.Has qualified as Has
 import Control.Monad.Trans (liftIO)
 import Data.Aeson qualified as Aeson
 import Data.ByteString.Base64 qualified as Base64
 import Data.ByteString.Lazy (ByteString)
 import Data.Map qualified as Map
+import Data.Maybe (isJust)
 import Data.Text qualified as Text
 import Data.Text.Encoding qualified as Text
 import Hasql.Connection qualified as Hasql
@@ -51,6 +55,7 @@ import Block.Types (
   AlonzoTransaction (datums),
   Block (MkAlonzoBlock, OtherBlock),
   BlockInfo (BlockInfo),
+  CursorPoint,
   FindIntersectResult (IntersectionFound, IntersectionNotFound),
   OgmiosFindIntersectResponse,
   OgmiosRequestNextResponse,
@@ -59,8 +64,6 @@ import Block.Types (
   mkFindIntersectRequest,
   mkRequestNextRequest,
  )
-import Control.Monad.Reader.Has (Has)
-import Control.Monad.Reader.Has qualified as Has
 import Database (getLastBlock, saveDatums, updateLastBlock)
 
 data OgmiosInfo = OgmiosInfo
@@ -71,6 +74,7 @@ data OgmiosInfo = OgmiosInfo
 data BlockFetcherEnv = BlockFetcherEnv
   { queue :: TBQueue AlonzoBlock
   , wsConnMVar :: MVar WebSockets.Connection
+  , intersectionTVar :: TVar (Maybe CursorPoint)
   }
 
 data BlockProcessorEnv = BlockProcessorEnv
@@ -93,7 +97,8 @@ mkBlockProcessorEnv f c = do
 mkBlockFetcherEnv :: MonadIO m => BlockProcessorEnv -> WebSockets.Connection -> m BlockFetcherEnv
 mkBlockFetcherEnv processorEnv wsConn = do
   wsConnMVar <- liftIO $ newMVar wsConn
-  pure $ BlockFetcherEnv processorEnv.queue wsConnMVar
+  intersectionTVar <- liftIO $ newTVarIO Nothing
+  pure $ BlockFetcherEnv processorEnv.queue wsConnMVar intersectionTVar
 
 -- | like 'WebSockets.runClientWith' but without closing socket
 runClientWith' ::
@@ -172,7 +177,7 @@ newtype BlockFetcherApp a = BlockFetcherApp
 fetchLoop :: BlockInfo -> BlockFetcherApp ()
 fetchLoop blockInfo = forever $ do
   logInfoNS "fetchLoop" "Starting..."
-  findIntersection blockInfo
+  void $ findIntersection blockInfo
   forever receiveBlock
 
 sendAndReceive ::
@@ -192,7 +197,7 @@ changeStartingBlock ::
   , Has (MVar BlockFetcherEnv) r
   ) =>
   BlockInfo ->
-  m ()
+  m (Maybe CursorPoint)
 changeStartingBlock blockInfo = do
   env' <- Has.ask
   liftIO $
@@ -202,8 +207,9 @@ changeStartingBlock blockInfo = do
 findIntersection ::
   (MonadIO m, MonadLogger m, MonadReader BlockFetcherEnv m) =>
   BlockInfo ->
-  m ()
+  m (Maybe CursorPoint)
 findIntersection blockInfo = do
+  env <- ask
   jsonMsg <- sendAndReceive $ Aeson.encode $ mkFindIntersectRequest blockInfo
   let msg = Aeson.decode @OgmiosFindIntersectResponse jsonMsg
   case _result <$> msg of
@@ -211,19 +217,30 @@ findIntersection blockInfo = do
       logErrorNS
         "findIntersection"
         "Error decoding WS response"
+      pure Nothing
     Just (IntersectionNotFound _) -> do
       logErrorNS
         "findIntersection"
         "Intersection not found. \
         \Consider restarting block fetcher with different block info"
-    Just (IntersectionFound _ _) -> do
+      pure Nothing
+    Just (IntersectionFound point _) -> do
       logInfoNS
         "findIntersection"
         "Intersection found"
+      liftIO . atomically $ writeTVar env.intersectionTVar $ Just point
+      pure $ Just point
 
 receiveBlock :: BlockFetcherApp ()
 receiveBlock = do
   env <- ask
+
+  -- Wait if intersection is not found
+  liftIO $
+    atomically $ do
+      intersection <- readTVar env.intersectionTVar
+      guard $ isJust intersection
+
   jsonMsg <- sendAndReceive $ Aeson.encode $ mkRequestNextRequest 0
   let msg = Aeson.eitherDecode @OgmiosRequestNextResponse jsonMsg
   case _result <$> msg of
