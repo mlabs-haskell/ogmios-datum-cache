@@ -26,7 +26,7 @@ data Config = Config
   , cfgServerPort :: Int
   , cfgOgmiosAddress :: String
   , cfgOgmiosPort :: Int
-  , cfgFetcher :: Maybe BlockFetcherConfig
+  , cfgFetcher :: BlockFetcherConfig
   }
   deriving stock (Show)
 
@@ -71,7 +71,7 @@ configT = do
   cfgServerPort <- Toml.int "server.port" .= cfgServerPort
   cfgOgmiosAddress <- Toml.string "ogmios.address" .= cfgOgmiosAddress
   cfgOgmiosPort <- Toml.int "ogmios.port" .= cfgOgmiosPort
-  cfgFetcher <- Toml.dioptional withFetcherT .= cfgFetcher
+  cfgFetcher <- withFetcherT .= cfgFetcher
   pure Config {..}
 
 loadConfig :: MonadIO m => Parameters -> m Config

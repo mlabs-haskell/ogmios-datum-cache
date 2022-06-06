@@ -7,7 +7,7 @@ module Api (
 ) where
 
 import Data.Text (Text)
-import Servant (Capture, Get, JSON, Proxy (Proxy), ReqBody, Summary, (:>))
+import Servant (Capture, Get, JSON, Post, Proxy (Proxy), ReqBody, Summary, (:>))
 import Servant.API.Generic (Generic, ToServantApi, genericApi, (:-))
 import Servant.API.WebSocket (WebSocket)
 
@@ -15,6 +15,7 @@ import Api.Types (
   GetDatumByHashResponse,
   GetDatumsByHashesRequest,
   GetDatumsByHashesResponse,
+  SetStartingBlockRequest,
  )
 import Block.Types (BlockInfo)
 
@@ -46,11 +47,12 @@ data DatumApi route = DatumApi
   deriving stock (Generic)
 
 newtype ControlApi route = ControlApi
-  { getHealthcheck' ::
+  { setStartingBlock ::
       route
-        :- "healthcheck"
-        :> Summary "Succeeds if service is alive, otherwise not"
-        :> Get '[JSON] ()
+        :- "block"
+        :> Summary "Set starting block for block fetcher"
+        :> ReqBody '[JSON] SetStartingBlockRequest
+        :> Post '[JSON] ()
   }
   deriving stock (Generic)
 

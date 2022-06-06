@@ -31,7 +31,7 @@ data BlockInfo = BlockInfo
   , blockId :: Text
   }
   deriving stock (Generic, Show)
-  deriving anyclass (ToJSON)
+  deriving anyclass (ToJSON, FromJSON)
 
 type OgmiosMirror = Int
 

@@ -4,12 +4,11 @@ module Main (
 
 import Control.Monad.Catch (Exception, throwM, try)
 import Control.Monad.Except (ExceptT (..))
-import Control.Monad.Logger (logErrorNS, logInfoNS, runStdoutLoggingT)
+import Control.Monad.Logger (runStdoutLoggingT)
 import Control.Monad.Reader (runReaderT)
 import Data.Aeson (eitherDecode)
 import Data.Default (def)
 import Data.Maybe (fromMaybe)
-import Data.Text qualified as Text
 import Hasql.Connection qualified as Connection
 import Hasql.Connection qualified as Hasql
 import Network.Wai.Handler.Warp qualified as Warp
@@ -28,7 +27,8 @@ import Block.Fetch (
   OgmiosInfo (OgmiosInfo),
   startBlockFetcherAndProcessor,
  )
-import Config (BlockFetcherConfig (BlockFetcherConfig), Config (..), loadConfig)
+import Config (Config (..), loadConfig)
+import Control.Concurrent (newEmptyMVar)
 import Database (getLastBlock, initLastBlock, initTables, updateLastBlock)
 import Parameters (paramInfo)
 
@@ -54,31 +54,27 @@ mkAppEnv Config {..} = do
   pgConn <-
     Connection.acquire cfgDbConnectionString
       >>= either (throwM . DbConnectionAcquireException) pure
-  pure $ Env pgConn (OgmiosInfo cfgOgmiosPort cfgOgmiosAddress)
+  Env pgConn (OgmiosInfo cfgOgmiosPort cfgOgmiosAddress) <$> newEmptyMVar
 
-initDbAndFetcher :: Env -> Config -> IO ()
-initDbAndFetcher env Config {..} =
+initDbAndFetcher :: Config -> Env -> IO Env
+initDbAndFetcher cfg env =
   runStdoutLoggingT . flip runReaderT env $ do
     initTables
-    case cfgFetcher of
-      Nothing -> pure ()
-      Just (BlockFetcherConfig blockInfo filterJson' useLatest) -> do
-        let datumFilter' = case filterJson' of
-              Just filterJson -> eitherDecode filterJson
-              Nothing -> pure def
-        case datumFilter' of
-          Left e -> logErrorNS "initDbAndFetcher" $ Text.pack $ show e
-          Right datumFilter -> do
-            logInfoNS "initDbAndFetcher" $
-              Text.pack $ "Filter: " <> show datumFilter
-            latestBlock' <- getLastBlock env.envDbConnection
-            let firstBlock =
-                  if useLatest
-                    then fromMaybe blockInfo latestBlock'
-                    else blockInfo
-            initLastBlock firstBlock
-            updateLastBlock env.envDbConnection firstBlock
-            startBlockFetcherAndProcessor env.envOgmiosInfo env.envDbConnection firstBlock datumFilter
+    let datumFilter' = case cfg.cfgFetcher.cfgFetcherFilterJson of
+          Just filterJson -> eitherDecode filterJson
+          Nothing -> pure def
+    datumFilter <- case datumFilter' of
+      Left e -> error $ show e
+      Right x -> pure x
+    latestBlock' <- getLastBlock env.envDbConnection
+    let firstBlock =
+          if cfg.cfgFetcher.cfgFetcherUseLatest
+            then fromMaybe cfg.cfgFetcher.cfgFetcherBlock latestBlock'
+            else cfg.cfgFetcher.cfgFetcherBlock
+    initLastBlock firstBlock
+    updateLastBlock env.envDbConnection firstBlock
+    (blockFetcherEnv, _) <- startBlockFetcherAndProcessor env.envOgmiosInfo env.envDbConnection firstBlock datumFilter
+    pure $ env {envBlockFetcherEnv = blockFetcherEnv}
 
 main :: IO ()
 main = do
@@ -86,8 +82,7 @@ main = do
   parameters <- paramInfo
   cfg@Config {..} <- loadConfig parameters
   print cfg
-  env <- mkAppEnv cfg
-  initDbAndFetcher env cfg
+  env <- mkAppEnv cfg >>= initDbAndFetcher cfg
   withStdoutLogger $ \logger -> do
     let warpSettings =
           Warp.setPort cfgServerPort $

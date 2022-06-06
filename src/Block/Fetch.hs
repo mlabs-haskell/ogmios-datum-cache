@@ -1,13 +1,18 @@
 module Block.Fetch (
   OgmiosInfo (..),
+  BlockFetcherEnv,
   startBlockFetcherAndProcessor,
+  changeStartingBlock,
 ) where
 
 import Control.Concurrent (forkIO, threadDelay)
 import Control.Concurrent.MVar (
   MVar,
+  newEmptyMVar,
   newMVar,
   readMVar,
+  swapMVar,
+  tryPutMVar,
   withMVar,
  )
 import Control.Concurrent.STM (atomically)
@@ -18,6 +23,7 @@ import Control.Monad.IO.Class (MonadIO)
 import Control.Monad.Logger (
   LoggingT,
   MonadLogger,
+  NoLoggingT (runNoLoggingT),
   logErrorNS,
   logInfoNS,
   logWarnNS,
@@ -51,6 +57,8 @@ import Block.Types (
   mkFindIntersectRequest,
   mkRequestNextRequest,
  )
+import Control.Monad.Reader.Has (Has)
+import Control.Monad.Reader.Has qualified as Has
 import Database (getLastBlock, saveDatums, updateLastBlock)
 
 data OgmiosInfo = OgmiosInfo
@@ -120,7 +128,7 @@ startBlockFetcherAndProcessor ::
   Hasql.Connection ->
   BlockInfo ->
   DatumFilter ->
-  m ()
+  m (MVar BlockFetcherEnv, BlockProcessorEnv)
 startBlockFetcherAndProcessor (OgmiosInfo ogmiosPort ogmiosAddress) dbConn blockInfo datumFilter = do
   processorEnv <- mkBlockProcessorEnv datumFilter dbConn
   liftIO
@@ -130,7 +138,7 @@ startBlockFetcherAndProcessor (OgmiosInfo ogmiosPort ogmiosAddress) dbConn block
     . runStdoutLoggingT
     . unBlockProcessorApp
     $ processLoop
-
+  blockFetcherEnvMVar <- liftIO newEmptyMVar
   let handleExcpetion (e :: SomeException) = do
         -- TODO: do we want delay to be configurable?
         putStr "IO Exception occured, restarting block fetcher in 3s: "
@@ -143,11 +151,14 @@ startBlockFetcherAndProcessor (OgmiosInfo ogmiosPort ogmiosAddress) dbConn block
       runInner startingBlock = handle handleExcpetion $
         runClientWith' ogmiosAddress ogmiosPort "" WebSockets.defaultConnectionOptions [] $ \wsConn -> do
           fetcherEnv <- mkBlockFetcherEnv processorEnv wsConn
+          void $ tryPutMVar blockFetcherEnvMVar fetcherEnv
+          void $ swapMVar blockFetcherEnvMVar fetcherEnv
           flip runReaderT fetcherEnv
             . runStdoutLoggingT
             . unBlockFetcherApp
             $ fetchLoop startingBlock
   void . liftIO . forkIO . runInner $ blockInfo
+  pure (blockFetcherEnvMVar, processorEnv)
 
 ------ Fetcher
 
@@ -162,7 +173,10 @@ fetchLoop blockInfo = forever $ do
   findIntersection blockInfo
   forever receiveBlock
 
-sendAndReceive :: ByteString -> BlockFetcherApp ByteString
+sendAndReceive ::
+  (MonadIO m, MonadReader BlockFetcherEnv m) =>
+  ByteString ->
+  m ByteString
 sendAndReceive toSend = do
   env <- ask
   liftIO $
@@ -170,7 +184,23 @@ sendAndReceive toSend = do
       WebSockets.sendTextData wsConn toSend
       WebSockets.receiveData wsConn
 
-findIntersection :: BlockInfo -> BlockFetcherApp ()
+changeStartingBlock ::
+  ( MonadIO m
+  , MonadReader r m
+  , Has (MVar BlockFetcherEnv) r
+  ) =>
+  BlockInfo ->
+  m ()
+changeStartingBlock blockInfo = do
+  env' <- Has.ask
+  liftIO $
+    withMVar env' $ \env ->
+      flip runReaderT env . runNoLoggingT . findIntersection $ blockInfo
+
+findIntersection ::
+  (MonadIO m, MonadLogger m, MonadReader BlockFetcherEnv m) =>
+  BlockInfo ->
+  m ()
 findIntersection blockInfo = do
   jsonMsg <- sendAndReceive $ Aeson.encode $ mkFindIntersectRequest blockInfo
   let msg = Aeson.decode @OgmiosFindIntersectResponse jsonMsg
