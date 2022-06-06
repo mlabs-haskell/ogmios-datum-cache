@@ -1,4 +1,5 @@
 {-# LANGUAGE ApplicativeDo #-}
+{-# LANGUAGE NamedFieldPuns #-}
 
 module Config (loadConfig, Config (..), BlockFetcherConfig (..)) where
 
@@ -7,13 +8,12 @@ import Data.ByteString (ByteString)
 import Data.ByteString.Lazy qualified as LBS
 import Data.Int (Int64)
 import Data.Maybe (fromMaybe)
-import Parameters (Parameters (Parameters, config))
-import System.Directory (doesFileExist)
+import Data.String.ToString (toString)
 import Toml (TomlCodec, dimap, (.=))
 import Toml qualified
 
 import Block.Types (BlockInfo (BlockInfo), blockId, blockSlot)
-import Control.Monad.IO.Unlift (liftIO)
+import Parameters (Parameters (Parameters, config))
 
 data BlockFetcherConfig = BlockFetcherConfig
   { cfgFetcherBlock :: BlockInfo
@@ -72,12 +72,12 @@ configT = do
   cfgServerPort <- Toml.int "server.port" .= cfgServerPort
   cfgOgmiosAddress <- Toml.string "ogmios.address" .= cfgOgmiosAddress
   cfgOgmiosPort <- Toml.int "ogmios.port" .= cfgOgmiosPort
-  cfgFetcher <- Toml.dioptional withFetcherT .= cfgFetcher
+  cfgFetcher <- Toml.dimatch id Just withFetcherT .= cfgFetcher
   pure Config {..}
 
 loadConfig :: MonadIO m => Parameters -> m Config
-loadConfig Parameters {..} = do
-  fileExists <- liftIO $ doesFileExist config
-  if fileExists
-    then Toml.decodeFile configT config
-    else error $ "Config file \"" ++ config ++ "\" doesn't exist."
+loadConfig Parameters {config} = do
+  tomlRes <- Toml.decodeFileEither configT config
+  case tomlRes of
+    Left errs -> error $ toString $ Toml.prettyTomlDecodeErrors errs
+    Right conf -> return conf
