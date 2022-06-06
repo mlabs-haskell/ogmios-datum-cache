@@ -109,22 +109,30 @@ Response
 
 ## Control API
 
-### `POST /control/fetch_blocks`
+### `POST /control/block`
 Request body:
 ```jsonc
 {
-  "slot": 44366242,
-  "id": "d2a4249fe3d0607535daa26caf12a38da2233586bc51e79ed0b3a36170471bf5"
+  "startingBlock": {
+    "blockSlot": 59809992,
+    "blockId": "7c8aec019a21ffd0049d64b0c9874d93376ed5662b4cf7d78e186b5958ecb00d"
+  }
 }
 ```
 Responses:
-* 200 `{"message": "Started block fetcher"}`
-* 422 `{"error": "Block fetcher already running"}`
+* 200 `[]`
 
-### `POST /control/cancel_fetch_blocks`
+### `POST /control/datumFilter`
+Request body:
+```jsonc
+{
+  "datumFilter": {
+    "hash": "foobar"
+  }
+}
+```
 Responses:
-* 200 `{"message": "Stopped block fetcher"}`
-* 422 `{"error": "No block fetcher running"}`
+* 200 `[]`
 
 ### `GET /healthcheck`
 Response:
@@ -345,18 +353,19 @@ Response:
 }
 ```
 
-#### StartFetchBlocks
+#### SetStartingBlock
 Request:
 ```jsonc
 {
   "type": "jsonwsp/request",
   "version": "1.0",
   "servicename": "ogmios-datum-cache",
-  "methodname": "StartFetchBlocks",
+  "methodname": "SetStartingBlock",
   "args": {
-    "slot": 1,
-    "id": "abc",
-    "datumFilter": { "address": "addr_xyz" }
+    "startingBlock": {
+      "blockSlot": 59809992,
+      "blockId": "7c8aec019a21ffd0049d64b0c9874d93376ed5662b4cf7d78e186b5958ecb00d"
+    }
   },
   "mirror": "foo"
 }
@@ -365,9 +374,8 @@ Request:
 Response:
 ```jsonc
 {
-  "methodname": "StartFetchBlocks",
+  "methodname": "SetStartingBlock",
   "result": {
-    "StartedBlockFetcher": true
   },
   "version": "1.0",
   "servicename": "ogmios-datum-cache",
@@ -376,29 +384,20 @@ Response:
 }
 ```
 
-Response (fault):
-```jsonc
-{
-  "methodname": "StartFetchBlocks",
-  "version": "1.0",
-  "fault": {
-    "string": "Block fetcher already running",
-    "code": "client"
-  },
-  "servicename": "ogmios-datum-cache",
-  "type": "jsonwsp/fault",
-  "reflection": "foo"
-}
-```
 
-#### CancelFetchBlocks
+#### SetDatumFilter
 Request:
 ```jsonc
 {
   "type": "jsonwsp/request",
   "version": "1.0",
   "servicename": "ogmios-datum-cache",
-  "methodname": "CancelFetchBlocks",
+  "methodname": "SetDatumFilter",
+  "args": {
+    "datumFilter": {
+      "hash": "foobar"
+    }
+  },
   "reflection": "foo"
 }
 ```
@@ -406,28 +405,12 @@ Request:
 Response:
 ```jsonc
 {
-  "methodname": "CancelFetchBlocks",
+  "methodname": "SetDatumFilter",
   "result": {
-    "StoppedBlockFetcher": true
   },
   "version": "1.0",
   "servicename": "ogmios-datum-cache",
   "type": "jsonwsp/response",
-  "reflection": "foo"
-}
-```
-
-Response (fault):
-```jsonc
-{
-  "methodname": "CancelFetchBlocks",
-  "version": "1.0",
-  "fault": {
-    "string": "No block fetcher running",
-    "code": "client"
-  },
-  "servicename": "ogmios-datum-cache",
-  "type": "jsonwsp/fault",
   "reflection": "foo"
 }
 ```
@@ -616,4 +599,3 @@ Example (filter will save datums only if hash is `foobar` and (utxo with datum i
 }
 
 ```
-
