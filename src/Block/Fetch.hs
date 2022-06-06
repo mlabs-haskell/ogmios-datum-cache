@@ -1,8 +1,10 @@
 module Block.Fetch (
   OgmiosInfo (..),
   BlockFetcherEnv,
+  BlockProcessorEnv,
   startBlockFetcherAndProcessor,
   changeStartingBlock,
+  changeDatumFilter,
 ) where
 
 import Control.Concurrent (forkIO, threadDelay)
@@ -285,3 +287,14 @@ saveDatumsFromAlonzoBlock block = do
     pure ()
   let datums = Map.toList requestedDatumsWithDecodedValues
   unless (null datums) $ saveDatums env.dbConn datums
+
+changeDatumFilter ::
+  ( MonadIO m
+  , MonadReader r m
+  , Has BlockProcessorEnv r
+  ) =>
+  DatumFilter ->
+  m ()
+changeDatumFilter datumFilter = do
+  env :: BlockProcessorEnv <- Has.ask
+  void $ liftIO $ swapMVar env.datumFilterMVar datumFilter

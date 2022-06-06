@@ -15,6 +15,7 @@ import Api.Types (
   GetDatumByHashResponse,
   GetDatumsByHashesRequest,
   GetDatumsByHashesResponse,
+  SetDatumFilterRequest,
   SetStartingBlockRequest,
  )
 import Block.Types (BlockInfo)
@@ -46,12 +47,18 @@ data DatumApi route = DatumApi
   }
   deriving stock (Generic)
 
-newtype ControlApi route = ControlApi
+data ControlApi route = ControlApi
   { setStartingBlock ::
       route
         :- "block"
         :> Summary "Set starting block for block fetcher"
         :> ReqBody '[JSON] SetStartingBlockRequest
+        :> Post '[JSON] ()
+  , setDatumFilter ::
+      route
+        :- "datumFilter"
+        :> Summary "Set datum filter"
+        :> ReqBody '[JSON] SetDatumFilterRequest
         :> Post '[JSON] ()
   }
   deriving stock (Generic)

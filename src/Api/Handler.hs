@@ -21,11 +21,12 @@ import Api.Types (
   GetDatumsByHashesDatum (GetDatumsByHashesDatum),
   GetDatumsByHashesRequest (GetDatumsByHashesRequest),
   GetDatumsByHashesResponse (GetDatumsByHashesResponse),
+  SetDatumFilterRequest (SetDatumFilterRequest),
   SetStartingBlockRequest (SetStartingBlockRequest),
  )
 import Api.WebSocket (websocketServer)
 import App (App)
-import Block.Fetch (changeStartingBlock)
+import Block.Fetch (changeDatumFilter, changeStartingBlock)
 import Block.Types (BlockInfo)
 import Control.Monad.Reader.Has (ask)
 import Database (
@@ -75,10 +76,13 @@ datumServiceHandlers = Routes {..}
 
     -- control api
     controlRoutes :: ToServant ControlApi (AsServerT App)
-    controlRoutes = genericServerT $ ControlApi setStartingBlock
+    controlRoutes = genericServerT $ ControlApi setStartingBlock setDatumFilter
 
     setStartingBlock (SetStartingBlockRequest blockInfo) = do
       changeStartingBlock blockInfo
+
+    setDatumFilter (SetDatumFilterRequest datumFilter) = do
+      changeDatumFilter datumFilter
 
     websocketRoutes :: ToServant WebSocketApi (AsServerT App)
     websocketRoutes = genericServerT WebSocketApi {..}

@@ -5,13 +5,13 @@ import Control.Monad.Reader.Has (Has)
 import GHC.Generics (Generic)
 import Hasql.Connection qualified as Hasql
 
-import Block.Fetch (BlockFetcherEnv, OgmiosInfo)
+import Block.Fetch (BlockFetcherEnv, BlockProcessorEnv)
 
 data Env = Env
   { -- TODO: Switch to pool of connections
     envDbConnection :: Hasql.Connection
-  , envOgmiosInfo :: OgmiosInfo
   , envBlockFetcherEnv :: MVar BlockFetcherEnv
+  , envBlockProcessorEnv :: BlockProcessorEnv
   }
   deriving stock (Generic)
-  deriving anyclass (Has Hasql.Connection, Has OgmiosInfo, Has (MVar BlockFetcherEnv))
+  deriving anyclass (Has Hasql.Connection, Has (MVar BlockFetcherEnv), Has BlockProcessorEnv)

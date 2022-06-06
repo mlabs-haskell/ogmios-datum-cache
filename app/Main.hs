@@ -28,7 +28,6 @@ import Block.Fetch (
   startBlockFetcherAndProcessor,
  )
 import Config (Config (..), loadConfig)
-import Control.Concurrent (newEmptyMVar)
 import Database (getLastBlock, initLastBlock, initTables, updateLastBlock)
 import Parameters (paramInfo)
 
@@ -49,16 +48,12 @@ newtype DbConnectionAcquireException
   deriving stock (Eq, Show)
   deriving anyclass (Exception)
 
-mkAppEnv :: Config -> IO Env
-mkAppEnv Config {..} = do
-  pgConn <-
-    Connection.acquire cfgDbConnectionString
+initDbAndFetcher :: Config -> IO Env
+initDbAndFetcher cfg = do
+  dbConn <-
+    Connection.acquire cfg.cfgDbConnectionString
       >>= either (throwM . DbConnectionAcquireException) pure
-  Env pgConn (OgmiosInfo cfgOgmiosPort cfgOgmiosAddress) <$> newEmptyMVar
-
-initDbAndFetcher :: Config -> Env -> IO Env
-initDbAndFetcher cfg env =
-  runStdoutLoggingT . flip runReaderT env $ do
+  runStdoutLoggingT . flip runReaderT dbConn $ do
     initTables
     let datumFilter' = case cfg.cfgFetcher.cfgFetcherFilterJson of
           Just filterJson -> eitherDecode filterJson
@@ -66,15 +61,21 @@ initDbAndFetcher cfg env =
     datumFilter <- case datumFilter' of
       Left e -> error $ show e
       Right x -> pure x
-    latestBlock' <- getLastBlock env.envDbConnection
+    latestBlock' <- getLastBlock dbConn
     let firstBlock =
           if cfg.cfgFetcher.cfgFetcherUseLatest
             then fromMaybe cfg.cfgFetcher.cfgFetcherBlock latestBlock'
             else cfg.cfgFetcher.cfgFetcherBlock
     initLastBlock firstBlock
-    updateLastBlock env.envDbConnection firstBlock
-    (blockFetcherEnv, _) <- startBlockFetcherAndProcessor env.envOgmiosInfo env.envDbConnection firstBlock datumFilter
-    pure $ env {envBlockFetcherEnv = blockFetcherEnv}
+    updateLastBlock dbConn firstBlock
+    let ogmiosInfo = OgmiosInfo cfg.cfgOgmiosPort cfg.cfgOgmiosAddress
+    (blockFetcherEnv, blockProcessorEnv) <- startBlockFetcherAndProcessor ogmiosInfo dbConn firstBlock datumFilter
+    pure $
+      Env
+        { envBlockFetcherEnv = blockFetcherEnv
+        , envDbConnection = dbConn
+        , envBlockProcessorEnv = blockProcessorEnv
+        }
 
 main :: IO ()
 main = do
@@ -82,7 +83,7 @@ main = do
   parameters <- paramInfo
   cfg@Config {..} <- loadConfig parameters
   print cfg
-  env <- mkAppEnv cfg >>= initDbAndFetcher cfg
+  env <- initDbAndFetcher cfg
   withStdoutLogger $ \logger -> do
     let warpSettings =
           Warp.setPort cfgServerPort $
