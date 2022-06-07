@@ -12,7 +12,7 @@ module Block.Types (
   AlonzoBlockHeader (..),
   AlonzoTransaction (..),
   OgmiosResponse (..),
-  TxOut (..),
+  AlonzoTxOut (..),
   BlockInfo (..),
 ) where
 
@@ -168,47 +168,6 @@ data Block
   | MkAlonzoBlock AlonzoBlock
   deriving stock (Eq, Show, Generic)
 
-data TxOut = TxOut
-  { address :: Text
-  , datumHash :: Maybe Text
-  }
-  deriving stock (Eq, Show, Generic)
-
-instance FromJSON TxOut where
-  parseJSON = withObject "TxOut" $ \o -> do
-    address <- o .: "address"
-    datumHash <- o .:? "datum"
-    pure $ TxOut {..}
-
-data AlonzoTransaction = AlonzoTransaction
-  { datums :: Map Text Text
-  , outputs :: [TxOut]
-  }
-  deriving stock (Eq, Show, Generic)
-
-instance FromJSON AlonzoTransaction where
-  parseJSON = withObject "AlonzoTransaction" $ \o -> do
-    witness <- o .: "witness"
-    datums <- witness .: "datums"
-    body <- o .: "body"
-    outputs <- body .: "outputs"
-    pure $ AlonzoTransaction datums outputs
-
-data AlonzoBlockHeader = AlonzoBlockHeader
-  { slot :: Int64
-  , blockHash :: Text
-  }
-  deriving stock (Eq, Show, Generic)
-  deriving anyclass (FromJSON)
-
-data AlonzoBlock = AlonzoBlock
-  { body :: [AlonzoTransaction]
-  , header :: AlonzoBlockHeader
-  , headerHash :: Maybe Text
-  }
-  deriving stock (Eq, Show, Generic)
-  deriving anyclass (FromJSON)
-
 instance FromJSON RequestNextResult where
   parseJSON = withObject "RequestNextResult" $ \o -> do
     case toList o of
@@ -237,3 +196,44 @@ instance FromJSON RequestNextResult where
           )
           rollObj
       _ -> fail "Unexpected object key"
+
+data AlonzoBlock = AlonzoBlock
+  { body :: [AlonzoTransaction]
+  , header :: AlonzoBlockHeader
+  , headerHash :: Maybe Text
+  }
+  deriving stock (Eq, Show, Generic)
+  deriving anyclass (FromJSON)
+
+data AlonzoBlockHeader = AlonzoBlockHeader
+  { slot :: Int64
+  , blockHash :: Text
+  }
+  deriving stock (Eq, Show, Generic)
+  deriving anyclass (FromJSON)
+
+data AlonzoTransaction = AlonzoTransaction
+  { abDatums :: Map Text Text
+  , abOutputs :: [AlonzoTxOut]
+  }
+  deriving stock (Eq, Show, Generic)
+
+instance FromJSON AlonzoTransaction where
+  parseJSON = withObject "AlonzoTransaction" $ \o -> do
+    witness <- o .: "witness"
+    abDatums <- witness .: "datums"
+    body <- o .: "body"
+    abOutputs <- body .: "outputs"
+    pure $ AlonzoTransaction {..}
+
+data AlonzoTxOut = AlonzoTxOut
+  { abAddress :: Text
+  , abDatumHash :: Maybe Text
+  }
+  deriving stock (Eq, Show, Generic)
+
+instance FromJSON AlonzoTxOut where
+  parseJSON = withObject "AlonzoTxOut" $ \o -> do
+    abAddress <- o .: "address"
+    abDatumHash <- o .:? "datum" -- it is right for alonzo version!
+    pure $ AlonzoTxOut {..}

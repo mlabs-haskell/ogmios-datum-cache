@@ -6,7 +6,7 @@ import Data.Maybe (mapMaybe)
 import Data.Text (Text)
 import GHC.Exts (toList)
 
-import Block.Types (AlonzoTransaction (outputs), TxOut (address, datumHash))
+import Block.Types (AlonzoTransaction (abOutputs), AlonzoTxOut (abAddress, abDatumHash))
 
 data DatumFilter
   = ConstFilter Bool
@@ -47,7 +47,7 @@ runDatumFilter (DatumHashFilter expectedHash) _ (actualHash, _) =
   expectedHash == actualHash
 runDatumFilter (AddressFilter expectedAddress) tx (actualHash, _) =
   let hashes =
-        mapMaybe datumHash $
-          filter ((== expectedAddress) . address) $
-            outputs tx
+        mapMaybe abDatumHash $
+          filter ((== expectedAddress) . abAddress) $
+            abOutputs tx
    in actualHash `elem` hashes

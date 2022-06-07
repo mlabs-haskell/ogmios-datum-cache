@@ -47,7 +47,7 @@ import Block.Filter (DatumFilter, runDatumFilter)
 import Block.Types (
   AlonzoBlock (body, header, headerHash),
   AlonzoBlockHeader (slot),
-  AlonzoTransaction (datums),
+  AlonzoTransaction (abDatums),
   Block (MkAlonzoBlock, OtherBlock),
   BlockInfo (BlockInfo),
   FindIntersectResult (IntersectionFound, IntersectionNotFound),
@@ -215,24 +215,21 @@ saveDatumsFromAlonzoBlock ::
   AlonzoBlock ->
   DatumFilter ->
   m ()
-saveDatumsFromAlonzoBlock block datumFilter = do
-  let txs = body block
-      getFilteredDatums tx =
-        filter (runDatumFilter datumFilter tx) . Map.toList . datums $ tx
-      requestedDatums =
-        Map.fromList
-          . concatMap getFilteredDatums
-          $ txs
-      decodeDatumValue = Base64.decodeBase64 . Text.encodeUtf8
+saveDatumsFromAlonzoBlock AlonzoBlock {body = txs} datumFilter = do
+  let requestedDatums = Map.fromList . concatMap getFilteredDatums $ txs
       (failedDecodings, requestedDatumsWithDecodedValues) =
         Map.mapEither decodeDatumValue requestedDatums
-  unless (null failedDecodings) $ do
-    logErrorNS "saveDatumsFromAlonzoBlock" $
-      "Error decoding values for datums: "
-        <> Text.intercalate ", " (Map.keys failedDecodings)
-    pure ()
+  unless (null failedDecodings) $
+    void $
+      logErrorNS "saveDatumsFromAlonzoBlock" $
+        "Error decoding values for datums: "
+          <> Text.intercalate ", " (Map.keys failedDecodings)
   let datums = Map.toList requestedDatumsWithDecodedValues
   unless (null datums) $ saveDatums datums
+  where
+    getDatums = Map.toList . abDatums
+    getFilteredDatums tx = filter (runDatumFilter datumFilter tx) . getDatums $ tx
+    decodeDatumValue = Base64.decodeBase64 . Text.encodeUtf8
 
 wsApp ::
   ( MonadIO m
