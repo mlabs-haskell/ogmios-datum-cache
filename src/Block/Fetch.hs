@@ -16,7 +16,7 @@ import Control.Concurrent.MVar (
   tryPutMVar,
   tryTakeMVar,
  )
-import Control.Exception (Exception, onException)
+import Control.Exception (Exception, SomeException, catch)
 import Control.Monad (forever, unless, void)
 import Control.Monad.IO.Class (MonadIO)
 import Control.Monad.IO.Unlift (MonadUnliftIO)
@@ -33,6 +33,7 @@ import Control.Monad.Trans (liftIO)
 import Data.Aeson qualified as Aeson
 import Data.ByteString.Base64 qualified as Base64
 import Data.Map qualified as Map
+import Data.String.ToString (toString)
 import Data.Text (Text)
 import Data.Text qualified as Text
 import Data.Text.Encoding qualified as Text
@@ -89,8 +90,8 @@ startBlockFetcher blockInfo datumFilter = do
 
   let runStack = runStdoutLoggingT . flip runReaderT env
 
-  let errorHandler = runStack $ do
-        logErrorNS "ogmiosWorker" "Error starting ogmios client"
+  let errorHandler e = runStack $ do
+        logErrorNS "ogmiosWorker" $ "Error starting ogmios client: " <> Text.pack (show e)
         stopBlockFetcher
 
   let runOgmiosClient = do
@@ -101,7 +102,7 @@ startBlockFetcher blockInfo datumFilter = do
   ogmiosWorker <- liftIO $
     Async.async $ do
       runStdoutLoggingT $ logInfoNS "ogmiosWorker" "Starting ogmios client"
-      runOgmiosClient `onException` errorHandler
+      runOgmiosClient `catch` \(e :: SomeException) -> errorHandler e
 
   putSuccessful <- liftIO $ tryPutMVar envOgmiosWorker $ void ogmiosWorker
   if putSuccessful
@@ -143,16 +144,16 @@ receiveLoop ::
   m ()
 receiveLoop conn datumFilter = do
   jsonMsg <- liftIO $ WebSockets.receiveData conn
-  let msg = Aeson.decode @OgmiosFindIntersectResponse jsonMsg
+  let msg = Aeson.eitherDecode @OgmiosFindIntersectResponse jsonMsg
   case _result <$> msg of
-    Nothing -> do
-      logErrorNS "receiveLoop" "Error decoding FindIntersect response"
-    Just (IntersectionNotFound _) -> do
+    Left e -> do
+      logErrorNS "receiveLoop" $ "Error decoding FindIntersect response" <> Text.pack e
+    Right (IntersectionNotFound _) -> do
       logErrorNS
         "receiveLoop"
         "Find intersection error: Intersection not found. \
         \Consider restarting block fetcher with different block info"
-    Just (IntersectionFound _ _) -> do
+    Right (IntersectionFound _ _) -> do
       logInfoNS
         "receiveLoop"
         "Find intersection: intersection found, starting RequestNext loop"
@@ -191,10 +192,10 @@ receiveBlocksLoop conn datumFilter = forever $ do
         $ Text.pack $ "Error decoding RequestNext response: " <> e
     Right (RollBackward _point _tip) ->
       logWarnNS "receiveBlocksLoop" "Received RollBackward response"
-    Right (RollForward OtherBlock _tip) ->
+    Right (RollForward (OtherBlock raw) _tip) ->
       logWarnNS
         "receiveBlocksLoop"
-        "Received non-Alonzo block in the RollForward response"
+        $ "Received non-Alonzo block in the RollForward response: " <> Text.pack (toString raw)
     Right (RollForward (MkAlonzoBlock block) _tip) -> do
       logInfoNS "receiveBlocksLoop" $
         Text.pack $

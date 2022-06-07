@@ -18,6 +18,7 @@ module Block.Types (
 
 import Data.Aeson (FromJSON, ToJSON, withObject, (.:), (.:?))
 import Data.Aeson qualified as Aeson
+import Data.ByteString.Lazy (ByteString)
 import Data.HashMap.Strict qualified as HashMap
 import Data.Int (Int64)
 import Data.Map (Map)
@@ -163,7 +164,7 @@ data RequestNextResult
   deriving stock (Eq, Show, Generic)
 
 data Block
-  = OtherBlock
+  = OtherBlock ByteString
   | MkAlonzoBlock AlonzoBlock
   deriving stock (Eq, Show, Generic)
 
@@ -231,7 +232,7 @@ instance FromJSON RequestNextResult where
                   block <- Aeson.parseJSON @AlonzoBlock blockValue
                   pure $ RollForward (MkAlonzoBlock block) tip
                 [(_, _blockObj)] ->
-                  pure $ RollForward OtherBlock tip
+                  pure $ RollForward (OtherBlock $ Aeson.encode blockObj) tip
                 _ -> fail "Unexpected block value"
           )
           rollObj

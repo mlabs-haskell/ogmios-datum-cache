@@ -95,6 +95,7 @@ library
     , servant-websockets
     , text
     , tomland
+    , tostring
     , transformers
     , unliftio
     , unliftio-core
