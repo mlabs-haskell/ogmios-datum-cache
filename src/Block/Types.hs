@@ -1,4 +1,5 @@
 {-# LANGUAGE DuplicateRecordFields #-}
+{-# LANGUAGE FunctionalDependencies #-}
 
 module Block.Types (
   mkFindIntersectRequest,
@@ -8,11 +9,17 @@ module Block.Types (
   FindIntersectResult (..),
   RequestNextResult (..),
   Block (..),
+  Transaction (..),
+  TxOut (..),
   AlonzoBlock (..),
   AlonzoBlockHeader (..),
   AlonzoTransaction (..),
-  OgmiosResponse (..),
   AlonzoTxOut (..),
+  BabbageBlock (..),
+  BabbageBlockHeader (..),
+  BabbageTransaction (..),
+  BabbageTxOut (..),
+  OgmiosResponse (..),
   BlockInfo (..),
 ) where
 
@@ -166,6 +173,7 @@ data RequestNextResult
 data Block
   = OtherBlock ByteString
   | MkAlonzoBlock AlonzoBlock
+  | MkBabbageBlock BabbageBlock
   deriving stock (Eq, Show, Generic)
 
 instance FromJSON RequestNextResult where
@@ -190,12 +198,25 @@ instance FromJSON RequestNextResult where
                 [("alonzo" :: Text, blockValue)] -> do
                   block <- Aeson.parseJSON @AlonzoBlock blockValue
                   pure $ RollForward (MkAlonzoBlock block) tip
+                [("babbage" :: Text, blockValue)] -> do
+                  block <- Aeson.parseJSON @BabbageBlock blockValue
+                  pure $ RollForward (MkBabbageBlock block) tip
                 [(_, _blockObj)] ->
                   pure $ RollForward (OtherBlock $ Aeson.encode blockObj) tip
                 _ -> fail "Unexpected block value"
           )
           rollObj
       _ -> fail "Unexpected object key"
+
+class TxOut out => Transaction tx out | tx -> out where
+  datums :: tx -> Map Text Text
+  outputs :: tx -> [out]
+
+class TxOut out where
+  address :: out -> Text
+  datumHash :: out -> Maybe Text
+
+-- * Alonzo
 
 data AlonzoBlock = AlonzoBlock
   { body :: [AlonzoTransaction]
@@ -218,6 +239,10 @@ data AlonzoTransaction = AlonzoTransaction
   }
   deriving stock (Eq, Show, Generic)
 
+instance Transaction AlonzoTransaction AlonzoTxOut where
+  datums = abDatums
+  outputs = abOutputs
+
 instance FromJSON AlonzoTransaction where
   parseJSON = withObject "AlonzoTransaction" $ \o -> do
     witness <- o .: "witness"
@@ -232,8 +257,66 @@ data AlonzoTxOut = AlonzoTxOut
   }
   deriving stock (Eq, Show, Generic)
 
+instance TxOut AlonzoTxOut where
+  address = abAddress
+  datumHash = abDatumHash
+
 instance FromJSON AlonzoTxOut where
   parseJSON = withObject "AlonzoTxOut" $ \o -> do
     abAddress <- o .: "address"
     abDatumHash <- o .:? "datum" -- it is right for alonzo version!
     pure $ AlonzoTxOut {..}
+
+-- * Babbage
+
+data BabbageBlock = BabbageBlock
+  { body :: [BabbageTransaction]
+  , header :: BabbageBlockHeader
+  , headerHash :: Maybe Text
+  }
+  deriving stock (Eq, Show, Generic)
+  deriving anyclass (FromJSON)
+
+data BabbageBlockHeader = BabbageBlockHeader
+  { slot :: Int64
+  , blockHash :: Text
+  }
+  deriving stock (Eq, Show, Generic)
+  deriving anyclass (FromJSON)
+
+data BabbageTransaction = BabbageTransaction
+  { bbDatums :: Map Text Text
+  , bbOutputs :: [BabbageTxOut]
+  }
+  deriving stock (Eq, Show, Generic)
+
+instance Transaction BabbageTransaction BabbageTxOut where
+  datums = bbDatums
+  outputs = bbOutputs
+
+instance FromJSON BabbageTransaction where
+  parseJSON = withObject "BabbageTransaction" $ \o -> do
+    witness <- o .: "witness"
+    bbDatums <- witness .: "datums"
+    body <- o .: "body"
+    bbOutputs <- body .: "outputs"
+    pure $ BabbageTransaction {..}
+
+data BabbageTxOut = BabbageTxOut
+  { bbAddress :: Text
+  , bbDatumHash :: Maybe Text
+  , bbDatum :: Maybe Text
+  -- , script :: Maybe Text
+  }
+  deriving stock (Eq, Show, Generic)
+
+instance TxOut BabbageTxOut where
+  address = bbAddress
+  datumHash = bbDatumHash
+
+instance FromJSON BabbageTxOut where
+  parseJSON = withObject "BabbageTxOut" $ \o -> do
+    bbAddress <- o .: "address"
+    bbDatumHash <- o .:? "datumHash"
+    bbDatum <- o .:? "datum"
+    pure $ BabbageTxOut {..}

@@ -1,3 +1,5 @@
+{-# LANGUAGE NamedFieldPuns #-}
+
 module Block.Fetch (
   OgmiosWorkerMVar (MkOgmiosWorkerMVar),
   OgmiosInfo (..),
@@ -45,16 +47,18 @@ import UnliftIO.Concurrent (threadDelay)
 
 import Block.Filter (DatumFilter, runDatumFilter)
 import Block.Types (
-  AlonzoBlock (body, header, headerHash),
-  AlonzoBlockHeader (slot),
-  AlonzoTransaction (abDatums),
-  Block (MkAlonzoBlock, OtherBlock),
+  AlonzoBlock (AlonzoBlock, body, header, headerHash),
+  AlonzoBlockHeader (AlonzoBlockHeader, slot),
+  BabbageBlock (BabbageBlock, body, header, headerHash),
+  BabbageBlockHeader (BabbageBlockHeader, slot),
+  Block (MkAlonzoBlock, MkBabbageBlock, OtherBlock),
   BlockInfo (BlockInfo),
   FindIntersectResult (IntersectionFound, IntersectionNotFound),
   OgmiosFindIntersectResponse,
   OgmiosRequestNextResponse,
   OgmiosResponse (_result),
   RequestNextResult (RollBackward, RollForward),
+  Transaction (datums),
   mkFindIntersectRequest,
   mkRequestNextRequest,
  )
@@ -197,25 +201,36 @@ receiveBlocksLoop conn datumFilter = forever $ do
         "receiveBlocksLoop"
         $ "Received non-Alonzo block in the RollForward response: " <> Text.pack (toString raw)
     Right (RollForward (MkAlonzoBlock block) _tip) -> do
-      logInfoNS "receiveBlocksLoop" $
-        Text.pack $
-          "Processing block: "
-            <> show (slot $ header block, headerHash block)
-      saveDatumsFromAlonzoBlock block datumFilter
-      case headerHash block of
+      let AlonzoBlock {headerHash, header = AlonzoBlockHeader {slot}, body} = block
+      logInfoReceiveBlocksLoop headerHash slot
+      saveDatumsTransactions body datumFilter
+      case headerHash of
         Just headerHash' ->
-          updateLastBlock $ BlockInfo (slot $ header block) headerHash'
-        Nothing ->
-          logWarnNS
-            "receiveBlocksLoop"
-            $ Text.pack $ "Block without header hash: " <> show block
+          updateLastBlock $ BlockInfo slot headerHash'
+        Nothing -> logWarnNoHeaderHash block
+    Right (RollForward (MkBabbageBlock block) _tip) -> do
+      let BabbageBlock {headerHash, header = BabbageBlockHeader {slot}, body} = block
+      logInfoReceiveBlocksLoop headerHash slot
+      saveDatumsTransactions body datumFilter
+      case headerHash of
+        Just headerHash' ->
+          updateLastBlock $ BlockInfo slot headerHash'
+        Nothing -> logWarnNoHeaderHash block
+  where
+    logInfoReceiveBlocksLoop headerHash slot =
+      logInfoNS "receiveBlocksLoop" $
+        Text.pack $ "Processing block: " <> show (slot, headerHash)
+    logWarnNoHeaderHash block =
+      logWarnNS
+        "receiveBlocksLoop"
+        $ Text.pack $ "Block without header hash: " <> show block
 
-saveDatumsFromAlonzoBlock ::
-  (MonadIO m, MonadLogger m, MonadReader r m, Has Hasql.Connection r) =>
-  AlonzoBlock ->
+saveDatumsTransactions ::
+  (MonadIO m, MonadLogger m, MonadReader r m, Has Hasql.Connection r, Transaction tx out) =>
+  [tx] ->
   DatumFilter ->
   m ()
-saveDatumsFromAlonzoBlock AlonzoBlock {body = txs} datumFilter = do
+saveDatumsTransactions txs datumFilter = do
   let requestedDatums = Map.fromList . concatMap getFilteredDatums $ txs
       (failedDecodings, requestedDatumsWithDecodedValues) =
         Map.mapEither decodeDatumValue requestedDatums
@@ -224,10 +239,10 @@ saveDatumsFromAlonzoBlock AlonzoBlock {body = txs} datumFilter = do
       logErrorNS "saveDatumsFromAlonzoBlock" $
         "Error decoding values for datums: "
           <> Text.intercalate ", " (Map.keys failedDecodings)
-  let datums = Map.toList requestedDatumsWithDecodedValues
-  unless (null datums) $ saveDatums datums
+  let datums_ = Map.toList requestedDatumsWithDecodedValues
+  unless (null datums_) $ saveDatums datums_
   where
-    getDatums = Map.toList . abDatums
+    getDatums = Map.toList . datums
     getFilteredDatums tx = filter (runDatumFilter datumFilter tx) . getDatums $ tx
     decodeDatumValue = Base64.decodeBase64 . Text.encodeUtf8
 
