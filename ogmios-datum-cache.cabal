@@ -91,6 +91,7 @@ library
     , http-types
     , monad-logger
     , mtl
+    , network
     , optparse-applicative
     , record-dot-preprocessor
     , record-hasfield
@@ -105,7 +106,6 @@ library
     , unordered-containers
     , vector
     , websockets
-    , network
 
 executable ogmios-datum-cache
   import:         common-language
@@ -152,7 +152,8 @@ test-suite ogmios-datum-cache-test
     -Wall -Wcompat -Wincomplete-uni-patterns
     -Wincomplete-record-updates -Wredundant-constraints
     -Wmissing-export-lists -Wmissing-deriving-strategies -Werror -O2
-    -Wmissing-import-lists -Wunused-packages -fplugin=RecordDotPreprocessor
+    -Wmissing-import-lists -Wunused-packages
+    -fplugin=RecordDotPreprocessor
 
   build-depends:
     , aeson

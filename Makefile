@@ -28,7 +28,7 @@ endif
 
 
 project: $(PROJECT_SOURCES) $(CABAL_SOURCES)
-PROJECT_SOURCES := $(shell git ls-tree -r HEAD --full-tree --name-only | grep -E '.*\.hs' )
+PROJECT_SOURCES := $(shell fd -ehs )
 CABAL_SOURCES := $(shell fd -ecabal)
 
 build: project
