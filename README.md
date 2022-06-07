@@ -390,15 +390,15 @@ Response:
 Response (fault):
 ```
 {
-  methodname: SetStartingBlock,
-  version: '1.0',
-  fault: {
-    string: 'notFound',
-    code: 'client'
+  "methodname": SetStartingBlock,
+  "version": '1.0',
+  "fault": {
+    "string": 'notFound',
+    "code": 'client'
   },
-  servicename: 'ogmios-datum-cache',
-  type: 'jsonwsp/fault',
-  reflection: "foo"
+  "servicename": 'ogmios-datum-cache',
+  "type": 'jsonwsp/fault',
+  "reflection": "foo"
 }
 
 #### SetDatumFilter
