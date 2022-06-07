@@ -43,6 +43,7 @@ import Data.Map qualified as Map
 import Data.Maybe (isJust)
 import Data.Text qualified as Text
 import Data.Text.Encoding qualified as Text
+import GHC.Natural (Natural)
 import Hasql.Connection qualified as Hasql
 import Network.Socket qualified as Socket
 import Network.WebSockets qualified as WebSockets
@@ -95,10 +96,10 @@ mkBlockProcessorEnv ::
   MonadIO m =>
   DatumFilter ->
   Hasql.Connection ->
+  Natural ->
   m BlockProcessorEnv
-mkBlockProcessorEnv f c = do
-  -- TODO: make it configurable
-  q <- liftIO $ newTBQueueIO 64
+mkBlockProcessorEnv f c queueSize = do
+  q <- liftIO $ newTBQueueIO queueSize
   datumFilterMVar <- liftIO $ newMVar f
   pure $ BlockProcessorEnv q datumFilterMVar c
 
@@ -149,9 +150,10 @@ startBlockFetcherAndProcessor ::
   Hasql.Connection ->
   BlockInfo ->
   DatumFilter ->
+  Natural ->
   m (MVar BlockFetcherEnv, BlockProcessorEnv)
-startBlockFetcherAndProcessor (OgmiosInfo ogmiosPort ogmiosAddress) dbConn blockInfo datumFilter = do
-  processorEnv <- mkBlockProcessorEnv datumFilter dbConn
+startBlockFetcherAndProcessor ogmiosInfo dbConn blockInfo datumFilter queueSize = do
+  processorEnv <- mkBlockProcessorEnv datumFilter dbConn queueSize
   liftIO
     . void
     . forkIO
@@ -170,14 +172,20 @@ startBlockFetcherAndProcessor (OgmiosInfo ogmiosPort ogmiosAddress) dbConn block
           Nothing -> runInner blockInfo
           Just lastBlock -> runInner lastBlock
       runInner startingBlock = handle handleExcpetion $
-        runClientWith' ogmiosAddress ogmiosPort "" WebSockets.defaultConnectionOptions [] $ \wsConn -> do
-          fetcherEnv <- mkBlockFetcherEnv processorEnv wsConn
-          void $ tryPutMVar blockFetcherEnvMVar fetcherEnv
-          void $ swapMVar blockFetcherEnvMVar fetcherEnv
-          flip runReaderT fetcherEnv
-            . runStdoutLoggingT
-            . unBlockFetcherApp
-            $ fetchLoop startingBlock
+        runClientWith'
+          ogmiosInfo.ogmiosAddress
+          ogmiosInfo.ogmiosPort
+          ""
+          WebSockets.defaultConnectionOptions
+          []
+          $ \wsConn -> do
+            fetcherEnv <- mkBlockFetcherEnv processorEnv wsConn
+            void $ tryPutMVar blockFetcherEnvMVar fetcherEnv
+            void $ swapMVar blockFetcherEnvMVar fetcherEnv
+            flip runReaderT fetcherEnv
+              . runStdoutLoggingT
+              . unBlockFetcherApp
+              $ fetchLoop startingBlock
   void . liftIO . forkIO . runInner $ blockInfo
   pure (blockFetcherEnvMVar, processorEnv)
 

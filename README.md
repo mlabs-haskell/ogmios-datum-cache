@@ -584,8 +584,6 @@ Modify `config.toml` in the app working directory (currently `/home/ubuntu/seabu
 
 * `dbConnectionString` (postgres libpq connection string) — `host=localhost port=5432 user=<user> password=<pass>`
 
-* `blockFetcher.autoStart` defines if initial block fetcher should start automatically.
-
 * `blockFetcher.filter` defines json encoded [filter](#filter) for initial block fetcher. If not defined filter will accept all datums.
 
 * `blockFetcher.firstBlock.slot` slot of first block to fetch by initial block fetcher.
@@ -593,6 +591,8 @@ Modify `config.toml` in the app working directory (currently `/home/ubuntu/seabu
 * `blockFetcher.firstBlock.id` hash of block's HEADER not hash of a block itself.
 
 * `blockFetcher.startFromLast` defines if block fetcher, if started automatically, should start from last block that was proccessed rather than from block defined in `firstFetchBlock`.
+
+* `blockFetcher.queueSize` defines size of queue of prefetched blocks ready to be processed, `default=64`.
 
 ### Filter
 

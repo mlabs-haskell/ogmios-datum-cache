@@ -7,6 +7,7 @@ import Data.ByteString (ByteString)
 import Data.ByteString.Lazy qualified as LBS
 import Data.Int (Int64)
 import Data.Maybe (fromMaybe)
+import GHC.Natural (Natural)
 import Parameters (Parameters (Parameters, config))
 import System.Directory (doesFileExist)
 import Toml (TomlCodec, dimap, (.=))
@@ -18,6 +19,7 @@ data BlockFetcherConfig = BlockFetcherConfig
   { cfgFetcherBlock :: BlockInfo
   , cfgFetcherFilterJson :: Maybe LBS.ByteString
   , cfgFetcherUseLatest :: Bool
+  , cfgFetcherQueueSize :: Natural
   }
   deriving stock (Show)
 
@@ -36,13 +38,6 @@ withDefault d c = dimap pure (fromMaybe d) (Toml.dioptional c)
 int64 :: Toml.Key -> TomlCodec Int64
 int64 k = dimap fromIntegral fromIntegral (Toml.integer k)
 
-matchTrue :: Toml.Value t -> Either Toml.MatchError Bool
-matchTrue (Toml.Bool True) = Right True
-matchTrue value = Toml.mkMatchError Toml.TBool value
-
-true :: Toml.Key -> TomlCodec Bool
-true = Toml.match $ Toml.mkAnyValueBiMap matchTrue Toml.Bool
-
 blockInfoT :: TomlCodec BlockInfo
 blockInfoT = do
   blockSlot' <-
@@ -55,7 +50,6 @@ blockInfoT = do
 
 withFetcherT :: TomlCodec BlockFetcherConfig
 withFetcherT = do
-  true "blockFetcher.autoStart" .= const True
   cfgFetcherFilterJson <-
     Toml.dioptional (Toml.lazyByteString "blockFetcher.filter")
       .= cfgFetcherFilterJson
@@ -63,6 +57,8 @@ withFetcherT = do
   cfgFetcherUseLatest <-
     withDefault False (Toml.bool "blockFetcher.startFromLast")
       .= cfgFetcherUseLatest
+  cfgFetcherQueueSize <-
+    withDefault 64 (Toml.natural "blockFetcher.queueSize") .= cfgFetcherQueueSize
   pure BlockFetcherConfig {..}
 
 configT :: TomlCodec Config

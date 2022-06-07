@@ -69,7 +69,13 @@ initDbAndFetcher cfg = do
     initLastBlock firstBlock
     updateLastBlock dbConn firstBlock
     let ogmiosInfo = OgmiosInfo cfg.cfgOgmiosPort cfg.cfgOgmiosAddress
-    (blockFetcherEnv, blockProcessorEnv) <- startBlockFetcherAndProcessor ogmiosInfo dbConn firstBlock datumFilter
+    (blockFetcherEnv, blockProcessorEnv) <-
+      startBlockFetcherAndProcessor
+        ogmiosInfo
+        dbConn
+        firstBlock
+        datumFilter
+        cfg.cfgFetcher.cfgFetcherQueueSize
     pure $
       Env
         { envBlockFetcherEnv = blockFetcherEnv
