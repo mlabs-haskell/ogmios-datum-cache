@@ -36,7 +36,7 @@ import Api.WebSocket.Types (
     SetStartingBlock
   ),
  )
-import App (App)
+import App.Types (App)
 import Block.Fetch (changeDatumFilter, changeStartingBlock)
 import Block.Filter (DatumFilter)
 import Block.Types (BlockInfo)

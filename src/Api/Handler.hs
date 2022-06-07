@@ -25,7 +25,7 @@ import Api.Types (
   SetStartingBlockRequest (SetStartingBlockRequest),
  )
 import Api.WebSocket (websocketServer)
-import App (App)
+import App.Types (App)
 import Block.Fetch (changeDatumFilter, changeStartingBlock)
 import Block.Types (BlockInfo, CursorPoint)
 import Control.Monad.Reader.Has (ask)
