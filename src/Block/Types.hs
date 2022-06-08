@@ -1,5 +1,6 @@
 {-# LANGUAGE DuplicateRecordFields #-}
 {-# LANGUAGE FunctionalDependencies #-}
+{-# LANGUAGE NamedFieldPuns #-}
 
 module Block.Types (
   mkFindIntersectRequest,
@@ -30,6 +31,7 @@ import Data.HashMap.Strict qualified as HashMap
 import Data.Int (Int64)
 import Data.Map (Map)
 import Data.Map qualified as Map
+import Data.Maybe (catMaybes)
 import Data.Text (Text)
 import GHC.Exts (toList)
 import GHC.Generics (Generic)
@@ -291,7 +293,16 @@ data BabbageTransaction = BabbageTransaction
   deriving stock (Eq, Show, Generic)
 
 instance Transaction BabbageTransaction BabbageTxOut where
-  datums = bbDatums
+  datums BabbageTransaction {bbDatums, bbOutputs} =
+    bbDatums <> Map.fromList (catMaybes $ map fromTxOut bbOutputs)
+    where
+      fromTxOut
+        BabbageTxOut
+          { bbDatumHash = Just bbDatumHash
+          , bbDatum = Just bbDatum
+          } = Just (bbDatumHash, bbDatum)
+      fromTxOut _txOut =
+        Nothing
   outputs = bbOutputs
 
 instance FromJSON BabbageTransaction where
