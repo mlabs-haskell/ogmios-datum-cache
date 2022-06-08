@@ -250,16 +250,14 @@ saveDatums ::
 saveDatums datums = do
   dbConnection <- ask
   let (datumHashes, datumValues) = unzip datums
-  logInfoNS "saveDatumsFromAlonzoBlock" $
-    "Inserting datums: "
-      <> Text.intercalate ", " datumHashes
+  logInfoNS "saveDatumsBlock" $
+    "Inserting datums: " <> Text.intercalate ", " datumHashes
   res <-
     liftIO $
       Session.run (insertDatumsSession datumHashes datumValues) dbConnection
   case res of
     Right _ -> pure ()
     Left err -> do
-      logErrorNS "saveDatumsFromAlonzoBlock" $
-        "Error inserting datums: "
-          <> Text.pack (show err)
+      logErrorNS "saveDatumsBlock" $
+        "Error inserting datums: " <> Text.pack (show err)
       pure ()

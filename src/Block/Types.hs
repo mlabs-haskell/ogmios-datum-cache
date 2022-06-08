@@ -317,7 +317,7 @@ data BabbageTxOut = BabbageTxOut
   { bbAddress :: Text
   , bbDatumHash :: Maybe Text
   , bbDatum :: Maybe Text
-  -- , script :: Maybe Text
+  -- , bbScript :: Maybe Text
   }
   deriving stock (Eq, Show, Generic)
 
