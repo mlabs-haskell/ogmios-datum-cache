@@ -31,7 +31,7 @@ import Data.HashMap.Strict qualified as HashMap
 import Data.Int (Int64)
 import Data.Map (Map)
 import Data.Map qualified as Map
-import Data.Maybe (catMaybes)
+import Data.Maybe (mapMaybe)
 import Data.Text (Text)
 import GHC.Exts (toList)
 import GHC.Generics (Generic)
@@ -294,7 +294,7 @@ data BabbageTransaction = BabbageTransaction
 
 instance Transaction BabbageTransaction BabbageTxOut where
   datums BabbageTransaction {bbDatums, bbOutputs} =
-    bbDatums <> Map.fromList (catMaybes $ map fromTxOut bbOutputs)
+    bbDatums <> Map.fromList (mapMaybe fromTxOut bbOutputs)
     where
       fromTxOut
         BabbageTxOut
