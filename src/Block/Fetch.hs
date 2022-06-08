@@ -236,7 +236,7 @@ saveDatumsTransactions txs datumFilter = do
         Map.mapEither decodeDatumValue requestedDatums
   unless (null failedDecodings) $
     void $
-      logErrorNS "saveDatumsFromAlonzoBlock" $
+      logErrorNS "saveDatumsFromTransactions" $
         "Error decoding values for datums: "
           <> Text.intercalate ", " (Map.keys failedDecodings)
   let datums_ = Map.toList requestedDatumsWithDecodedValues
