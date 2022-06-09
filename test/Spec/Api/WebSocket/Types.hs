@@ -20,7 +20,7 @@ spec = do
           [i|{"methodname": "GetHealthcheck", "mirror": "Text"}|]
           `shouldBe` Just
             (JsonWspRequest (Just "Text") GetHealthcheck)
-      it "mirrot is an object " $ do
+      it "mirror is an object " $ do
         decode
           [i|{"methodname": "GetHealthcheck", "mirror": {"field": "Text"}}|]
           `shouldBe` Just
