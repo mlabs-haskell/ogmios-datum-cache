@@ -28,26 +28,18 @@ spec = do
       [i|
              dbConnectionString = "host=localhost port=5432 user=aske dbname=ogmios-datum-cache"
              server.port = 9999
-             ogmios.address = "127.0.0.1"
-             ogmios.port = 1337
-      |]
-        `configShouldBe` example
-    it "withApiToken" $ do
-      [i|
-             dbConnectionString = "host=localhost port=5432 user=aske dbname=ogmios-datum-cache"
-             server.port = 9999
              server.controlApiToken = "API_TOKEN"
              ogmios.address = "127.0.0.1"
              ogmios.port = 1337
       |]
-        `configShouldBe` example {cfgServerControlApiToken = Just "API_TOKEN"}
+        `configShouldBe` example
 
 example :: Config
 example =
   Config
     { cfgDbConnectionString = "host=localhost port=5432 user=aske dbname=ogmios-datum-cache"
     , cfgServerPort = 9999
-    , cfgServerControlApiToken = Nothing
+    , cfgServerControlApiToken = "API_TOKEN"
     , cfgOgmiosAddress = "127.0.0.1"
     , cfgOgmiosPort = 1337
     , cfgFetcher = Nothing

@@ -110,31 +110,10 @@ Response
 ## Control API
 
 ### `POST /control/fetch_blocks`
-Available only if `server.controlApiToken` is not defined.
 
-Request body:
-```jsonc
-{
-  "slot": 44366242,
-  "id": "d2a4249fe3d0607535daa26caf12a38da2233586bc51e79ed0b3a36170471bf5",
-}
-```
-Responses:
-* 200 `{"message": "Started block fetcher"}`
-* 303 Reason: `Control API is restricted by the admin. Access by /restricted_control with Basic authentication.`
-* 422 `{"error": "Block fetcher already running"}`
-
-### `POST /control/cancel_fetch_blocks`
-Available only if `server.controlApiToken` is not defined.
-
-Responses:
-* 200 `{"message": "Stopped block fetcher"}`
-* 303 Reason: `Control API is restricted by the admin. Access by /restricted_control with Basic authentication.`
-* 422 `{"error": "No block fetcher running"}`
-
-### `POST /restricted_control/fetch_blocks`
 Request header:
-* Basic access authentication: `Authorization: Basic AXVubzpwQDU1dzByYM==`, where `dXNlcjpwYXNzd29yZA==` is `user:password` string in Base64 encoding. 
+
+* Basic access authentication: `Authorization: Basic dXNyOnB3ZA==`, where `dXNyOnB3ZA====` is `usr:pwd` string in Base64 encoding. 
   
 Request body:
 ```jsonc
@@ -150,9 +129,11 @@ Responses:
 * 403 Forbidden
 * 422 `{"error": "Block fetcher already running"}`
 
-### `POST /restricted_control/cancel_fetch_blocks`
+### `POST /control/cancel_fetch_blocks`
+
 Request header:
-* Basic access authentication: `Authorization: Basic AXVubzpwQDU1dzByYM==`, where `dXNlcjpwYXNzd29yZA==` is `user:password` string in Base64 encoding. 
+
+* Basic access authentication: `Authorization: Basic dXNyOnB3ZA==`, where `dXNyOnB3ZA====` is `usr:pwd` string in Base64 encoding. 
   
 Responses:
 * 200 `{"message": "Stopped block fetcher"}`
@@ -380,6 +361,7 @@ Response:
 ```
 
 #### StartFetchBlocks
+
 Request:
 ```jsonc
 {
@@ -391,7 +373,6 @@ Request:
     "slot": 1,
     "id": "abc",
     "datumFilter": { "address": "addr_xyz" },
-    // optional
     "token": "SECRET_CONTROL_API_TOKEN"
   },
   "mirror": "foo"
@@ -443,6 +424,7 @@ Response (fault - 2):
 ```
 
 #### CancelFetchBlocks
+
 Request:
 ```jsonc
 {
@@ -450,9 +432,7 @@ Request:
   "version": "1.0",
   "servicename": "ogmios-datum-cache",
   "methodname": "CancelFetchBlocks",
-  // optional
   "args": {
-     // optional
     "token": "SECRET_CONTROL_API_TOKEN",
   },
   "reflection": "foo"

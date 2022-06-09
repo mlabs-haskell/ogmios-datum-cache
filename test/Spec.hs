@@ -1,8 +1,6 @@
 module Main (main) where
 
 import Control.Monad.Catch (catch)
-import Data.Either (partitionEithers)
-import Data.List (intercalate)
 import System.Environment (lookupEnv)
 import Test.Hspec (hspec)
 
@@ -11,7 +9,7 @@ import App (
   appService,
   mkAppEnv,
  )
-import Config (Config (cfgServerControlApiToken), loadConfig)
+import Config (loadConfig)
 import Parameters (Parameters (Parameters))
 
 import Spec.Api.Handlers qualified
@@ -26,13 +24,7 @@ main = do
         | otherwise = return $ Left $ show @DbConnectionAcquireException err
   cfg <- loadConfig $ Parameters "config.toml"
   app <- (Right . appService <$> mkAppEnv cfg) `catch` handleDbException
-  appWithAuth <-
-    (Right . appService <$> mkAppEnv cfg {cfgServerControlApiToken = Just "test:test"})
-      `catch` handleDbException
-  let apps = case partitionEithers [app, appWithAuth] of
-        ([], [app', appWithAuth']) -> Right (app', appWithAuth')
-        (errs, _) -> Left $ intercalate "; " errs
   hspec $ do
-    Spec.Api.Handlers.spec apps
+    Spec.Api.Handlers.spec app
     Spec.Api.WebSocket.Types.spec
     Spec.Config.spec

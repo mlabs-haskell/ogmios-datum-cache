@@ -19,42 +19,25 @@ import Test.Hspec.Wai (
  )
 import Test.Hspec.Wai.JSON (json)
 
-spec :: Either String (Application, Application) -> Spec
+spec :: Either String Application -> Spec
 spec (Left err) =
   it "Handlers" $ pendingWith $ "test-env not runned: " <> err
-spec (Right (app, appWithAuth)) =
+spec (Right app) = do
   describe "Handlers" $ do
-    withoutAuthSpec app
-    withAuthSpec appWithAuth
-
-withoutAuthSpec :: Application -> Spec
-withoutAuthSpec app =
-  describe "Protect Privileged API is not configured" $
-    with (return app) $ do
-      it "/healthcheck - 200" $ get "/healthcheck" `shouldRespondWith` 200
-      it "/control/cancel_fetch_blocks - 401 Unauthorized" $ do
-        post "/control/cancel_fetch_blocks" ""
-          `shouldRespondWith` 401
-      it "/control/cancel_fetch_blocks with auth - 403 Forbidden" $ do
-        postWithAuth "test:test" "/control/cancel_fetch_blocks"
-          `shouldRespondWith` 403
-
-withAuthSpec :: Application -> Spec
-withAuthSpec appWithAuth =
-  describe "Protect Privileged API is configured" $
-    with (return appWithAuth) $ do
-      it "/healthcheck - 200" $ get "/healthcheck" `shouldRespondWith` 200
-      it "/control/cancel_fetch_blocks - 401 Unauthorized" $ do
-        post "/control/cancel_fetch_blocks" ""
-          `shouldRespondWith` 401
-      it "/control/cancel_fetch_blocks with auth - 422 Unprocessable Entity" $ do
-        postWithAuth "test:test" "/control/cancel_fetch_blocks"
-          `shouldRespondWith` [json|{"error": "No block fetcher running"}|]
-            { matchStatus = 422
-            }
-      it "/control/cancel_fetch_blocks with wrong auth - 403 Forbidden" $ do
-        postWithAuth "wrong:wrong" "/control/cancel_fetch_blocks"
-          `shouldRespondWith` 403
+    describe "Protect Privileged API is configured" $
+      with (return app) $ do
+        it "/healthcheck - 200" $ get "/healthcheck" `shouldRespondWith` 200
+        it "/control/cancel_fetch_blocks - 401 Unauthorized" $ do
+          post "/control/cancel_fetch_blocks" ""
+            `shouldRespondWith` 401
+        it "/control/cancel_fetch_blocks with wrong auth - 403 Forbidden" $ do
+          postWithAuth "wrong:wrong" "/control/cancel_fetch_blocks"
+            `shouldRespondWith` 403
+        it "/control/cancel_fetch_blocks with auth - 422 Unprocessable Entity" $ do
+          postWithAuth "usr:pwd" "/control/cancel_fetch_blocks"
+            `shouldRespondWith` [json|{"error": "No block fetcher running"}|]
+              { matchStatus = 422
+              }
 
 postWithAuth :: ByteString -> ByteString -> WaiSession st SResponse
 postWithAuth auth path = request methodPost path headers ""

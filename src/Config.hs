@@ -26,8 +26,7 @@ data BlockFetcherConfig = BlockFetcherConfig
 data Config = Config
   { cfgDbConnectionString :: ByteString
   , cfgServerPort :: Int
-  , -- |if Nothing -- grant the full access
-    cfgServerControlApiToken :: Maybe ControlApiToken
+  , cfgServerControlApiToken :: ControlApiToken
   , cfgOgmiosAddress :: String
   , cfgOgmiosPort :: Int
   , cfgFetcher :: Maybe BlockFetcherConfig
@@ -74,7 +73,7 @@ configT = do
   cfgDbConnectionString <- Toml.byteString "dbConnectionString" .= cfgDbConnectionString
   cfgServerPort <- Toml.int "server.port" .= cfgServerPort
   cfgServerControlApiToken <-
-    dioptional (Toml.diwrap (Toml.string "server.controlApiToken")) .= cfgServerControlApiToken
+    Toml.diwrap (Toml.string "server.controlApiToken") .= cfgServerControlApiToken
   cfgOgmiosAddress <- Toml.string "ogmios.address" .= cfgOgmiosAddress
   cfgOgmiosPort <- Toml.int "ogmios.port" .= cfgOgmiosPort
   cfgFetcher <- Toml.dioptional withFetcherT .= cfgFetcher

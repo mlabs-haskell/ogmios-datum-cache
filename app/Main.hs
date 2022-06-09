@@ -2,11 +2,12 @@ module Main (
   main,
 ) where
 
-import Control.Monad.Logger (logErrorNS, logInfoNS, runStdoutLoggingT)
+import Control.Monad (when)
+import Control.Monad.Logger (logErrorNS, logInfoNS, logWarnNS, runStdoutLoggingT)
 import Control.Monad.Reader (runReaderT)
 import Data.Aeson (eitherDecode)
 import Data.Default (def)
-import Data.Maybe (fromMaybe, isJust)
+import Data.Maybe (fromMaybe)
 import Data.Text qualified as Text
 import Network.Wai.Handler.Warp qualified as Warp
 import Network.Wai.Logger (withStdoutLogger)
@@ -52,12 +53,16 @@ main = do
   hSetBuffering stdout NoBuffering
   parameters <- paramInfo
   cfg@Config {..} <- loadConfig parameters
-  let withAuth = isJust cfgServerControlApiToken
-  print cfg
+  runStdoutLoggingT $ do
+    logInfoNS "ogmios-datum-cache" $ Text.pack $ show cfg
+    when (cfgServerControlApiToken == "usr:pwd") $
+      logWarnNS
+        "ogmios-datum-cache"
+        "Using default auth configuration is UNSAFE! Change 'server.controlApiToken'!"
   env <- mkAppEnv cfg
   initDbAndFetcher env cfg
   withStdoutLogger $ \logger -> do
     let warpSettings =
           Warp.setPort cfgServerPort $
             Warp.setLogger logger Warp.defaultSettings
-    Warp.runSettings warpSettings $ simpleCors $ appService withAuth env
+    Warp.runSettings warpSettings $ simpleCors $ appService env

@@ -1,6 +1,7 @@
 dbConnectionString = "host=localhost port=5432 user=aske dbname=ogmios-datum-cache"
 
 server.port = 9999
+server.controlApiToken = "usr:pwd"
 
 ogmios.address = "127.0.0.1"
 ogmios.port = 1337

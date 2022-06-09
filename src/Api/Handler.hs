@@ -60,7 +60,7 @@ controlApiAuthCheck Env {envControlApiToken} =
     let expect = envControlApiToken
         passed = ControlApiToken $ toString (usr <> ":" <> pwd)
     pure $
-      if expect == Just passed
+      if expect == passed
         then Authorized ControlApiAuthData
         else Unauthorized
 

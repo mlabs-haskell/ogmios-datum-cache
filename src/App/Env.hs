@@ -15,14 +15,14 @@ data Env = Env
     envDbConnection :: Hasql.Connection
   , envOgmiosInfo :: OgmiosInfo
   , envOgmiosWorker :: OgmiosWorkerMVar
-  , envControlApiToken :: Maybe ControlApiToken
+  , envControlApiToken :: ControlApiToken
   }
   deriving stock (Generic)
   deriving anyclass
     ( Has Hasql.Connection
     , Has OgmiosWorkerMVar
     , Has OgmiosInfo
-    , Has (Maybe ControlApiToken)
+    , Has ControlApiToken
     )
 
 newtype ControlApiToken = ControlApiToken {unControlApiToken :: String}

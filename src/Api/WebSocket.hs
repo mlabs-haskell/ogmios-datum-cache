@@ -106,7 +106,7 @@ getLastBlock = do
 withControlAuthToken :: ControlApiToken -> App WSResponse -> App WSResponse
 withControlAuthToken token action = do
   expectToken <- ask
-  if expectToken == Just token
+  if expectToken == token
     then action
     else pure $ Left $ mkCancelFetchBlocksFault "Control API token not granted"
 
