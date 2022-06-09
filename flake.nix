@@ -99,4 +99,5 @@
             ++ builtins.attrValues self.packages.${system};
         } "touch $out");
     };
+  herculesCI.ciSystems = [ "x86_64-linux" ];
 }
