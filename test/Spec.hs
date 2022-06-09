@@ -1,8 +1,28 @@
 module Main (main) where
 
-import Spec.Api.WebSocket.Types qualified
+import Control.Monad.Catch (catch)
+import System.Environment (lookupEnv)
 import Test.Hspec (hspec)
 
+import App (
+  DbConnectionAcquireException (),
+  appService,
+  mkAppEnv,
+ )
+import Config (loadConfig)
+import Parameters (Parameters (Parameters))
+
+import Spec.Api.Handlers qualified
+import Spec.Api.WebSocket.Types qualified
+
 main :: IO ()
-main = hspec $ do
-  Spec.Api.WebSocket.Types.spec
+main = do
+  ci <- (== Just "true") <$> lookupEnv "CI"
+  let handleDbException err
+        | ci = error $ "Test environment is not running: " <> show err
+        | otherwise = return $ Left $ show @DbConnectionAcquireException err
+  cfg <- loadConfig $ Parameters "config.toml"
+  app <- (Right . appService <$> mkAppEnv cfg) `catch` handleDbException
+  hspec $ do
+    Spec.Api.Handlers.spec app
+    Spec.Api.WebSocket.Types.spec

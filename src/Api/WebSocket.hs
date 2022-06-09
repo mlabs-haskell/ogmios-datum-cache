@@ -39,7 +39,7 @@ import Api.WebSocket.Types (
     StartFetchBlocks
   ),
  )
-import App (App)
+import App.Types (App)
 import Block.Fetch (
   StartBlockFetcherError (StartBlockFetcherErrorAlreadyRunning),
   StopBlockFetcherError (StopBlockFetcherErrorNotRunning),

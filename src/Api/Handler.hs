@@ -28,7 +28,7 @@ import Api.Types (
   StartBlockFetchingResponse (StartBlockFetchingResponse),
  )
 import Api.WebSocket (websocketServer)
-import App (App)
+import App.Types (App)
 import Block.Fetch (
   StartBlockFetcherError (StartBlockFetcherErrorAlreadyRunning),
   StopBlockFetcherError (StopBlockFetcherErrorNotRunning),
