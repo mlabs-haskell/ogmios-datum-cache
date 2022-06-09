@@ -46,7 +46,7 @@ import Block.Filter (DatumFilter, runDatumFilter, TxFilter, runFilter)
 import Block.Types (
   AlonzoBlock (body, header, headerHash),
   AlonzoBlockHeader (slot),
-  AlonzoTransaction (datums),
+  AlonzoTransaction,
   Block (MkAlonzoBlock, OtherBlock),
   BlockInfo (BlockInfo),
   FindIntersectResult (IntersectionFound, IntersectionNotFound),

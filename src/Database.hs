@@ -1,3 +1,4 @@
+{-# OPTIONS_GHC -Wno-unused-do-bind #-}
 module Database (
   initTables,
   Datum (..),
@@ -5,6 +6,7 @@ module Database (
   getDatumByHash,
   getDatumsByHashes,
   saveDatums,
+  getTransactionById,
   saveTransactions,
   initLastBlock,
   updateLastBlock,
@@ -32,8 +34,9 @@ import Hasql.Session (Session)
 import Hasql.Session qualified as Session
 import Hasql.Statement (Statement (Statement))
 
-import Block.Types (BlockInfo (BlockInfo), AlonzoTransaction (AlonzoTransaction))
+import Block.Types (BlockInfo (BlockInfo), AlonzoTransaction)
 import PlutusData qualified
+import Data.Int (Int64)
 
 data Datum = Datum
   { hash :: Text
@@ -249,17 +252,6 @@ getDatumsByHashes hashes = runExceptT $ do
   TxFilter will be capable of being applied to datums and transactions.
 -}
 
-saveTransactions :: 
-  ( MonadIO m
-  , MonadLogger m
-  , MonadReader r m
-  , Has Connection r
-  ) => 
-  [AlonzoTransaction] ->
-  m ()
-saveTransactions transactions = do
-  pure ()
-
 saveDatums ::
   ( MonadIO m
   , MonadLogger m
@@ -284,3 +276,20 @@ saveDatums datums = do
         "Error inserting datums: "
           <> Text.pack (show err)
       pure ()
+
+getTransactionById :: (MonadIO m, MonadReader r m, Has Connection r) =>
+  Int64 ->
+  m (Either DatabaseError AlonzoTransaction)
+getTransactionById txId = runExceptT $ do
+  throwE (DatabaseErrorDecodeError ["TxById not implemented"])
+
+saveTransactions :: 
+  ( MonadIO m
+  , MonadLogger m
+  , MonadReader r m
+  , Has Connection r
+  ) => 
+  [AlonzoTransaction] ->
+  m ()
+saveTransactions transactions = do
+  pure ()

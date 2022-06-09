@@ -46,7 +46,7 @@ import Block.Fetch (
   startBlockFetcher,
   stopBlockFetcher,
  )
-import Block.Filter (DatumFilter, TxFilter)
+import Block.Filter (TxFilter, txFitlerFromDatumFilter)
 import Block.Types (BlockInfo (BlockInfo))
 import Database (
   DatabaseError (DatabaseErrorDecodeError, DatabaseErrorNotFound),
@@ -146,7 +146,7 @@ websocketServer conn = forever $ do
           getLastBlock
         StartFetchBlocks firstBlockSlot firstBlockId datumFilter' -> do
           let datumFilter = fromMaybe def datumFilter'
-          startFetchBlocks firstBlockSlot firstBlockId datumFilter
+          startFetchBlocks firstBlockSlot firstBlockId (txFitlerFromDatumFilter datumFilter)
         CancelFetchBlocks ->
           cancelFetchBlocks
         GetHealthcheck ->

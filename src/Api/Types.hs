@@ -5,6 +5,7 @@ module Api.Types (
   GetDatumsByHashesRequest (..),
   GetDatumsByHashesDatum (..),
   GetDatumsByHashesResponse (..),
+  GetTransactionByIdResponse (..),
   StartBlockFetchingRequest (..),
   StartBlockFetchingResponse (..),
   CancelBlockFetchingResponse (..),
@@ -38,6 +39,20 @@ data GetDatumsByHashesDatum = GetDatumsByHashesDatum
 
 newtype GetDatumsByHashesResponse = GetDatumsByHashesResponse
   { datums :: Vector GetDatumsByHashesDatum
+  }
+  deriving stock (Generic)
+  deriving anyclass (ToJSON)
+
+data GetTransactionsByIdTx = GetTransactionsByIdTx
+  {
+
+  }
+  deriving stock (Generic)
+  deriving anyclass (ToJSON)
+
+newtype GetTransactionByIdResponse = GetTransactionById 
+  {
+    transactions :: Vector GetTransactionsByIdTx
   }
   deriving stock (Generic)
   deriving anyclass (ToJSON)

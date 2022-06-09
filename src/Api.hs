@@ -7,6 +7,7 @@ module Api (
 ) where
 
 import Data.Text (Text)
+import Data.Int (Int64)
 import Servant (Capture, Get, JSON, Post, Proxy (Proxy), ReqBody, Summary, (:>))
 import Servant.API.Generic (Generic, ToServantApi, genericApi, (:-))
 import Servant.API.WebSocket (WebSocket)
@@ -16,11 +17,7 @@ import Api.Types (
   GetDatumByHashResponse,
   GetDatumsByHashesRequest,
   GetDatumsByHashesResponse,
-  {-
   GetTransactionByIdResponse,
-  GetTransactionsByIdsRequest,
-  GetTransactionsByIdsResponse
-  -}
   StartBlockFetchingRequest,
   StartBlockFetchingResponse,
  )
@@ -40,6 +37,12 @@ data CacheApi route = CacheApi
         -- TODO: change to JSON request
         :> ReqBody '[JSON] GetDatumsByHashesRequest
         :> Get '[JSON] GetDatumsByHashesResponse
+  , getTransactionById ::
+      route
+        :- "transaction"
+        :> Summary "Get transaction by id"
+        :> Capture "id" Int64
+        :> Get '[JSON] GetTransactionByIdResponse
   , getLastBlock ::
       route
         :- "block"
