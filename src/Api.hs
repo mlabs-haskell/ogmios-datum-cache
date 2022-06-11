@@ -50,7 +50,7 @@ data DatumApi route = DatumApi
 data ControlApi route = ControlApi
   { setStartingBlock ::
       route
-        :- "block"
+        :- "startingBlock"
         :> Summary "Set starting block for block fetcher"
         :> ReqBody '[JSON] SetStartingBlockRequest
         :> Post '[JSON] CursorPoint

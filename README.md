@@ -109,7 +109,7 @@ Response
 
 ## Control API
 
-### `POST /control/block`
+### `POST /control/startingBlock`
 Request body:
 ```jsonc
 {
