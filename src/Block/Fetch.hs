@@ -180,6 +180,7 @@ startBlockFetcherAndProcessor ogmiosInfo dbConn blockInfo datumFilter queueSize 
           []
           $ \wsConn -> do
             fetcherEnv <- mkBlockFetcherEnv processorEnv wsConn
+            -- Set MVar to new env, no matter if it's empty or not
             void $ tryPutMVar blockFetcherEnvMVar fetcherEnv
             void $ swapMVar blockFetcherEnvMVar fetcherEnv
             flip runReaderT fetcherEnv
