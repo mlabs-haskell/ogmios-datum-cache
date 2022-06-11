@@ -162,7 +162,7 @@ startBlockFetcherAndProcessor ogmiosInfo dbConn blockInfo datumFilter queueSize 
     . unBlockProcessorApp
     $ processLoop
   blockFetcherEnvMVar <- liftIO newEmptyMVar
-  let handleExcpetion (e :: SomeException) = do
+  let handleException (e :: SomeException) = do
         -- TODO: do we want delay to be configurable?
         putStr "IO Exception occured, restarting block fetcher in 3s: "
         print e
@@ -171,7 +171,7 @@ startBlockFetcherAndProcessor ogmiosInfo dbConn blockInfo datumFilter queueSize 
         case lastBlock' of
           Nothing -> runInner blockInfo
           Just lastBlock -> runInner lastBlock
-      runInner startingBlock = handle handleExcpetion $
+      runInner startingBlock = handle handleException $
         runClientWith'
           ogmiosInfo.ogmiosAddress
           ogmiosInfo.ogmiosPort
