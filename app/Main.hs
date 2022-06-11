@@ -7,7 +7,7 @@ import Network.Wai.Logger (withStdoutLogger)
 import Network.Wai.Middleware.Cors (simpleCors)
 import System.IO (BufferMode (NoBuffering), hSetBuffering, stdout)
 
-import App (appService, initDbAndFetcher)
+import App (appService, bootstrapEnvFromConfig)
 import Config (Config (..), loadConfig)
 import Parameters (paramInfo)
 
@@ -17,7 +17,7 @@ main = do
   parameters <- paramInfo
   cfg@Config {..} <- loadConfig parameters
   print cfg
-  env <- initDbAndFetcher cfg
+  env <- bootstrapEnvFromConfig cfg
   withStdoutLogger $ \logger -> do
     let warpSettings =
           Warp.setPort cfgServerPort $

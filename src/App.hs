@@ -1,4 +1,4 @@
-module App (DbConnectionAcquireException (..), initDbAndFetcher, appService) where
+module App (DbConnectionAcquireException (..), bootstrapEnvFromConfig, appService) where
 
 import Control.Exception (Exception, try)
 import Control.Monad.Catch (throwM)
@@ -49,8 +49,9 @@ appService env = serve datumCacheApi appServer
     appServerT :: ServerT (ToServantApi Routes) App
     appServerT = genericServerT datumServiceHandlers
 
-initDbAndFetcher :: Config -> IO Env
-initDbAndFetcher cfg = do
+-- | Connect to database, start block fetcher and block processor
+bootstrapEnvFromConfig :: Config -> IO Env
+bootstrapEnvFromConfig cfg = do
   dbConn <-
     Hasql.acquire cfg.cfgDbConnectionString
       >>= either (throwM . DbConnectionAcquireException) pure
