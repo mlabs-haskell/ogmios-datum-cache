@@ -160,12 +160,12 @@ Request:
 Response (datum found):
 ```
 {
-  methodname: 'GetDatumByHash',
-  result: { DatumFound: { value: [Object] } },
-  version: '1.0',
-  servicename: 'ogmios-datum-cache',
-  type: 'jsonwsp/response',
-  reflection: {"meta": "this object will be mirrored under 'reflection' field in a response to this request"}
+  "methodname": "GetDatumByHash",
+  "result": { DatumFound: { value: [Object] } },
+  "version": "1.0",
+  "servicename": "ogmios-datum-cache",
+  "type": "jsonwsp/response",
+  "reflection": {"meta": "this object will be mirrored under 'reflection' field in a response to this request"}
 }
 ```
 
@@ -212,24 +212,24 @@ Response (datum found):
 Response (datum not found):
 ```
 {
-  methodname: 'GetDatumByHash',
-  result: { DatumNotFound: null },
-  version: '1.0',
-  servicename: 'ogmios-datum-cache',
-  type: 'jsonwsp/response',
-  reflection: {"meta": "this object will be mirrored under 'reflection' field in a response to this request"}
+  "methodname": "GetDatumByHash",
+  "result": { DatumNotFound: null },
+  "version": "1.0",
+  "servicename": "ogmios-datum-cache",
+  "type": "jsonwsp/response",
+  "reflection": {"meta": "this object will be mirrored under 'reflection field in a response to this request"}
 }
 ```
 
 Response (fault):
 ```
 {
-  methodname: 'GetDatumByHash',
-  version: '1.0',
-  fault: { string: 'Error deserializing plutus Data', code: 'client' },
-  servicename: 'ogmios-datum-cache',
-  type: 'jsonwsp/fault',
-  reflection: {"meta": "this object will be mirrored under 'reflection' field in a response to this request"}
+  "methodname": "GetDatumByHash",
+  "version": "1.0",
+  "fault": { string: "Error deserializing plutus Data", code: "client" },
+  "servicename": "ogmios-datum-cache",
+  "type": "jsonwsp/fault",
+  "reflection": {"meta": "this object will be mirrored under 'reflection' field in a response to this request"}
 }
 ```
 
@@ -256,12 +256,12 @@ Request:
 Response:
 ```
 {
-  methodname: 'GetDatumsByHashes',
-  result: { DatumsFound: { value: [Array] } },
-  version: '1.0',
-  servicename: 'ogmios-datum-cache',
-  type: 'jsonwsp/response',
-  reflection: "req.no.1"
+  "methodname": "GetDatumsByHashes",
+  "result": { DatumsFound: { value: [Array] } },
+  "version": "1.0",
+  "servicename": "ogmios-datum-cache",
+  "type": "jsonwsp/response",
+  "reflection": "req.no.1"
 }
 ```
 
@@ -312,15 +312,15 @@ Response:
 Response (fault)
 ```
 {
-  methodname: 'GetDatumsByHashes',
-  version: '1.0',
-  fault: {
-    string: 'Error deserializing plutus Data in: ["abc"]',
-    code: 'client'
+  "methodname": "GetDatumsByHashes",
+  "version": "1.0",
+  "fault": {
+    "string": "Error deserializing plutus Data in: ["abc"]",
+    "code": "client"
   },
-  servicename: 'ogmios-datum-cache',
-  type: 'jsonwsp/fault',
-  reflection: "req.no.1"
+  "servicename": :ogmios-datum-cache",
+  "type": "jsonwsp/fault",
+  "reflection": "req.no.1"
 }
 ```
 
@@ -390,14 +390,14 @@ Response:
 Response (fault):
 ```
 {
-  "methodname": SetStartingBlock,
-  "version": '1.0',
+  "methodname": "SetStartingBlock",
+  "version": "1.0",
   "fault": {
-    "string": 'notFound',
-    "code": 'client'
+    "string": "notFound",
+    "code": "client"
   },
-  "servicename": 'ogmios-datum-cache',
-  "type": 'jsonwsp/fault',
+  "servicename": "ogmios-datum-cache",
+  "type": "jsonwsp/fault",
   "reflection": "foo"
 }
 
