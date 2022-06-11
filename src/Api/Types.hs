@@ -5,6 +5,7 @@ module Api.Types (
   GetDatumsByHashesRequest (..),
   GetDatumsByHashesDatum (..),
   GetDatumsByHashesResponse (..),
+  ControlApiAuthData (..),
   StartBlockFetchingRequest (..),
   StartBlockFetchingResponse (..),
   CancelBlockFetchingResponse (..),
@@ -41,6 +42,11 @@ newtype GetDatumsByHashesResponse = GetDatumsByHashesResponse
   }
   deriving stock (Generic)
   deriving anyclass (ToJSON)
+
+-- newtype ControlApiToken = ControlApiToken {unControlApiToken :: Maybe String}
+--   deriving stock (Eq, Show)
+
+data ControlApiAuthData = ControlApiAuthData
 
 data StartBlockFetchingRequest = StartBlockFetchingRequest
   { slot :: Int64

@@ -9,27 +9,29 @@ import Data.ByteString.Lazy qualified as LBS
 import Data.Int (Int64)
 import Data.Maybe (fromMaybe)
 import Data.String.ToString (toString)
-import Toml (TomlCodec, dimap, (.=))
+import Parameters (Parameters (Parameters, config))
+import Toml (TomlCodec, dimap, dioptional, (.=))
 import Toml qualified
 
+import App.Env (ControlApiToken (ControlApiToken))
 import Block.Types (BlockInfo (BlockInfo), blockId, blockSlot)
-import Parameters (Parameters (Parameters, config))
 
 data BlockFetcherConfig = BlockFetcherConfig
   { cfgFetcherBlock :: BlockInfo
   , cfgFetcherFilterJson :: Maybe LBS.ByteString
   , cfgFetcherUseLatest :: Bool
   }
-  deriving stock (Show)
+  deriving stock (Show, Eq)
 
 data Config = Config
   { cfgDbConnectionString :: ByteString
   , cfgServerPort :: Int
+  , cfgServerControlApiToken :: ControlApiToken
   , cfgOgmiosAddress :: String
   , cfgOgmiosPort :: Int
   , cfgFetcher :: Maybe BlockFetcherConfig
   }
-  deriving stock (Show)
+  deriving stock (Show, Eq)
 
 withDefault :: a -> TomlCodec a -> TomlCodec a
 withDefault d c = dimap pure (fromMaybe d) (Toml.dioptional c)
@@ -70,6 +72,8 @@ configT :: TomlCodec Config
 configT = do
   cfgDbConnectionString <- Toml.byteString "dbConnectionString" .= cfgDbConnectionString
   cfgServerPort <- Toml.int "server.port" .= cfgServerPort
+  cfgServerControlApiToken <-
+    Toml.diwrap (Toml.string "server.controlApiToken") .= cfgServerControlApiToken
   cfgOgmiosAddress <- Toml.string "ogmios.address" .= cfgOgmiosAddress
   cfgOgmiosPort <- Toml.int "ogmios.port" .= cfgOgmiosPort
   cfgFetcher <- Toml.dimatch id Just withFetcherT .= cfgFetcher

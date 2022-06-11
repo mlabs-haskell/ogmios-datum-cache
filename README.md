@@ -110,20 +110,35 @@ Response
 ## Control API
 
 ### `POST /control/fetch_blocks`
+
+Request header:
+
+* Basic access authentication: `Authorization: Basic dXNyOnB3ZA==`, where `dXNyOnB3ZA====` is `usr:pwd` string in Base64 encoding. 
+  
 Request body:
 ```jsonc
 {
   "slot": 44366242,
-  "id": "d2a4249fe3d0607535daa26caf12a38da2233586bc51e79ed0b3a36170471bf5"
+  "id": "d2a4249fe3d0607535daa26caf12a38da2233586bc51e79ed0b3a36170471bf5",
 }
 ```
+
 Responses:
 * 200 `{"message": "Started block fetcher"}`
+* 401 Unauthorized
+* 403 Forbidden
 * 422 `{"error": "Block fetcher already running"}`
 
 ### `POST /control/cancel_fetch_blocks`
+
+Request header:
+
+* Basic access authentication: `Authorization: Basic dXNyOnB3ZA==`, where `dXNyOnB3ZA====` is `usr:pwd` string in Base64 encoding. 
+  
 Responses:
 * 200 `{"message": "Stopped block fetcher"}`
+* 401 Unauthorized
+* 403 Forbidden
 * 422 `{"error": "No block fetcher running"}`
 
 ### `GET /healthcheck`
@@ -346,6 +361,7 @@ Response:
 ```
 
 #### StartFetchBlocks
+
 Request:
 ```jsonc
 {
@@ -356,7 +372,8 @@ Request:
   "args": {
     "slot": 1,
     "id": "abc",
-    "datumFilter": { "address": "addr_xyz" }
+    "datumFilter": { "address": "addr_xyz" },
+    "token": "SECRET_CONTROL_API_TOKEN"
   },
   "mirror": "foo"
 }
@@ -376,7 +393,7 @@ Response:
 }
 ```
 
-Response (fault):
+Response (fault - 1):
 ```jsonc
 {
   "methodname": "StartFetchBlocks",
@@ -391,7 +408,23 @@ Response (fault):
 }
 ```
 
+Response (fault - 2):
+```jsonc
+{
+  "methodname": "StartFetchBlocks",
+  "version": "1.0",
+  "fault": {
+    "string": "Control API token not granted",
+    "code": "client"
+  },
+  "servicename": "ogmios-datum-cache",
+  "type": "jsonwsp/fault",
+  "reflection": "foo"
+}
+```
+
 #### CancelFetchBlocks
+
 Request:
 ```jsonc
 {
@@ -399,6 +432,9 @@ Request:
   "version": "1.0",
   "servicename": "ogmios-datum-cache",
   "methodname": "CancelFetchBlocks",
+  "args": {
+    "token": "SECRET_CONTROL_API_TOKEN",
+  },
   "reflection": "foo"
 }
 ```
@@ -417,13 +453,28 @@ Response:
 }
 ```
 
-Response (fault):
+Response (fault - 1):
 ```jsonc
 {
   "methodname": "CancelFetchBlocks",
   "version": "1.0",
   "fault": {
     "string": "No block fetcher running",
+    "code": "client"
+  },
+  "servicename": "ogmios-datum-cache",
+  "type": "jsonwsp/fault",
+  "reflection": "foo"
+}
+```
+
+Response (fault - 2):
+```jsonc
+{
+  "methodname": "CancelFetchBlocks",
+  "version": "1.0",
+  "fault": {
+    "string": "Control API token not granted",
     "code": "client"
   },
   "servicename": "ogmios-datum-cache",
@@ -584,6 +635,10 @@ docker-compose up -f deploy/docker-compose.yml -d
 Modify `config.toml` in the app working directory (currently `/home/ubuntu/seabug/ogmios-datum-cache`).
 
 * `dbConnectionString` (postgres libpq connection string) — `host=localhost port=5432 user=<user> password=<pass>`
+
+* `server.port` defines port of ogmios-datum-chahe server
+
+* `server.controlApiToken` defines the secrete token, required for control API call. Format: `user:password`
 
 * `blockFetcher.autoStart` defines if initial block fetcher should start automatically.
 

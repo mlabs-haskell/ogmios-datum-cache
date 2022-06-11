@@ -1,21 +1,67 @@
+{-# LANGUAGE QuasiQuotes #-}
+
 module Spec.Api.WebSocket.Types (spec) where
+
+import Data.Aeson (decode)
+import Data.String.Interpolate (i)
+import Test.Hspec (Spec, describe, it, shouldBe)
 
 import Api.WebSocket.Types (
   JsonWspRequest (JsonWspRequest),
-  Method (CancelFetchBlocks),
+  Method (CancelFetchBlocks, GetHealthcheck, StartFetchBlocks),
  )
-import Data.Aeson (decode)
-import Test.Hspec (Spec, describe, it, shouldBe)
 
 spec :: Spec
 spec = do
   describe "Api.WebSocket.Types" $ do
     describe "decode JsonWspRequest with mirror argument" $ do
       it "mirror is a text" $ do
-        decode "{\"methodname\":\"CancelFetchBlocks\", \"mirror\": \"Text\"}"
+        decode
+          [i|{"methodname": "GetHealthcheck", "mirror": "Text"}|]
           `shouldBe` Just
-            (JsonWspRequest (Just "Text") CancelFetchBlocks)
-      it "mirrot is an object " $ do
-        decode "{\"methodname\":\"CancelFetchBlocks\", \"mirror\": {\"field\": \"Text\"}}"
+            (JsonWspRequest (Just "Text") GetHealthcheck)
+      it "mirror is an object " $ do
+        decode
+          [i|{"methodname": "GetHealthcheck", "mirror": {"field": "Text"}}|]
           `shouldBe` Just
-            (JsonWspRequest (decode "{\"field\": \"Text\"}") CancelFetchBlocks)
+            (JsonWspRequest (decode "{\"field\": \"Text\"}") GetHealthcheck)
+    describe "parseJSON StartFetchBlocks method" $ do
+      it "without token" $ do
+        decode
+          [i|
+            {
+              "methodname": "StartFetchBlocks",
+              "args": {
+                "slot": 1,
+                "id": "ID"
+              }
+            }
+          |]
+          `shouldBe` Nothing @JsonWspRequest
+      it "without token" $ do
+        decode
+          [i|
+            {
+              "methodname": "StartFetchBlocks",
+              "args": {
+                "slot": 1,
+                "id": "ID",
+                "token": "X"
+              }
+            }
+          |]
+          `shouldBe` Just
+            (JsonWspRequest Nothing $ StartFetchBlocks 1 "ID" Nothing "X")
+    describe "parseJSON CancelFetchBlocks method" $ do
+      it "with token" $ do
+        decode
+          [i|{"methodname": "CancelFetchBlocks", "args": {"token": "X"}}|]
+          `shouldBe` Just
+            (JsonWspRequest Nothing $ CancelFetchBlocks "X")
+      it "without token in args" $ do
+        decode [i|{"methodname": "CancelFetchBlocks", "args": {}}|]
+          `shouldBe` Nothing @JsonWspRequest
+
+      it "without args" $ do
+        decode [i|{"methodname": "CancelFetchBlocks"}|]
+          `shouldBe` Nothing @JsonWspRequest

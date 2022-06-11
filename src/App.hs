@@ -7,10 +7,11 @@ import Control.Monad.Reader (runReaderT)
 import Hasql.Connection qualified as Connection
 import Hasql.Connection qualified as Hasql
 
-import Api (Routes, datumCacheApi)
-import Api.Handler (datumServiceHandlers)
+import Api (Routes, datumCacheApi, datumCacheContext)
+import Api.Handler (controlApiAuthCheck, datumServiceHandlers)
+import Api.Types (ControlApiAuthData)
 import App.Env (
-  Env (Env, envDbConnection, envOgmiosInfo, envOgmiosWorker),
+  Env (Env, envControlApiToken, envDbConnection, envOgmiosInfo, envOgmiosWorker),
  )
 import App.Types (App (unApp))
 import Block.Fetch (
@@ -24,16 +25,19 @@ import Config (
     cfgFetcher,
     cfgOgmiosAddress,
     cfgOgmiosPort,
+    cfgServerControlApiToken,
     cfgServerPort
   ),
  )
 import Servant.API.Generic (ToServantApi)
 import Servant.Server (
   Application,
+  BasicAuthCheck,
+  Context (EmptyContext, (:.)),
   Handler (Handler),
   ServerT,
-  hoistServer,
-  serve,
+  hoistServerWithContext,
+  serveWithContext,
  )
 import Servant.Server.Generic (genericServerT)
 
@@ -44,6 +48,7 @@ mkAppEnv Config {..} = do
       >>= either (throwM . DbConnectionAcquireException) pure
   let envOgmiosInfo = OgmiosInfo cfgOgmiosPort cfgOgmiosAddress
   envOgmiosWorker <- createStoppedFetcher
+  let envControlApiToken = cfgServerControlApiToken
   return Env {..}
 
 newtype DbConnectionAcquireException
@@ -52,10 +57,19 @@ newtype DbConnectionAcquireException
   deriving anyclass (Exception)
 
 appService :: Env -> Application
-appService env = serve datumCacheApi appServer
+appService env =
+  serveWithContext datumCacheApi serverContext appServer
   where
     appServer :: ServerT (ToServantApi Routes) Handler
-    appServer = hoistServer datumCacheApi hoistApp appServerT
+    appServer =
+      hoistServerWithContext
+        datumCacheApi
+        datumCacheContext
+        hoistApp
+        appServerT
+
+    serverContext :: Context '[BasicAuthCheck ControlApiAuthData]
+    serverContext = controlApiAuthCheck env :. EmptyContext
 
     hoistApp :: App a -> Handler a
     hoistApp = Handler . ExceptT . try . runStdoutLoggingT . flip runReaderT env . unApp

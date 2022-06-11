@@ -2,7 +2,9 @@ module Block.Fetch (
   OgmiosWorkerMVar (MkOgmiosWorkerMVar),
   OgmiosInfo (..),
   StartBlockFetcherError (..),
+  startBlockErrMsg,
   StopBlockFetcherError (..),
+  stopBlockErrMsg,
   startBlockFetcher,
   stopBlockFetcher,
   createStoppedFetcher,
@@ -33,6 +35,7 @@ import Control.Monad.Trans (liftIO)
 import Data.Aeson qualified as Aeson
 import Data.ByteString.Base64 qualified as Base64
 import Data.Map qualified as Map
+import Data.String (IsString)
 import Data.Text (Text)
 import Data.Text qualified as Text
 import Data.Text.Encoding qualified as Text
@@ -69,6 +72,9 @@ newtype OgmiosWorkerMVar = MkOgmiosWorkerMVar (MVar (Async ()))
 data StartBlockFetcherError
   = StartBlockFetcherErrorAlreadyRunning
   deriving stock (Show)
+
+startBlockErrMsg :: IsString s => StartBlockFetcherError -> s
+startBlockErrMsg StartBlockFetcherErrorAlreadyRunning = "Block fetcher already running"
 
 startBlockFetcher ::
   ( MonadIO m
@@ -115,6 +121,9 @@ startBlockFetcher blockInfo datumFilter = do
 data StopBlockFetcherError
   = StopBlockFetcherErrorNotRunning
   deriving stock (Show, Eq)
+
+stopBlockErrMsg :: IsString s => StopBlockFetcherError -> s
+stopBlockErrMsg StopBlockFetcherErrorNotRunning = "No block fetcher running"
 
 stopBlockFetcher ::
   (MonadIO m, MonadReader r m, Has OgmiosWorkerMVar r) =>
