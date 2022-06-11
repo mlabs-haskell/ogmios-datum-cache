@@ -189,7 +189,7 @@ startBlockFetcherAndProcessor ogmiosInfo dbConn blockInfo datumFilter queueSize 
   void . liftIO . forkIO . runInner $ blockInfo
   pure (blockFetcherEnvMVar, processorEnv)
 
------- Fetcher
+-- * Fetcher
 
 newtype BlockFetcherApp a = BlockFetcherApp
   { unBlockFetcherApp :: LoggingT (ReaderT BlockFetcherEnv IO) a
@@ -294,7 +294,7 @@ fetchNextBlock = do
           "Fetched block: "
             <> show (slot $ header block, headerHash block)
 
------ Processor
+-- * Processor
 
 newtype BlockProcessorApp a = BlockProcessorApp
   { unBlockProcessorApp :: LoggingT (ReaderT BlockProcessorEnv IO) a
