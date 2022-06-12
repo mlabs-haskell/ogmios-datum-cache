@@ -1,5 +1,3 @@
-{-# LANGUAGE QuasiQuotes #-}
-
 module Spec.Api.Handlers (spec) where
 
 import Servant.Server (Application)
