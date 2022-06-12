@@ -5,6 +5,7 @@ module Api.Types (
   GetDatumsByHashesResponse (..),
   SetStartingBlockRequest (..),
   SetDatumFilterRequest (..),
+  ControlApiAuthData (..),
 ) where
 
 import Data.Aeson (FromJSON, ToJSON)
@@ -44,6 +45,8 @@ newtype SetStartingBlockRequest = SetStartingBlockRequest
   }
   deriving stock (Generic)
   deriving anyclass (FromJSON)
+
+data ControlApiAuthData = ControlApiAuthData
 
 newtype SetDatumFilterRequest = SetDatumFilterRequest
   { datumFilter :: DatumFilter

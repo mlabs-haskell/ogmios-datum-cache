@@ -14,6 +14,7 @@ import Parameters (Parameters (Parameters))
 
 import Spec.Api.Handlers qualified
 import Spec.Api.WebSocket.Types qualified
+import Spec.Config qualified
 
 main :: IO ()
 main = do
@@ -26,3 +27,4 @@ main = do
   hspec $ do
     Spec.Api.Handlers.spec app
     Spec.Api.WebSocket.Types.spec
+    Spec.Config.spec

@@ -1,22 +1,34 @@
-module Api.Handler (datumServiceHandlers) where
+{-# LANGUAGE NamedFieldPuns #-}
+
+module Api.Handler (
+  controlApiAuthCheck,
+  datumServiceHandlers,
+) where
 
 import Control.Monad.Catch (throwM)
 import Control.Monad.Logger (logInfoNS)
+import Data.String.ToString (toString)
 import Data.Text (Text)
 import Data.Text qualified as Text
 import Network.WebSockets qualified as WebSockets
 import Servant (err404, err500)
+import Servant.API.BasicAuth (BasicAuthData (BasicAuthData))
 import Servant.API.Generic (ToServant)
+import Servant.Server (
+  BasicAuthCheck (BasicAuthCheck),
+  BasicAuthResult (Authorized, Unauthorized),
+ )
 import Servant.Server.Generic (AsServerT, genericServerT)
 
 import Api (
-  ControlApi (ControlApi),
+  ControlApi (ControlApi, setDatumFilter, setStartingBlock),
   DatumApi (DatumApi, getDatumByHash, getDatumsByHashes, getHealthcheck, getLastBlock),
   Routes (Routes, controlRoutes, datumRoutes, websocketRoutes),
   WebSocketApi (WebSocketApi, websocketApi),
  )
 import Api.Error (JsonError (JsonError), throwJsonError)
 import Api.Types (
+  ControlApiAuthData (ControlApiAuthData),
   GetDatumByHashResponse (GetDatumByHashResponse),
   GetDatumsByHashesDatum (GetDatumsByHashesDatum),
   GetDatumsByHashesRequest (GetDatumsByHashesRequest),
@@ -25,6 +37,7 @@ import Api.Types (
   SetStartingBlockRequest (SetStartingBlockRequest),
  )
 import Api.WebSocket (websocketServer)
+import App.Env (ControlApiToken (ControlApiToken), Env (Env, envControlApiToken))
 import App.Types (App)
 import Block.Fetch (changeDatumFilter, changeStartingBlock)
 import Block.Types (BlockInfo, CursorPoint)
@@ -34,11 +47,22 @@ import Database (
  )
 import Database qualified
 
+controlApiAuthCheck :: Env -> BasicAuthCheck ControlApiAuthData
+controlApiAuthCheck Env {envControlApiToken} =
+  BasicAuthCheck $ \(BasicAuthData usr pwd) -> do
+    let expect = envControlApiToken
+        passed = ControlApiToken $ toString (usr <> ":" <> pwd)
+    pure $
+      if expect == passed
+        then Authorized ControlApiAuthData
+        else Unauthorized
+
 datumServiceHandlers :: Routes (AsServerT App)
-datumServiceHandlers = Routes {..}
+datumServiceHandlers =
+  Routes {datumRoutes, controlRoutes, websocketRoutes}
   where
     datumRoutes :: ToServant DatumApi (AsServerT App)
-    datumRoutes = genericServerT DatumApi {..}
+    datumRoutes = genericServerT DatumApi {getDatumByHash, getDatumsByHashes, getLastBlock, getHealthcheck}
 
     catchDatabaseError r = do
       case r of
@@ -74,10 +98,6 @@ datumServiceHandlers = Routes {..}
     getHealthcheck :: App ()
     getHealthcheck = pure ()
 
-    -- control api
-    controlRoutes :: ToServant ControlApi (AsServerT App)
-    controlRoutes = genericServerT $ ControlApi setStartingBlock setDatumFilter
-
     setStartingBlock :: SetStartingBlockRequest -> App CursorPoint
     setStartingBlock (SetStartingBlockRequest blockInfo) = do
       intersection' <- changeStartingBlock blockInfo
@@ -89,8 +109,13 @@ datumServiceHandlers = Routes {..}
     setDatumFilter (SetDatumFilterRequest datumFilter) = do
       changeDatumFilter datumFilter
 
+    controlRoutes :: ControlApiAuthData -> ToServant ControlApi (AsServerT App)
+    controlRoutes ControlApiAuthData =
+      genericServerT
+        ControlApi {setStartingBlock, setDatumFilter}
+
     websocketRoutes :: ToServant WebSocketApi (AsServerT App)
-    websocketRoutes = genericServerT WebSocketApi {..}
+    websocketRoutes = genericServerT WebSocketApi {websocketApi}
 
     websocketApi :: WebSockets.Connection -> App ()
     websocketApi conn = do

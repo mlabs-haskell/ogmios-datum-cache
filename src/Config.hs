@@ -1,18 +1,20 @@
 {-# LANGUAGE ApplicativeDo #-}
+{-# LANGUAGE NamedFieldPuns #-}
 
 module Config (loadConfig, Config (..), BlockFetcherConfig (..)) where
 
-import Control.Monad.IO.Class (MonadIO (liftIO))
+import Control.Monad.IO.Class (MonadIO)
 import Data.ByteString (ByteString)
 import Data.ByteString.Lazy qualified as LBS
 import Data.Int (Int64)
 import Data.Maybe (fromMaybe)
+import Data.String.ToString (toString)
 import GHC.Natural (Natural)
 import Parameters (Parameters (Parameters, config))
-import System.Directory (doesFileExist)
-import Toml (TomlCodec, dimap, (.=))
+import Toml (TomlCodec, dimap, dioptional, (.=))
 import Toml qualified
 
+import App.Env (ControlApiToken (ControlApiToken))
 import Block.Types (BlockInfo (BlockInfo), blockId, blockSlot)
 
 data BlockFetcherConfig = BlockFetcherConfig
@@ -21,16 +23,17 @@ data BlockFetcherConfig = BlockFetcherConfig
   , cfgFetcherUseLatest :: Bool
   , cfgFetcherQueueSize :: Natural
   }
-  deriving stock (Show)
+  deriving stock (Show, Eq)
 
 data Config = Config
   { cfgDbConnectionString :: ByteString
   , cfgServerPort :: Int
+  , cfgServerControlApiToken :: ControlApiToken
   , cfgOgmiosAddress :: String
   , cfgOgmiosPort :: Int
   , cfgFetcher :: BlockFetcherConfig
   }
-  deriving stock (Show)
+  deriving stock (Show, Eq)
 
 withDefault :: a -> TomlCodec a -> TomlCodec a
 withDefault d c = dimap pure (fromMaybe d) (Toml.dioptional c)
@@ -65,14 +68,16 @@ configT :: TomlCodec Config
 configT = do
   cfgDbConnectionString <- Toml.byteString "dbConnectionString" .= cfgDbConnectionString
   cfgServerPort <- Toml.int "server.port" .= cfgServerPort
+  cfgServerControlApiToken <-
+    Toml.diwrap (Toml.string "server.controlApiToken") .= cfgServerControlApiToken
   cfgOgmiosAddress <- Toml.string "ogmios.address" .= cfgOgmiosAddress
   cfgOgmiosPort <- Toml.int "ogmios.port" .= cfgOgmiosPort
   cfgFetcher <- withFetcherT .= cfgFetcher
   pure Config {..}
 
 loadConfig :: MonadIO m => Parameters -> m Config
-loadConfig Parameters {..} = do
-  fileExists <- liftIO $ doesFileExist config
-  if fileExists
-    then Toml.decodeFile configT config
-    else error $ "Config file \"" ++ config ++ "\" doesn't exist."
+loadConfig Parameters {config} = do
+  tomlRes <- Toml.decodeFileEither configT config
+  case tomlRes of
+    Left errs -> error $ toString $ Toml.prettyTomlDecodeErrors errs
+    Right conf -> return conf

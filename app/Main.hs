@@ -2,6 +2,9 @@ module Main (
   main,
 ) where
 
+import Control.Monad (when)
+import Control.Monad.Logger (logInfoNS, logWarnNS, runStdoutLoggingT)
+import Data.Text qualified as Text
 import Network.Wai.Handler.Warp qualified as Warp
 import Network.Wai.Logger (withStdoutLogger)
 import Network.Wai.Middleware.Cors (simpleCors)
@@ -17,6 +20,12 @@ main = do
   parameters <- paramInfo
   cfg@Config {..} <- loadConfig parameters
   print cfg
+  runStdoutLoggingT $ do
+    logInfoNS "ogmios-datum-cache" $ Text.pack $ show cfg
+    when (cfgServerControlApiToken == "usr:pwd") $
+      logWarnNS
+        "ogmios-datum-cache"
+        "Using default auth configuration is UNSAFE! Change 'server.controlApiToken'!"
   env <- bootstrapEnvFromConfig cfg
   withStdoutLogger $ \logger -> do
     let warpSettings =

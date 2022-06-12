@@ -110,6 +110,11 @@ Response
 ## Control API
 
 ### `POST /control/startingBlock`
+
+Request header:
+
+* Basic access authentication: `Authorization: Basic dXNyOnB3ZA==`, where `dXNyOnB3ZA====` is `usr:pwd` string in Base64 encoding.
+
 Request body:
 ```jsonc
 {
@@ -119,21 +124,30 @@ Request body:
   }
 }
 ```
+
 Responses:
-* 200 `{"hash":"7c8aec019a21ffd0049d64b0c9874d93376ed5662b4cf7d78e186b5958ecb00d","slot":59809992`
-* 404 - if intersection is not found
+* 200 `{"hash":"7c8aec019a21ffd0049d64b0c9874d93376ed5662b4cf7d78e186b5958ecb00d","slot":59809992}`
+* 401 Unauthorized
+* 403 Forbidden
 
 ### `POST /control/datumFilter`
+
+Request header:
+
+* Basic access authentication: `Authorization: Basic dXNyOnB3ZA==`, where `dXNyOnB3ZA====` is `usr:pwd` string in Base64 encoding.
+
 Request body:
 ```jsonc
 {
-  "datumFilter": {
-    "hash": "foobar"
-  }
+  "datumFilter": {"all": []}
 }
 ```
+
 Responses:
 * 200 `[]`
+* 401 Unauthorized
+* 403 Forbidden
+
 
 ### `GET /healthcheck`
 Response:
@@ -355,6 +369,7 @@ Response:
 ```
 
 #### SetStartingBlock
+
 Request:
 ```jsonc
 {
@@ -366,7 +381,8 @@ Request:
     "startingBlock": {
       "blockSlot": 59809992,
       "blockId": "7c8aec019a21ffd0049d64b0c9874d93376ed5662b4cf7d78e186b5958ecb00d"
-    }
+    },
+    "token": "SECRET_CONTROL_API_TOKEN"
   },
   "mirror": "foo"
 }
@@ -387,8 +403,8 @@ Response:
 }
 ```
 
-Response (fault):
-```
+Response (fault - 1):
+```jsonc
 {
   "methodname": "SetStartingBlock",
   "version": "1.0",
@@ -401,18 +417,32 @@ Response (fault):
   "reflection": "foo"
 }
 
-#### SetDatumFilter
+Response (fault - 2):
+```jsonc
+{
+  "methodname": "StartFetchBlocks",
+  "version": "1.0",
+  "fault": {
+    "string": "Control API token not granted",
+    "code": "client"
+  },
+  "servicename": "ogmios-datum-cache",
+  "type": "jsonwsp/fault",
+  "reflection": "foo"
+}
+```
+
+#### CancelFetchBlocks
+
 Request:
 ```jsonc
 {
   "type": "jsonwsp/request",
   "version": "1.0",
   "servicename": "ogmios-datum-cache",
-  "methodname": "SetDatumFilter",
+  "methodname": "CancelFetchBlocks",
   "args": {
-    "datumFilter": {
-      "hash": "foobar"
-    }
+    "token": "SECRET_CONTROL_API_TOKEN",
   },
   "reflection": "foo"
 }
@@ -427,6 +457,36 @@ Response:
   "version": "1.0",
   "servicename": "ogmios-datum-cache",
   "type": "jsonwsp/response",
+  "reflection": "foo"
+}
+```
+
+Response (fault - 1):
+```jsonc
+{
+  "methodname": "CancelFetchBlocks",
+  "version": "1.0",
+  "fault": {
+    "string": "No block fetcher running",
+    "code": "client"
+  },
+  "servicename": "ogmios-datum-cache",
+  "type": "jsonwsp/fault",
+  "reflection": "foo"
+}
+```
+
+Response (fault - 2):
+```jsonc
+{
+  "methodname": "CancelFetchBlocks",
+  "version": "1.0",
+  "fault": {
+    "string": "Control API token not granted",
+    "code": "client"
+  },
+  "servicename": "ogmios-datum-cache",
+  "type": "jsonwsp/fault",
   "reflection": "foo"
 }
 ```
@@ -583,6 +643,12 @@ docker-compose up -f deploy/docker-compose.yml -d
 Modify `config.toml` in the app working directory (currently `/home/ubuntu/seabug/ogmios-datum-cache`).
 
 * `dbConnectionString` (postgres libpq connection string) — `host=localhost port=5432 user=<user> password=<pass>`
+
+* `server.port` defines port of ogmios-datum-chahe server
+
+* `server.controlApiToken` defines the secrete token, required for control API call. Format: `user:password`
+
+* `blockFetcher.autoStart` defines if initial block fetcher should start automatically.
 
 * `blockFetcher.filter` defines json encoded [filter](#filter) for initial block fetcher. If not defined filter will accept all datums.
 

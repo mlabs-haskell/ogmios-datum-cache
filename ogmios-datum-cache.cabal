@@ -57,6 +57,7 @@ library
   exposed-modules:
     Api
     Api.Handler
+    Api.Types
     Api.WebSocket
     Api.WebSocket.Json
     Api.WebSocket.Types
@@ -64,15 +65,14 @@ library
     App.Env
     App.Types
     Block.Fetch
+    Block.Types
     Config
     Database
     Parameters
 
   other-modules:
     Api.Error
-    Api.Types
     Block.Filter
-    Block.Types
     PlutusData
 
   build-depends:
@@ -102,6 +102,7 @@ library
     , stm
     , text
     , tomland
+    , tostring
     , transformers
     , unordered-containers
     , vector
@@ -147,6 +148,7 @@ test-suite ogmios-datum-cache-test
   other-modules:
     Spec.Api.Handlers
     Spec.Api.WebSocket.Types
+    Spec.Config
 
   ghc-options:
     -Wall -Wcompat -Wincomplete-uni-patterns
@@ -158,10 +160,18 @@ test-suite ogmios-datum-cache-test
   build-depends:
     , aeson
     , base
+    , base64-bytestring
+    , bytestring
+    , directory
     , exceptions
     , hspec
     , hspec-wai
+    , hspec-wai-json
+    , http-types
     , ogmios-datum-cache
     , record-dot-preprocessor
     , record-hasfield
     , servant-server
+    , string-interpolate
+    , temporary
+    , wai-extra

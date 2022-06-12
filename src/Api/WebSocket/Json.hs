@@ -1,6 +1,6 @@
 module Api.WebSocket.Json (
   JsonWspResponse,
-  JsonWspFault,
+  JsonWspFault (JsonWspFault),
   mkGetDatumByHashResponse,
   mkGetDatumByHashFault,
   mkGetDatumsByHashesResponse,

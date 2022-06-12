@@ -11,7 +11,7 @@ import Data.Vector qualified as Vector
 import Network.WebSockets qualified as WebSockets
 
 import Api.WebSocket.Json (
-  JsonWspFault,
+  JsonWspFault (JsonWspFault),
   JsonWspResponse,
   mkGetBlockFault,
   mkGetBlockResponse,
@@ -36,6 +36,7 @@ import Api.WebSocket.Types (
     SetStartingBlock
   ),
  )
+import App.Env (ControlApiToken)
 import App.Types (App)
 import Block.Fetch (changeDatumFilter, changeStartingBlock)
 import Block.Filter (DatumFilter)
@@ -94,6 +95,13 @@ getLastBlock = do
     Just block ->
       Right $ mkGetBlockResponse block
 
+withControlAuthToken :: ControlApiToken -> Text -> App WSResponse -> App WSResponse
+withControlAuthToken token methodName action = do
+  expectToken <- ask
+  if expectToken == token
+    then action
+    else pure $ Left $ JsonWspFault methodName "Control API token not granted" ""
+
 getHealthcheck :: App WSResponse
 getHealthcheck = do
   pure $ Right mkHealthcheckResponse
@@ -130,10 +138,10 @@ websocketServer conn = forever $ do
           getLastBlock
         GetHealthcheck ->
           getHealthcheck
-        SetStartingBlock block ->
-          setStartingBlock block
-        SetDatumFilter datumFilter ->
-          setDatumFilter datumFilter
+        SetStartingBlock token block ->
+          withControlAuthToken token "SetStartingBlock" $ setStartingBlock block
+        SetDatumFilter token datumFilter ->
+          withControlAuthToken token "SetDatumFilter" $ setDatumFilter datumFilter
 
       let jsonResp =
             either

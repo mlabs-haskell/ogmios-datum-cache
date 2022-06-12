@@ -9,6 +9,7 @@ import Data.Aeson qualified as Aeson
 import Data.Text (Text)
 import GHC.Generics (Generic)
 
+import App.Env (ControlApiToken (ControlApiToken))
 import Block.Filter (DatumFilter)
 import Block.Types (BlockInfo)
 import PlutusData qualified
@@ -40,11 +41,13 @@ instance FromJSON JsonWspRequest where
           "SetStartingBlock" -> do
             args <- o .: "args"
             block <- args .: "startingBlock"
-            pure $ SetStartingBlock block
+            token <- ControlApiToken <$> args .: "token"
+            pure $ SetStartingBlock token block
           "SetDatumFilter" -> do
             args <- o .: "args"
             datumFilter <- args .: "datumFilter"
-            pure $ SetDatumFilter datumFilter
+            token <- ControlApiToken <$> args .: "token"
+            pure $ SetDatumFilter token datumFilter
           _ -> fail "Unexpected method"
 
 data Method
@@ -52,8 +55,8 @@ data Method
   | GetDatumsByHashes [Text]
   | GetBlock
   | GetHealthcheck
-  | SetStartingBlock BlockInfo
-  | SetDatumFilter DatumFilter
+  | SetStartingBlock ControlApiToken BlockInfo
+  | SetDatumFilter ControlApiToken DatumFilter
   deriving stock (Show, Eq)
 
 data GetDatumsByHashesDatum = GetDatumsByHashesDatum
