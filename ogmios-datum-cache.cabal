@@ -160,18 +160,13 @@ test-suite ogmios-datum-cache-test
   build-depends:
     , aeson
     , base
-    , base64-bytestring
-    , bytestring
     , directory
     , exceptions
     , hspec
     , hspec-wai
-    , hspec-wai-json
-    , http-types
     , ogmios-datum-cache
     , record-dot-preprocessor
     , record-hasfield
     , servant-server
     , string-interpolate
     , temporary
-    , wai-extra
