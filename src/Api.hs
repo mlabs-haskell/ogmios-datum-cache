@@ -1,6 +1,7 @@
 module Api (
   Routes (..),
   datumCacheApi,
+  datumCacheContext,
   DatumApi (..),
   ControlApi (..),
   WebSocketApi (..),
@@ -8,11 +9,14 @@ module Api (
 
 import Data.Text (Text)
 import Servant (Capture, Get, JSON, Post, Proxy (Proxy), ReqBody, Summary, (:>))
+import Servant.API.BasicAuth (BasicAuth)
 import Servant.API.Generic (Generic, ToServantApi, genericApi, (:-))
 import Servant.API.WebSocket (WebSocket)
+import Servant.Server (BasicAuthCheck)
 
 import Api.Types (
   CancelBlockFetchingResponse,
+  ControlApiAuthData,
   GetDatumByHashResponse,
   GetDatumsByHashesRequest,
   GetDatumsByHashesResponse,
@@ -72,10 +76,17 @@ newtype WebSocketApi route = WebSocketApi
 
 data Routes route = Routes
   { datumRoutes :: route :- ToServantApi DatumApi
-  , controlRoutes :: route :- "control" :> ToServantApi ControlApi
+  , controlRoutes ::
+      route
+        :- "control"
+        :> BasicAuth "control-api-realm" ControlApiAuthData
+        :> ToServantApi ControlApi
   , websocketRoutes :: route :- "ws" :> ToServantApi WebSocketApi
   }
   deriving stock (Generic)
+
+datumCacheContext :: Proxy '[BasicAuthCheck ControlApiAuthData]
+datumCacheContext = Proxy
 
 datumCacheApi :: Proxy (ToServantApi Routes)
 datumCacheApi = genericApi (Proxy :: Proxy Routes)

@@ -1,6 +1,10 @@
-module App.Env (Env (..)) where
+module App.Env (
+  Env (..),
+  ControlApiToken (..),
+) where
 
 import Control.Monad.Reader.Has (Has)
+import Data.String (IsString (fromString))
 import GHC.Generics (Generic)
 import Hasql.Connection qualified as Hasql
 
@@ -11,6 +15,18 @@ data Env = Env
     envDbConnection :: Hasql.Connection
   , envOgmiosInfo :: OgmiosInfo
   , envOgmiosWorker :: OgmiosWorkerMVar
+  , envControlApiToken :: ControlApiToken
   }
   deriving stock (Generic)
-  deriving anyclass (Has Hasql.Connection, Has OgmiosWorkerMVar, Has OgmiosInfo)
+  deriving anyclass
+    ( Has Hasql.Connection
+    , Has OgmiosWorkerMVar
+    , Has OgmiosInfo
+    , Has ControlApiToken
+    )
+
+newtype ControlApiToken = ControlApiToken {unControlApiToken :: String}
+  deriving stock (Eq, Show)
+
+instance IsString ControlApiToken where
+  fromString = ControlApiToken
