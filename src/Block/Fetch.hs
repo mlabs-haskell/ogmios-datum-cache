@@ -163,9 +163,11 @@ startBlockFetcherAndProcessor ogmiosInfo dbConn blockInfo datumFilter queueSize 
     $ processLoop
   blockFetcherEnvMVar <- liftIO newEmptyMVar
   let handleException (e :: SomeException) = do
+        runStdoutLoggingT $
+          logErrorNS
+            "startBlockFetcherAndProcessor"
+            $ "IO Exception occured, restarting block fetcher in 3s: " <> Text.pack (show e)
         -- TODO: do we want delay to be configurable?
-        putStr "IO Exception occured, restarting block fetcher in 3s: "
-        print e
         threadDelay 3_000_000
         lastBlock' <- runStdoutLoggingT $ getLastBlock dbConn
         case lastBlock' of
