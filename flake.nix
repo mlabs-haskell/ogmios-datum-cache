@@ -80,7 +80,8 @@
               [ hpkgs.cabal-fmt pkgs.fd pkgs.nixfmt uhpkgs.fourmolu ];
           } ''
             cd ${self}
-            fourmolu -m check --cabal-default-extensions $(fd -ehs)
+            export IN_NIX_SHELL=pure
+            make format_check
             cabal-fmt --check $(fd -ecabal)
             nixfmt --check $(fd -enix)
             touch $out

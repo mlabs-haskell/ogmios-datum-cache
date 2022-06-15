@@ -109,37 +109,45 @@ Response
 
 ## Control API
 
-### `POST /control/fetch_blocks`
+### `POST /control/startingBlock`
 
 Request header:
 
-* Basic access authentication: `Authorization: Basic dXNyOnB3ZA==`, where `dXNyOnB3ZA====` is `usr:pwd` string in Base64 encoding. 
-  
+* Basic access authentication: `Authorization: Basic dXNyOnB3ZA==`, where `dXNyOnB3ZA====` is `usr:pwd` string in Base64 encoding.
+
 Request body:
 ```jsonc
 {
-  "slot": 44366242,
-  "id": "d2a4249fe3d0607535daa26caf12a38da2233586bc51e79ed0b3a36170471bf5",
+  "startingBlock": {
+    "blockSlot": 59809992,
+    "blockId": "7c8aec019a21ffd0049d64b0c9874d93376ed5662b4cf7d78e186b5958ecb00d"
+  }
 }
 ```
 
 Responses:
-* 200 `{"message": "Started block fetcher"}`
+* 200 `{"hash":"7c8aec019a21ffd0049d64b0c9874d93376ed5662b4cf7d78e186b5958ecb00d","slot":59809992}`
 * 401 Unauthorized
 * 403 Forbidden
-* 422 `{"error": "Block fetcher already running"}`
 
-### `POST /control/cancel_fetch_blocks`
+### `POST /control/datumFilter`
 
 Request header:
 
-* Basic access authentication: `Authorization: Basic dXNyOnB3ZA==`, where `dXNyOnB3ZA====` is `usr:pwd` string in Base64 encoding. 
-  
+* Basic access authentication: `Authorization: Basic dXNyOnB3ZA==`, where `dXNyOnB3ZA====` is `usr:pwd` string in Base64 encoding.
+
+Request body:
+```jsonc
+{
+  "datumFilter": {"all": []}
+}
+```
+
 Responses:
-* 200 `{"message": "Stopped block fetcher"}`
+* 200 `[]`
 * 401 Unauthorized
 * 403 Forbidden
-* 422 `{"error": "No block fetcher running"}`
+
 
 ### `GET /healthcheck`
 Response:
@@ -166,12 +174,12 @@ Request:
 Response (datum found):
 ```
 {
-  methodname: 'GetDatumByHash',
-  result: { DatumFound: { value: [Object] } },
-  version: '1.0',
-  servicename: 'ogmios-datum-cache',
-  type: 'jsonwsp/response',
-  reflection: {"meta": "this object will be mirrored under 'reflection' field in a response to this request"}
+  "methodname": "GetDatumByHash",
+  "result": { DatumFound: { value: [Object] } },
+  "version": "1.0",
+  "servicename": "ogmios-datum-cache",
+  "type": "jsonwsp/response",
+  "reflection": {"meta": "this object will be mirrored under 'reflection' field in a response to this request"}
 }
 ```
 
@@ -218,24 +226,24 @@ Response (datum found):
 Response (datum not found):
 ```
 {
-  methodname: 'GetDatumByHash',
-  result: { DatumNotFound: null },
-  version: '1.0',
-  servicename: 'ogmios-datum-cache',
-  type: 'jsonwsp/response',
-  reflection: {"meta": "this object will be mirrored under 'reflection' field in a response to this request"}
+  "methodname": "GetDatumByHash",
+  "result": { DatumNotFound: null },
+  "version": "1.0",
+  "servicename": "ogmios-datum-cache",
+  "type": "jsonwsp/response",
+  "reflection": {"meta": "this object will be mirrored under 'reflection field in a response to this request"}
 }
 ```
 
 Response (fault):
 ```
 {
-  methodname: 'GetDatumByHash',
-  version: '1.0',
-  fault: { string: 'Error deserializing plutus Data', code: 'client' },
-  servicename: 'ogmios-datum-cache',
-  type: 'jsonwsp/fault',
-  reflection: {"meta": "this object will be mirrored under 'reflection' field in a response to this request"}
+  "methodname": "GetDatumByHash",
+  "version": "1.0",
+  "fault": { string: "Error deserializing plutus Data", code: "client" },
+  "servicename": "ogmios-datum-cache",
+  "type": "jsonwsp/fault",
+  "reflection": {"meta": "this object will be mirrored under 'reflection' field in a response to this request"}
 }
 ```
 
@@ -262,12 +270,12 @@ Request:
 Response:
 ```
 {
-  methodname: 'GetDatumsByHashes',
-  result: { DatumsFound: { value: [Array] } },
-  version: '1.0',
-  servicename: 'ogmios-datum-cache',
-  type: 'jsonwsp/response',
-  reflection: "req.no.1"
+  "methodname": "GetDatumsByHashes",
+  "result": { DatumsFound: { value: [Array] } },
+  "version": "1.0",
+  "servicename": "ogmios-datum-cache",
+  "type": "jsonwsp/response",
+  "reflection": "req.no.1"
 }
 ```
 
@@ -318,15 +326,15 @@ Response:
 Response (fault)
 ```
 {
-  methodname: 'GetDatumsByHashes',
-  version: '1.0',
-  fault: {
-    string: 'Error deserializing plutus Data in: ["abc"]',
-    code: 'client'
+  "methodname": "GetDatumsByHashes",
+  "version": "1.0",
+  "fault": {
+    "string": "Error deserializing plutus Data in: ["abc"]",
+    "code": "client"
   },
-  servicename: 'ogmios-datum-cache',
-  type: 'jsonwsp/fault',
-  reflection: "req.no.1"
+  "servicename": :ogmios-datum-cache",
+  "type": "jsonwsp/fault",
+  "reflection": "req.no.1"
 }
 ```
 
@@ -360,7 +368,7 @@ Response:
 }
 ```
 
-#### StartFetchBlocks
+#### SetStartingBlock
 
 Request:
 ```jsonc
@@ -368,11 +376,12 @@ Request:
   "type": "jsonwsp/request",
   "version": "1.0",
   "servicename": "ogmios-datum-cache",
-  "methodname": "StartFetchBlocks",
+  "methodname": "SetStartingBlock",
   "args": {
-    "slot": 1,
-    "id": "abc",
-    "datumFilter": { "address": "addr_xyz" },
+    "startingBlock": {
+      "blockSlot": 59809992,
+      "blockId": "7c8aec019a21ffd0049d64b0c9874d93376ed5662b4cf7d78e186b5958ecb00d"
+    },
     "token": "SECRET_CONTROL_API_TOKEN"
   },
   "mirror": "foo"
@@ -382,9 +391,10 @@ Request:
 Response:
 ```jsonc
 {
-  "methodname": "StartFetchBlocks",
+  "methodname": "SetStartingBlock",
   "result": {
-    "StartedBlockFetcher": true
+    "hash":"7c8aec019a21ffd0049d64b0c9874d93376ed5662b4cf7d78e186b5958ecb00d",
+    "slot":59809992
   },
   "version": "1.0",
   "servicename": "ogmios-datum-cache",
@@ -396,17 +406,16 @@ Response:
 Response (fault - 1):
 ```jsonc
 {
-  "methodname": "StartFetchBlocks",
+  "methodname": "SetStartingBlock",
   "version": "1.0",
   "fault": {
-    "string": "Block fetcher already running",
+    "string": "notFound",
     "code": "client"
   },
   "servicename": "ogmios-datum-cache",
   "type": "jsonwsp/fault",
   "reflection": "foo"
 }
-```
 
 Response (fault - 2):
 ```jsonc
@@ -442,9 +451,8 @@ Request:
 Response:
 ```jsonc
 {
-  "methodname": "CancelFetchBlocks",
+  "methodname": "SetDatumFilter",
   "result": {
-    "StoppedBlockFetcher": true
   },
   "version": "1.0",
   "servicename": "ogmios-datum-cache",
@@ -650,6 +658,8 @@ Modify `config.toml` in the app working directory (currently `/home/ubuntu/seabu
 
 * `blockFetcher.startFromLast` defines if block fetcher, if started automatically, should start from last block that was proccessed rather than from block defined in `firstFetchBlock`.
 
+* `blockFetcher.queueSize` defines size of queue of prefetched blocks ready to be processed, `default=64`.
+
 ### Filter
 
 Datum filter can filter datum hash and address of utxo with given datum. Filters can be combined with logical `or`s and `and`s.
@@ -671,4 +681,3 @@ Example (filter will save datums only if hash is `foobar` and (utxo with datum i
 }
 
 ```
-

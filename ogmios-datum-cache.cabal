@@ -16,6 +16,7 @@ common common-language
     DeriveLift
     DeriveTraversable
     DerivingStrategies
+    DuplicateRecordFields
     ExplicitForAll
     FlexibleContexts
     FlexibleInstances
@@ -37,6 +38,7 @@ common common-language
     TypeFamilies
     TypeOperators
     TypeSynonymInstances
+    UndecidableInstances
 
 common common-configs
   default-language: Haskell2010
@@ -49,6 +51,7 @@ library
     -Wincomplete-record-updates -Wredundant-constraints
     -Wmissing-import-lists -Wmissing-export-lists
     -Wmissing-deriving-strategies -Werror -O2
+    -fplugin=RecordDotPreprocessor
 
   hs-source-dirs:  src
   exposed-modules:
@@ -74,7 +77,6 @@ library
 
   build-depends:
     , aeson
-    , async
     , base
     , base16
     , base64
@@ -89,17 +91,19 @@ library
     , http-types
     , monad-logger
     , mtl
+    , network
     , optparse-applicative
+    , record-dot-preprocessor
+    , record-hasfield
     , serialise
     , servant
     , servant-server
     , servant-websockets
+    , stm
     , text
     , tomland
     , tostring
     , transformers
-    , unliftio
-    , unliftio-core
     , unordered-containers
     , vector
     , websockets
@@ -111,6 +115,7 @@ executable ogmios-datum-cache
     -Wall -Wcompat -Wincomplete-uni-patterns
     -Wincomplete-record-updates -Wredundant-constraints
     -Wmissing-export-lists -Wmissing-deriving-strategies -Werror -O2
+    -fplugin=RecordDotPreprocessor
 
   hs-source-dirs: app
   main-is:        Main.hs
@@ -123,6 +128,8 @@ executable ogmios-datum-cache
     , monad-logger
     , mtl
     , ogmios-datum-cache
+    , record-dot-preprocessor
+    , record-hasfield
     , servant
     , servant-server
     , text
@@ -146,22 +153,20 @@ test-suite ogmios-datum-cache-test
   ghc-options:
     -Wall -Wcompat -Wincomplete-uni-patterns
     -Wincomplete-record-updates -Wredundant-constraints
-    -Wmissing-import-lists -Wmissing-export-lists
-    -Wmissing-deriving-strategies -Werror -O2 -Wunused-packages
+    -Wmissing-export-lists -Wmissing-deriving-strategies -Werror -O2
+    -Wmissing-import-lists -Wunused-packages
+    -fplugin=RecordDotPreprocessor
 
   build-depends:
     , aeson
     , base
-    , base64-bytestring
-    , bytestring
     , directory
     , exceptions
     , hspec
     , hspec-wai
-    , hspec-wai-json
-    , http-types
     , ogmios-datum-cache
+    , record-dot-preprocessor
+    , record-hasfield
     , servant-server
     , string-interpolate
     , temporary
-    , wai-extra

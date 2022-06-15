@@ -15,15 +15,14 @@ import Servant.API.WebSocket (WebSocket)
 import Servant.Server (BasicAuthCheck)
 
 import Api.Types (
-  CancelBlockFetchingResponse,
   ControlApiAuthData,
   GetDatumByHashResponse,
   GetDatumsByHashesRequest,
   GetDatumsByHashesResponse,
-  StartBlockFetchingRequest,
-  StartBlockFetchingResponse,
+  SetDatumFilterRequest,
+  SetStartingBlockRequest,
  )
-import Block.Types (BlockInfo)
+import Block.Types (BlockInfo, CursorPoint)
 
 data DatumApi route = DatumApi
   { getDatumByHash ::
@@ -53,17 +52,18 @@ data DatumApi route = DatumApi
   deriving stock (Generic)
 
 data ControlApi route = ControlApi
-  { startBlockFetching ::
+  { setStartingBlock ::
       route
-        :- "fetch_blocks"
-        :> Summary "Start a block fetcher starting with the specified block"
-        :> ReqBody '[JSON] StartBlockFetchingRequest
-        :> Post '[JSON] StartBlockFetchingResponse
-  , cancelBlockFetching ::
+        :- "startingBlock"
+        :> Summary "Set starting block for block fetcher"
+        :> ReqBody '[JSON] SetStartingBlockRequest
+        :> Post '[JSON] CursorPoint
+  , setDatumFilter ::
       route
-        :- "cancel_fetch_blocks"
-        :> Summary "Stop a block fetcher"
-        :> Post '[JSON] CancelBlockFetchingResponse
+        :- "datumFilter"
+        :> Summary "Set datum filter"
+        :> ReqBody '[JSON] SetDatumFilterRequest
+        :> Post '[JSON] ()
   }
   deriving stock (Generic)
 

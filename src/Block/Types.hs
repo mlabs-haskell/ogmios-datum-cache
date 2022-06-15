@@ -14,6 +14,7 @@ module Block.Types (
   OgmiosResponse (..),
   TxOut (..),
   BlockInfo (..),
+  CursorPoint (..),
 ) where
 
 import Data.Aeson (FromJSON, ToJSON, withObject, (.:), (.:?))
@@ -31,7 +32,7 @@ data BlockInfo = BlockInfo
   , blockId :: Text
   }
   deriving stock (Generic, Show, Eq)
-  deriving anyclass (ToJSON)
+  deriving anyclass (ToJSON, FromJSON)
 
 type OgmiosMirror = Int
 
@@ -120,11 +121,8 @@ data ResultTip = ResultTip
   deriving anyclass (FromJSON)
 
 data FindIntersectResult
-  = IntersectionFound
-      { point :: CursorPoint
-      , tip :: ResultTip
-      }
-  | IntersectionNotFound {tip :: ResultTip}
+  = IntersectionFound CursorPoint ResultTip
+  | IntersectionNotFound ResultTip
   deriving stock (Eq, Show, Generic)
 
 instance FromJSON FindIntersectResult where
@@ -152,14 +150,8 @@ instance FromJSON FindIntersectResult where
 type OgmiosRequestNextResponse = OgmiosResponse RequestNextResult OgmiosMirror
 
 data RequestNextResult
-  = RollBackward
-      { point :: CursorPoint
-      , tip :: ResultTip
-      }
-  | RollForward
-      { block :: Block
-      , tip :: ResultTip
-      }
+  = RollBackward CursorPoint ResultTip
+  | RollForward Block ResultTip
   deriving stock (Eq, Show, Generic)
 
 data Block
@@ -203,7 +195,7 @@ data AlonzoBlockHeader = AlonzoBlockHeader
 data AlonzoBlock = AlonzoBlock
   { body :: [AlonzoTransaction]
   , header :: AlonzoBlockHeader
-  , headerHash :: Maybe Text
+  , headerHash :: Text
   }
   deriving stock (Eq, Show, Generic)
   deriving anyclass (FromJSON)

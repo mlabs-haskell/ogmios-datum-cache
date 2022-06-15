@@ -13,6 +13,7 @@ import Config (
     BlockFetcherConfig,
     cfgFetcherBlock,
     cfgFetcherFilterJson,
+    cfgFetcherQueueSize,
     cfgFetcherUseLatest
   ),
   Config (
@@ -33,7 +34,7 @@ spec = do
   describe "Config" $ do
     it "simplest" $ do
       [i|
-             dbConnectionString = "host=localhost port=5432 user=aske dbname=ogmios-datum-cache"
+             dbConnectionString = "host=localhost port=5432 user=seabug dbname=ogmios-datum-cache"
              server.port = 9999
              server.controlApiToken = "API_TOKEN"
              ogmios.address = "127.0.0.1"
@@ -48,22 +49,22 @@ spec = do
 example :: Config
 example =
   Config
-    { cfgDbConnectionString = "host=localhost port=5432 user=aske dbname=ogmios-datum-cache"
+    { cfgDbConnectionString = "host=localhost port=5432 user=seabug dbname=ogmios-datum-cache"
     , cfgServerPort = 9999
     , cfgServerControlApiToken = "API_TOKEN"
     , cfgOgmiosAddress = "127.0.0.1"
     , cfgOgmiosPort = 1337
     , cfgFetcher =
-        Just
-          BlockFetcherConfig
-            { cfgFetcherBlock =
-                BlockInfo
-                  { blockSlot = 44366242
-                  , blockId = "d2a4249fe3d0607535daa26caf12a38da2233586bc51e79ed0b3a36170471bf5"
-                  }
-            , cfgFetcherFilterJson = Nothing
-            , cfgFetcherUseLatest = True
-            }
+        BlockFetcherConfig
+          { cfgFetcherBlock =
+              BlockInfo
+                { blockSlot = 44366242
+                , blockId = "d2a4249fe3d0607535daa26caf12a38da2233586bc51e79ed0b3a36170471bf5"
+                }
+          , cfgFetcherFilterJson = Nothing
+          , cfgFetcherUseLatest = True
+          , cfgFetcherQueueSize = 64
+          }
     }
 
 configShouldBe :: String -> Config -> IO ()
