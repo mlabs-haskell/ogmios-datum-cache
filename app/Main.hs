@@ -19,7 +19,6 @@ main = do
   hSetBuffering stdout NoBuffering
   parameters <- paramInfo
   cfg@Config {..} <- loadConfig parameters
-  print cfg
   runStdoutLoggingT $ do
     logInfoNS "ogmios-datum-cache" $ Text.pack $ show cfg
     when (cfgServerControlApiToken == "usr:pwd") $
