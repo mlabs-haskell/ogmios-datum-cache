@@ -4,13 +4,23 @@ module Parameters (
   paramInfo,
   OldConfigOption (..),
   oldConfigParser,
+  BlockFetcherParameters (..),
+  OgmiosParameters (..),
+  ServerParameters (..),
 ) where
 
+import App.Env (ControlApiToken)
 import Control.Applicative ((<|>))
+import Data.ByteString (ByteString)
+import Data.ByteString.Lazy qualified as LBS
+import Data.Int (Int64)
+import Data.Text (Text)
+import GHC.Natural (Natural)
 import Options.Applicative (
   Parser,
   auto,
   execParser,
+  flag',
   fullDesc,
   header,
   help,
@@ -20,6 +30,7 @@ import Options.Applicative (
   metavar,
   option,
   short,
+  str,
   strOption,
   switch,
   value,
@@ -28,42 +39,71 @@ import Options.Applicative (
 
 data OldConfigOption = OldConfigOption {config :: FilePath}
 
-data DBParameters = DBParameters
-  { dbHost :: String
-  , dbPort :: Int
-  , dbUser :: String
-  , dbName :: String
+data BlockFetcherParameters = BlockFetcherParameters
+  { blockInfo :: Maybe (Int64, Text)
+  , blockFilter :: Maybe LBS.ByteString
+  , useLatest :: Bool
+  , queueSize :: Natural
   }
   deriving stock (Eq, Show)
 
-parseDBParameters :: Parser DBParameters
-parseDBParameters =
-  DBParameters
-    <$> strOption
-      ( long "dbHost"
-          <> metavar "HostName"
-          <> help "host name of the data base"
+parseFirstBlock :: Parser (Maybe (Int64, Text))
+parseFirstBlock =
+  Just
+    <$> ( (,)
+            <$> option
+              auto
+              ( long "block-slot"
+                  <> help "Block slot"
+              )
+            <*> strOption
+              ( long "block-hash"
+                  <> help "Block hash"
+              )
+        )
+
+parseFirstBlockOrigin :: Parser (Maybe (Int64, Text))
+parseFirstBlockOrigin =
+  flag'
+    Nothing
+    ( long "origin"
+        <> help "Use the origin block"
+    )
+
+parseBlockFetcher :: Parser BlockFetcherParameters
+parseBlockFetcher =
+  BlockFetcherParameters
+    <$> (parseFirstBlock <|> parseFirstBlockOrigin)
+    <*> ( Just
+            <$> strOption
+              ( long "block-filter"
+                  <> metavar "Filter"
+                  <> help "Filter"
+              )
+            <|> pure Nothing
+        )
+    <*> switch
+      ( long "useLastest"
+          <> help "Use latests block"
       )
     <*> option
       auto
-      ( long "dbPort"
-          <> metavar "Port"
-          <> help "Data base port"
+      ( long "queueSize"
+          <> value 64
+          <> metavar "Natural"
+          <> help "Queue size"
       )
-    <*> strOption
-      ( long "dbUser"
-          <> metavar "DBUser"
-          <> help "User for data base"
-      )
-    <*> strOption
-      ( long "dbName"
-          <> metavar "DBName"
-          <> help "Data base name"
-      )
+
+parseDBParameters :: Parser ByteString
+parseDBParameters =
+  strOption
+    ( long "DBConnection"
+        <> help "DB connection string"
+    )
 
 data ServerParameters = ServerParameters
   { serverPort :: Int
-  , serverControlApiToken :: String
+  , serverControlApiToken :: ControlApiToken
   }
   deriving stock (Eq, Show)
 
@@ -77,7 +117,7 @@ parseServerParameters =
           <> help "Server Port"
       )
     <*> strOption
-      ( long "serverControl"
+      ( long "serverApi"
           <> metavar "ServerControlApiToken"
           <> help "Token for server api"
       )
@@ -103,45 +143,8 @@ parseOgmios =
           <> help "Ogmios port"
       )
 
-data BlockFetcherParameters = BlockFetcherParameters
-  { autoStart :: Bool
-  , startFromLast :: Bool
-  , firstBlockSlot :: Int
-  , firstBlockId :: String
-  , filter :: String
-  }
-  deriving stock (Eq, Show)
-
-parseBlockFetcher :: Parser BlockFetcherParameters
-parseBlockFetcher =
-  BlockFetcherParameters
-    <$> switch
-      ( long "autoStart"
-          <> help "Block fetcher autoStart flag"
-      )
-    <*> switch
-      ( long "startFromLast"
-          <> help "Block fetcher start from last option"
-      )
-    <*> option
-      auto
-      ( long "firstBlockSlot"
-          <> metavar "BlockSlot"
-          <> help "First block slot"
-      )
-    <*> strOption
-      ( long "firstBlockId"
-          <> metavar "BlockID"
-          <> help "First block id"
-      )
-    <*> strOption
-      ( long "filter"
-          <> metavar "Filter"
-          <> help "Filter"
-      )
-
 data Parameters = Parameters
-  { dbParameters :: DBParameters
+  { dbConnectionString :: ByteString
   , serverParameters :: ServerParameters
   , ogmiosParameters :: OgmiosParameters
   , blockFetcherParameters :: BlockFetcherParameters

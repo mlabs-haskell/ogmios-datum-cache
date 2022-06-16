@@ -7,15 +7,34 @@ import Control.Monad.IO.Class (MonadIO)
 import Data.ByteString (ByteString)
 import Data.ByteString.Lazy qualified as LBS
 import Data.Int (Int64)
+import Data.List (intercalate)
 import Data.Maybe (fromMaybe)
 import Data.String.ToString (toString)
 import GHC.Natural (Natural)
-import Parameters (OldConfigOption (OldConfigOption, config), Parameters (Parameters))
 import Toml (TomlCodec, dimap, dioptional, (.=))
 import Toml qualified
 
 import App.Env (ControlApiToken (ControlApiToken))
 import Block.Types (BlockInfo (BlockInfo), blockId, blockSlot)
+import Parameters (
+  BlockFetcherParameters (
+    BlockFetcherParameters,
+    blockFilter,
+    blockInfo,
+    queueSize,
+    useLatest
+  ),
+  OgmiosParameters (ogmiosAddress, ogmiosPort),
+  OldConfigOption (OldConfigOption, config),
+  Parameters (
+    Parameters,
+    blockFetcherParameters,
+    dbConnectionString,
+    ogmiosParameters,
+    serverParameters
+  ),
+  ServerParameters (serverControlApiToken, serverPort),
+ )
 
 data BlockFetcherConfig = BlockFetcherConfig
   { cfgFetcherBlock :: BlockInfo
@@ -81,3 +100,56 @@ loadConfig OldConfigOption {config} = do
   case tomlRes of
     Left errs -> error $ toString $ Toml.prettyTomlDecodeErrors errs
     Right conf -> return conf
+
+-- TODO : Define slot and hash for origin block
+-- then we can delete the `Maybe` in the return type
+blockParameters2Config :: BlockFetcherParameters -> Maybe BlockFetcherConfig
+blockParameters2Config BlockFetcherParameters {..} = do
+  (slot, hash) <- blockInfo
+  pure
+    BlockFetcherConfig
+      { cfgFetcherBlock = BlockInfo slot hash
+      , cfgFetcherFilterJson = blockFilter
+      , cfgFetcherUseLatest = useLatest
+      , cfgFetcherQueueSize = queueSize
+      }
+
+cliParameters2Config :: Parameters -> Maybe Config
+cliParameters2Config Parameters {..} = do
+  block <- blockParameters2Config blockFetcherParameters
+  pure
+    Config
+      { cfgDbConnectionString = dbConnectionString
+      , cfgServerPort = serverParameters.serverPort
+      , cfgServerControlApiToken = serverParameters.serverControlApiToken
+      , cfgOgmiosAddress = ogmiosParameters.ogmiosAddress
+      , cfgOgmiosPort = ogmiosParameters.ogmiosPort
+      , cfgFetcher = block
+      }
+
+showConfigAsCLIOptions :: Config -> String
+showConfigAsCLIOptions Config {..} =
+  let (BlockInfo slot hash) = cfgFetcher.cfgFetcherBlock
+      useLatesString =
+        if cfgFetcher.cfgFetcherUseLatest
+          then " --useLatest"
+          else ""
+   in intercalate
+        " "
+        [ command "block-slot" slot
+        , command "block-hash" hash
+        , command "block-filter" cfgFetcher.cfgFetcherFilterJson
+        , command "queueSize" cfgFetcher.cfgFetcherQueueSize
+        , command "DBConnection" cfgDbConnectionString
+        , command "serverPort" cfgServerPort
+        , command "serverApi" cfgServerControlApiToken
+        , command "ogmiosAddress" cfgOgmiosAddress
+        , command "ogmiosPort" cfgOgmiosPort
+        ]
+        <> useLatesString
+  where
+    command :: Show a => String -> a -> String
+    command name x = "--" <> name <> "=" <> between x
+
+    between :: Show a => a -> String
+    between x = "\"" <> show x <> "\""
