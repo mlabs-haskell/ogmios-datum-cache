@@ -1,7 +1,13 @@
 {-# LANGUAGE ApplicativeDo #-}
 {-# LANGUAGE NamedFieldPuns #-}
 
-module Config (loadConfig, Config (..), BlockFetcherConfig (..)) where
+module Config (
+  loadConfig,
+  Config (..),
+  BlockFetcherConfig (..),
+  cliParameters2Config,
+  showConfigAsCLIOptions,
+) where
 
 import Control.Monad.IO.Class (MonadIO)
 import Data.ByteString (ByteString)
@@ -151,5 +157,6 @@ showConfigAsCLIOptions Config {..} =
     command :: Show a => String -> a -> String
     command name x = "--" <> name <> "=" <> between x
 
+    --TODO : scape " inside strings
     between :: Show a => a -> String
     between x = "\"" <> show x <> "\""
