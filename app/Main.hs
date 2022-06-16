@@ -17,22 +17,17 @@ import Parameters (paramInfo)
 main :: IO ()
 main = do
   hSetBuffering stdout NoBuffering
-  mparameters <- paramInfo
-  case mparameters of
-    Right _ -> print "Ok"
-    Left e -> print "Bad"
-
--- parameters <- paramInfo
--- cfg@Config {..} <- loadConfig parameters
--- runStdoutLoggingT $ do
---   logInfoNS "ogmios-datum-cache" $ Text.pack $ show cfg
---   when (cfgServerControlApiToken == "usr:pwd") $
---     logWarnNS
---       "ogmios-datum-cache"
---       "Using default auth configuration is UNSAFE! Change 'server.controlApiToken'!"
--- env <- bootstrapEnvFromConfig cfg
--- withStdoutLogger $ \logger -> do
---   let warpSettings =
---         Warp.setPort cfgServerPort $
---           Warp.setLogger logger Warp.defaultSettings
---   Warp.runSettings warpSettings $ simpleCors $ appService env
+  parameters <- paramInfo
+  cfg@Config {..} <- loadConfig parameters
+  runStdoutLoggingT $ do
+    logInfoNS "ogmios-datum-cache" $ Text.pack $ show cfg
+    when (cfgServerControlApiToken == "usr:pwd") $
+      logWarnNS
+        "ogmios-datum-cache"
+        "Using default auth configuration is UNSAFE! Change 'server.controlApiToken'!"
+  env <- bootstrapEnvFromConfig cfg
+  withStdoutLogger $ \logger -> do
+    let warpSettings =
+          Warp.setPort cfgServerPort $
+            Warp.setLogger logger Warp.defaultSettings
+    Warp.runSettings warpSettings $ simpleCors $ appService env
