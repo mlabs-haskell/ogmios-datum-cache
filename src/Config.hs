@@ -10,7 +10,7 @@ import Data.Int (Int64)
 import Data.Maybe (fromMaybe)
 import Data.String.ToString (toString)
 import GHC.Natural (Natural)
-import Parameters (Parameters (Parameters, config))
+import Parameters (OldConfigOption (OldConfigOption, config), Parameters (Parameters))
 import Toml (TomlCodec, dimap, dioptional, (.=))
 import Toml qualified
 
@@ -75,8 +75,8 @@ configT = do
   cfgFetcher <- withFetcherT .= cfgFetcher
   pure Config {..}
 
-loadConfig :: MonadIO m => Parameters -> m Config
-loadConfig Parameters {config} = do
+loadConfig :: MonadIO m => OldConfigOption -> m Config
+loadConfig OldConfigOption {config} = do
   tomlRes <- Toml.decodeFileEither configT config
   case tomlRes of
     Left errs -> error $ toString $ Toml.prettyTomlDecodeErrors errs

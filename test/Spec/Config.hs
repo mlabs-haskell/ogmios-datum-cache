@@ -27,7 +27,7 @@ import Config (
   ),
   loadConfig,
  )
-import Parameters (Parameters (Parameters))
+import Parameters (OldConfigOption (OldConfigOption, config), Parameters (Parameters))
 
 spec :: Spec
 spec = do
@@ -73,5 +73,5 @@ toml `configShouldBe` conf = do
   withSystemTempDirectory "ogmios-datum-cache-test" $ \path -> do
     setCurrentDirectory path
     writeFile "config.toml" toml
-    loadConfig (Parameters "config.toml") >>= (`shouldBe` conf)
+    loadConfig (OldConfigOption "config.toml") >>= (`shouldBe` conf)
   setCurrentDirectory wd
