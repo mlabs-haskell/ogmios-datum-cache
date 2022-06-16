@@ -7,7 +7,7 @@ import Test.Hspec (hspec)
 import App (
   DbConnectionAcquireException (),
   appService,
-  mkAppEnv,
+  bootstrapEnvFromConfig,
  )
 import Config (loadConfig)
 import Parameters (Parameters (Parameters))
@@ -23,7 +23,7 @@ main = do
         | ci = error $ "Test environment is not running: " <> show err
         | otherwise = return $ Left $ show @DbConnectionAcquireException err
   cfg <- loadConfig $ Parameters "config.toml"
-  app <- (Right . appService <$> mkAppEnv cfg) `catch` handleDbException
+  app <- (Right . appService <$> bootstrapEnvFromConfig cfg) `catch` handleDbException
   hspec $ do
     Spec.Api.Handlers.spec app
     Spec.Api.WebSocket.Types.spec

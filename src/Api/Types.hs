@@ -1,23 +1,20 @@
-{-# LANGUAGE DuplicateRecordFields #-}
-
 module Api.Types (
   GetDatumByHashResponse (..),
   GetDatumsByHashesRequest (..),
   GetDatumsByHashesDatum (..),
   GetDatumsByHashesResponse (..),
+  SetStartingBlockRequest (..),
+  SetDatumFilterRequest (..),
   ControlApiAuthData (..),
-  StartBlockFetchingRequest (..),
-  StartBlockFetchingResponse (..),
-  CancelBlockFetchingResponse (..),
 ) where
 
 import Data.Aeson (FromJSON, ToJSON)
-import Data.Int (Int64)
 import Data.Text (Text)
 import Data.Vector (Vector)
 import Servant.API.Generic (Generic)
 
 import Block.Filter (DatumFilter)
+import Block.Types (BlockInfo)
 import PlutusData qualified
 
 newtype GetDatumByHashResponse = GetDatumByHashResponse PlutusData.Data
@@ -43,27 +40,16 @@ newtype GetDatumsByHashesResponse = GetDatumsByHashesResponse
   deriving stock (Generic)
   deriving anyclass (ToJSON)
 
--- newtype ControlApiToken = ControlApiToken {unControlApiToken :: Maybe String}
---   deriving stock (Eq, Show)
-
-data ControlApiAuthData = ControlApiAuthData
-
-data StartBlockFetchingRequest = StartBlockFetchingRequest
-  { slot :: Int64
-  , id :: Text
-  , datumFilter :: Maybe DatumFilter
+newtype SetStartingBlockRequest = SetStartingBlockRequest
+  { startingBlock :: BlockInfo
   }
   deriving stock (Generic)
   deriving anyclass (FromJSON)
 
-newtype StartBlockFetchingResponse = StartBlockFetchingResponse
-  { message :: Text
-  }
-  deriving stock (Generic)
-  deriving anyclass (ToJSON)
+data ControlApiAuthData = ControlApiAuthData
 
-newtype CancelBlockFetchingResponse = CancelBlockFetchingResponse
-  { message :: Text
+newtype SetDatumFilterRequest = SetDatumFilterRequest
+  { datumFilter :: DatumFilter
   }
   deriving stock (Generic)
-  deriving anyclass (ToJSON)
+  deriving anyclass (FromJSON)

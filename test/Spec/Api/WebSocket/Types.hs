@@ -8,8 +8,9 @@ import Test.Hspec (Spec, describe, it, shouldBe)
 
 import Api.WebSocket.Types (
   JsonWspRequest (JsonWspRequest),
-  Method (CancelFetchBlocks, GetHealthcheck, StartFetchBlocks),
+  Method (GetHealthcheck, SetStartingBlock),
  )
+import Block.Types (BlockInfo (BlockInfo))
 
 spec :: Spec
 spec = do
@@ -30,38 +31,29 @@ spec = do
         decode
           [i|
             {
-              "methodname": "StartFetchBlocks",
+              "methodname": "SetStartingBlock",
               "args": {
-                "slot": 1,
-                "id": "ID"
+                "startingBlock": {
+                  "blockSlot": 1,
+                  "blockId": "ID"
+                }
               }
             }
           |]
           `shouldBe` Nothing @JsonWspRequest
-      it "without token" $ do
+      it "with token" $ do
         decode
           [i|
             {
-              "methodname": "StartFetchBlocks",
+              "methodname": "SetStartingBlock",
               "args": {
-                "slot": 1,
-                "id": "ID",
+                "startingBlock": {
+                  "blockSlot": 1,
+                  "blockId": "ID"
+                },
                 "token": "X"
               }
             }
           |]
           `shouldBe` Just
-            (JsonWspRequest Nothing $ StartFetchBlocks 1 "ID" Nothing "X")
-    describe "parseJSON CancelFetchBlocks method" $ do
-      it "with token" $ do
-        decode
-          [i|{"methodname": "CancelFetchBlocks", "args": {"token": "X"}}|]
-          `shouldBe` Just
-            (JsonWspRequest Nothing $ CancelFetchBlocks "X")
-      it "without token in args" $ do
-        decode [i|{"methodname": "CancelFetchBlocks", "args": {}}|]
-          `shouldBe` Nothing @JsonWspRequest
-
-      it "without args" $ do
-        decode [i|{"methodname": "CancelFetchBlocks"}|]
-          `shouldBe` Nothing @JsonWspRequest
+            (JsonWspRequest Nothing $ SetStartingBlock "X" (BlockInfo 1 "ID"))

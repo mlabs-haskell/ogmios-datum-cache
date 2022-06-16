@@ -1,32 +1,29 @@
-{-# LANGUAGE DuplicateRecordFields #-}
-
 module Api.WebSocket.Json (
   JsonWspResponse,
-  JsonWspFault,
+  JsonWspFault (JsonWspFault),
   mkGetDatumByHashResponse,
   mkGetDatumByHashFault,
   mkGetDatumsByHashesResponse,
   mkGetDatumsByHashesFault,
   mkGetBlockResponse,
   mkGetBlockFault,
-  mkStartFetchBlocksResponse,
-  mkStartFetchBlocksFault,
-  mkCancelFetchBlocksResponse,
-  mkCancelFetchBlocksFault,
   mkHealthcheckResponse,
+  mkSetStartingBlockResponse,
+  mkSetStartingBlockFault,
+  mkSetDatumFilterResponse,
 ) where
 
 import Data.Aeson (
   KeyValue ((.=)),
   ToJSON (toJSON),
-  Value (Bool, Null),
+  Value (Null),
   object,
  )
 import Data.Aeson qualified as Aeson
 import Data.Text (Text)
 import GHC.Generics (Generic)
 
-import Block.Types (BlockInfo)
+import Block.Types (BlockInfo, CursorPoint)
 import PlutusData qualified
 
 -- {
@@ -111,22 +108,17 @@ mkGetBlockResponse block = JsonWspResponse "GetBlock" (object ["block" .= block]
 mkGetBlockFault :: Maybe Aeson.Value -> JsonWspFault
 mkGetBlockFault = JsonWspFault "GetBlock" "notFound" ""
 
-mkStartFetchBlocksResponse :: Maybe Aeson.Value -> JsonWspResponse
-mkStartFetchBlocksResponse =
-  JsonWspResponse "StartFetchBlocks" (object ["StartedBlockFetcher" .= Bool True])
-
-mkStartFetchBlocksFault :: Text -> Maybe Aeson.Value -> JsonWspFault
-mkStartFetchBlocksFault =
-  JsonWspFault "StartFetchBlocks" "client"
-
-mkCancelFetchBlocksResponse :: Maybe Aeson.Value -> JsonWspResponse
-mkCancelFetchBlocksResponse =
-  JsonWspResponse "CancelFetchBlocks" (object ["StoppedBlockFetcher" .= Bool True])
-
-mkCancelFetchBlocksFault :: Text -> Maybe Aeson.Value -> JsonWspFault
-mkCancelFetchBlocksFault =
-  JsonWspFault "CancelFetchBlocks" "client"
-
 mkHealthcheckResponse :: Maybe Aeson.Value -> JsonWspResponse
 mkHealthcheckResponse =
   JsonWspResponse "GetHealthcheck" (object [])
+
+mkSetStartingBlockResponse :: CursorPoint -> Maybe Aeson.Value -> JsonWspResponse
+mkSetStartingBlockResponse point =
+  JsonWspResponse "SetStartingBlock" (object ["Intersecton" .= point])
+
+mkSetStartingBlockFault :: Maybe Aeson.Value -> JsonWspFault
+mkSetStartingBlockFault = JsonWspFault "SetStartingBlock" "notFound" ""
+
+mkSetDatumFilterResponse :: Maybe Aeson.Value -> JsonWspResponse
+mkSetDatumFilterResponse =
+  JsonWspResponse "SetDatumFilter" (object [])

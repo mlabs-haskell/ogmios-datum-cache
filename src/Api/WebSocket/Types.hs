@@ -4,14 +4,14 @@ module Api.WebSocket.Types (
   GetDatumsByHashesDatum (..),
 ) where
 
-import App.Env (ControlApiToken (ControlApiToken))
 import Data.Aeson (FromJSON, ToJSON, parseJSON, withObject, (.:), (.:?))
 import Data.Aeson qualified as Aeson
-import Data.Int (Int64)
 import Data.Text (Text)
 import GHC.Generics (Generic)
 
+import App.Env (ControlApiToken (ControlApiToken))
 import Block.Filter (DatumFilter)
+import Block.Types (BlockInfo)
 import PlutusData qualified
 
 data JsonWspRequest = JsonWspRequest
@@ -36,32 +36,27 @@ instance FromJSON JsonWspRequest where
             hashes <- args .: "hashes"
             pure $ GetDatumsByHashes hashes
           "GetBlock" -> pure GetBlock
-          "StartFetchBlocks" -> do
-            args <- o .: "args"
-            slot <- args .: "slot"
-            blockId <- args .: "id"
-            datumFilter <- args .:? "datumFilter"
-            token <- ControlApiToken <$> args .: "token"
-            pure $ StartFetchBlocks slot blockId datumFilter token
-          "CancelFetchBlocks" -> do
-            args <- o .: "args"
-            token <- ControlApiToken <$> args .: "token"
-            pure $ CancelFetchBlocks token
           "GetHealthcheck" -> do
             pure GetHealthcheck
+          "SetStartingBlock" -> do
+            args <- o .: "args"
+            block <- args .: "startingBlock"
+            token <- ControlApiToken <$> args .: "token"
+            pure $ SetStartingBlock token block
+          "SetDatumFilter" -> do
+            args <- o .: "args"
+            datumFilter <- args .: "datumFilter"
+            token <- ControlApiToken <$> args .: "token"
+            pure $ SetDatumFilter token datumFilter
           _ -> fail "Unexpected method"
 
 data Method
   = GetDatumByHash Text
   | GetDatumsByHashes [Text]
   | GetBlock
-  | StartFetchBlocks
-      Int64 -- slot
-      Text -- id
-      (Maybe DatumFilter) -- datum filter
-      ControlApiToken
-  | CancelFetchBlocks ControlApiToken
   | GetHealthcheck
+  | SetStartingBlock ControlApiToken BlockInfo
+  | SetDatumFilter ControlApiToken DatumFilter
   deriving stock (Show, Eq)
 
 data GetDatumsByHashesDatum = GetDatumsByHashesDatum
