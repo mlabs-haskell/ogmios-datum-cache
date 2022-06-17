@@ -11,7 +11,6 @@ module Parameters (
 
 import Data.ByteString (ByteString)
 import Data.ByteString.Lazy qualified as LBS
-import Data.List (intercalate)
 import Data.Text qualified as Text
 import Data.Text.Encoding qualified as Text.Encoding
 import Data.Text.Lazy qualified as Text.Lazy
@@ -71,8 +70,7 @@ data DBConnection = DBConnection
 dbConnection2ByteString :: DBConnection -> ByteString
 dbConnection2ByteString DBConnection {..} =
   toBytes $
-    intercalate
-      " "
+    unwords
       [ "port=" <> show dbPort
       , "host=" <> show dbHost
       , "user=" <> show dbUser

@@ -160,6 +160,7 @@ test-suite ogmios-datum-cache-test
   build-depends:
     , aeson
     , base
+    , bytestring
     , exceptions
     , hspec
     , hspec-wai
@@ -170,4 +171,3 @@ test-suite ogmios-datum-cache-test
     , servant-server
     , string-interpolate
     , utf8-string
-    , bytestring
