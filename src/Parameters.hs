@@ -92,12 +92,12 @@ parseFirstBlock =
           "block-slot"
           <> metavar
             "INT"
-          <> help "Block slot"
+          <> help "Slot of first block to fetch by initial block fetcher."
       )
     <*> strOption
       ( long "block-hash"
           <> metavar "HASH"
-          <> help "Hash of block header"
+          <> help "hash of block's HEADER not hash of a block itself"
       )
 
 parseBlockFetcher :: Parser BlockFetcherConfig
@@ -108,19 +108,24 @@ parseBlockFetcher =
       ( strOption
           ( long "block-filter"
               <> metavar "FILTER"
-              <> help "Filter"
+              <> help "Filter."
           )
       )
     <*> switch
       ( long "use-latest"
-          <> help "Use latest block"
+          <> help
+            "defines if block fetcher, if started automatically, should \
+            \start from last block that was proccessed rather than from \
+            \block defined with --block-slot and --block-hash."
       )
     <*> option
       auto
       ( long "queue-size"
           <> value 64
           <> metavar "NATURAL"
-          <> help "Queue size"
+          <> help
+            "Defines size of queue of prefetched blocks ready to be \
+            \processed, default=64."
       )
 
 parseDBConnection :: Parser DBConnection
@@ -173,12 +178,12 @@ argParser =
       auto
       ( long "server-port"
           <> metavar "PORT"
-          <> help "Server Port"
+          <> help "ODC server port"
       )
     <*> strOption
       ( long "server-api"
           <> metavar "SERVER_CONTROL_API_TOKEN"
-          <> help "Token for server api"
+          <> help "Defines the secrete token, required for control API call. Format: user:password"
       )
     <*> strOption
       ( long "ogmios-address"

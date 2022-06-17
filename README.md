@@ -2,34 +2,6 @@
 ## Datum query
 ### Plutus `Data` in JSON
 
-```
-Ogmios Datum Cache
-
-Usage: ogmios-datum-cache --db-connection DB_CONNECTION_PARAMETERS
-                          --server-port PORT
-                          --server-api SERVER_CONTROL_API_TOKEN
-                          --ogmios-address ADDRESS --ogmios-port PORT
-                          --block-slot INT --block-hash HASH 
-                          [--block-filter FILTER] [--use-latest] 
-                          [--queue-size NATURAL]
-
-Available options:
-  --db-connection DB_CONNECTION_PARAMETERS
-                           Data base connection string
-  --server-port PORT       Server Port
-  --server-api SERVER_CONTROL_API_TOKEN
-                           Token for server api
-  --ogmios-address ADDRESS Ogmios address
-  --ogmios-port PORT       Ogmios port
-  --block-slot INT         Block slot
-  --block-hash HASH        Hash of block header
-  --block-filter FILTER    Filter
-  --use-latest             Use latest block
-  --queue-size NATURAL     Queue size
-  -h,--help                Show this help text
-```
-
-
 ```haskell
 data Data =
       Constr Integer [Data]
@@ -669,27 +641,48 @@ Run local ogmios instance:
 docker-compose up -f deploy/docker-compose.yml -d
 ```
 
-### Step 2 - config file
-Modify `config.toml` in the app working directory (currently `/home/ubuntu/seabug/ogmios-datum-cache`).
+### Step 2 - Passing arguments to ODC
 
-* `dbConnectionString` (postgres libpq connection string) — `host=localhost port=5432 user=<user> password=<pass>`
+```
+Usage: ogmios-datum-cache (--db-port PORT --db-host HOST_NAME
+                            --db-user USER_NAME [--db-password PASSWORD]
+                            --db-name DB_NAME |
+                            --db-connection POSTGRES_LIBPQ_CONNECTION_STRING)
+                          --server-port PORT
+                          --server-api SERVER_CONTROL_API_TOKEN
+                          --ogmios-address ADDRESS --ogmios-port PORT
+                          --block-slot INT --block-hash HASH 
+                          [--block-filter FILTER] [--use-latest] 
+                          [--queue-size NATURAL]
 
-* `server.port` defines port of ogmios-datum-chahe server
-
-* `server.controlApiToken` defines the secrete token, required for control API call. Format: `user:password`
-
-* `blockFetcher.autoStart` defines if initial block fetcher should start automatically.
-
-* `blockFetcher.filter` defines json encoded [filter](#filter) for initial block fetcher. If not defined filter will accept all datums.
-
-* `blockFetcher.firstBlock.slot` slot of first block to fetch by initial block fetcher.
-
-* `blockFetcher.firstBlock.id` hash of block's HEADER not hash of a block itself.
-
-* `blockFetcher.startFromLast` defines if block fetcher, if started automatically, should start from last block that was proccessed rather than from block defined in `firstFetchBlock`.
-
-* `blockFetcher.queueSize` defines size of queue of prefetched blocks ready to be processed, `default=64`.
-
+Available options:
+  --db-port PORT           Postgres libpq connection port
+  --db-host HOST_NAME      Postgres libpq connection host
+  --db-user USER_NAME      Postgres libpq connection user
+  --db-password PASSWORD   Postgres libpq connection password
+  --db-name DB_NAME        Postgres libpq connection data base name
+  --db-connection POSTGRES_LIBPQ_CONNECTION_STRING
+                           "host=localhost port=5432 user=<user>
+                           password=<pass>"
+  --server-port PORT       ODC server port
+  --server-api SERVER_CONTROL_API_TOKEN
+                           Defines the secrete token, required for control API
+                           call. Format: user:password
+  --ogmios-address ADDRESS Ogmios address
+  --ogmios-port PORT       Ogmios port
+  --block-slot INT         Slot of first block to fetch by initial block
+                           fetcher.
+  --block-hash HASH        hash of block's HEADER not hash of a block itself
+  --block-filter FILTER    Filter.
+  --use-latest             defines if block fetcher, if started automatically,
+                           should start from last block that was proccessed
+                           rather than from block defined with --block-slot and
+                           --block-hash.
+  --queue-size NATURAL     Defines size of queue of prefetched blocks ready to
+                           be processed, default=64.
+  -h,--help                Show this help text
+```
+  
 ### Filter
 
 Datum filter can filter datum hash and address of utxo with given datum. Filters can be combined with logical `or`s and `and`s.
