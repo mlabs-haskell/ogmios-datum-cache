@@ -4,19 +4,19 @@ module Parameters (
   parserInfo,
   Config (..),
   BlockFetcherConfig (..),
+  DBConnection (..),
+  dbConnection2ByteString,
   configAsCLIOptions,
 ) where
 
 import Data.ByteString (ByteString)
 import Data.ByteString.Lazy qualified as LBS
+import Data.List (intercalate)
 import Data.Text qualified as Text
 import Data.Text.Encoding qualified as Text.Encoding
 import Data.Text.Lazy qualified as Text.Lazy
 import Data.Text.Lazy.Encoding qualified as Text.Lazy.Encoding
 import GHC.Natural (Natural)
-
-import App.Env (ControlApiToken (unControlApiToken))
-import Block.Types (BlockInfo (BlockInfo))
 import Options.Applicative (
   Parser,
   ParserInfo,
@@ -35,7 +35,11 @@ import Options.Applicative (
   switch,
   value,
   (<**>),
+  (<|>),
  )
+
+import App.Env (ControlApiToken (unControlApiToken))
+import Block.Types (BlockInfo (BlockInfo))
 
 data BlockFetcherConfig = BlockFetcherConfig
   { cfgFetcherBlock :: BlockInfo
@@ -54,6 +58,30 @@ data Config = Config
   , cfgFetcher :: BlockFetcherConfig
   }
   deriving stock (Show, Eq)
+
+data DBConnection = DBConnection
+  { dbPort :: Int
+  , dbHost :: ByteString
+  , dbUser :: ByteString
+  , dbPassword :: Maybe ByteString
+  , dbName :: ByteString
+  }
+  deriving stock (Show, Eq)
+
+dbConnection2ByteString :: DBConnection -> ByteString
+dbConnection2ByteString DBConnection {..} =
+  toBytes $
+    intercalate
+      " "
+      [ "port=" <> show dbPort
+      , "host=" <> show dbHost
+      , "user=" <> show dbUser
+      , "dbname=" <> show dbName
+      ]
+      <> maybe "" (\pass -> " password=" <> show pass) dbPassword
+  where
+    toBytes :: String -> ByteString
+    toBytes = Text.Encoding.encodeUtf8 . Text.pack
 
 parseFirstBlock :: Parser BlockInfo
 parseFirstBlock =
@@ -95,37 +123,75 @@ parseBlockFetcher =
           <> help "Queue size"
       )
 
+parseDBConnection :: Parser DBConnection
+parseDBConnection =
+  DBConnection
+    <$> option
+      auto
+      ( long "db-port"
+          <> metavar "PORT"
+          <> help "Postgres libpq connection port"
+      )
+    <*> strOption
+      ( long "db-host"
+          <> metavar "HOST_NAME"
+          <> help "Postgres libpq connection host"
+      )
+    <*> strOption
+      ( long "db-user"
+          <> metavar "USER_NAME"
+          <> help "Postgres libpq connection user"
+      )
+    <*> optional
+      ( strOption
+          ( long "db-password"
+              <> metavar "PASSWORD"
+              <> help "Postgres libpq connection password"
+          )
+      )
+    <*> strOption
+      ( long "db-name"
+          <> metavar "DB_NAME"
+          <> help "Postgres libpq connection data base name"
+      )
+
+parseDBConnectionString :: Parser ByteString
+parseDBConnectionString =
+  strOption
+    ( long "db-connection"
+        <> metavar "POSTGRES_LIBPQ_CONNECTION_STRING"
+        <> help "\"host=localhost port=5432 user=<user> password=<pass>\""
+    )
+
 argParser :: Parser Config
 argParser =
   Config
-    <$> strOption
-      ( long "db-connection"
-          <> metavar "DB_CONNECTION_PARAMETERS"
-          <> help "Data base connection string"
+    <$> ( (dbConnection2ByteString <$> parseDBConnection)
+            <|> parseDBConnectionString
+        )
+    <*> option
+      auto
+      ( long "server-port"
+          <> metavar "PORT"
+          <> help "Server Port"
       )
-      <*> option
-        auto
-        ( long "server-port"
-            <> metavar "PORT"
-            <> help "Server Port"
-        )
-      <*> strOption
-        ( long "server-api"
-            <> metavar "SERVER_CONTROL_API_TOKEN"
-            <> help "Token for server api"
-        )
-      <*> strOption
-        ( long "ogmios-address"
-            <> metavar "ADDRESS"
-            <> help "Ogmios address"
-        )
-      <*> option
-        auto
-        ( long "ogmios-port"
-            <> metavar "PORT"
-            <> help "Ogmios port"
-        )
-      <*> parseBlockFetcher
+    <*> strOption
+      ( long "server-api"
+          <> metavar "SERVER_CONTROL_API_TOKEN"
+          <> help "Token for server api"
+      )
+    <*> strOption
+      ( long "ogmios-address"
+          <> metavar "ADDRESS"
+          <> help "Ogmios address"
+      )
+    <*> option
+      auto
+      ( long "ogmios-port"
+          <> metavar "PORT"
+          <> help "Ogmios port"
+      )
+    <*> parseBlockFetcher
 
 parserInfo :: ParserInfo Config
 parserInfo =

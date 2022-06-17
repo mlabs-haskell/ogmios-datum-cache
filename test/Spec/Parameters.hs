@@ -1,5 +1,6 @@
 module Spec.Parameters (spec, example) where
 
+import Data.ByteString (ByteString)
 import Data.ByteString.Lazy.UTF8 (fromString)
 import Options.Applicative (ParserResult (Success), defaultPrefs, execParserPure)
 import Test.Hspec (Spec, describe, it, shouldBe)
@@ -22,7 +23,16 @@ import Parameters (
     cfgServerControlApiToken,
     cfgServerPort
   ),
+  DBConnection (
+    DBConnection,
+    dbHost,
+    dbName,
+    dbPassword,
+    dbPort,
+    dbUser
+  ),
   configAsCLIOptions,
+  dbConnection2ByteString,
   parserInfo,
  )
 
@@ -31,6 +41,25 @@ spec = do
   describe "Config" $ do
     it "fixedConfig" $
       (parseParams . configAsCLIOptions) example `shouldBe` Right example
+    it "DBConnection2string Non password" $
+      dbConnection2ByteString (dbConnectionExample Nothing)
+        `shouldBe` "port=5432 host=\"localhost\" user=\"seabug\" \
+                   \dbname=\"ogmios-datum-cache\""
+
+    it "DBConnection2string with password" $
+      dbConnection2ByteString (dbConnectionExample $ Just "fakePass")
+        `shouldBe` "port=5432 host=\"localhost\" user=\"seabug\" \
+                   \dbname=\"ogmios-datum-cache\" password=\"fakePass\""
+
+dbConnectionExample :: Maybe ByteString -> DBConnection
+dbConnectionExample pass =
+  DBConnection
+    { dbPort = 5432
+    , dbHost = "localhost"
+    , dbUser = "seabug"
+    , dbPassword = pass
+    , dbName = "ogmios-datum-cache"
+    }
 
 example :: Config
 example =
