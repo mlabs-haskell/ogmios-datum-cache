@@ -52,14 +52,13 @@ parseBlockFetcher :: Parser BlockFetcherConfig
 parseBlockFetcher =
   BlockFetcherConfig
     <$> parseFirstBlock
-    <*> ( optional
-            ( strOption
-                ( long "block-filter"
-                    <> metavar "FILTER"
-                    <> help "Filter"
-                )
-            )
-        )
+    <*> optional
+      ( strOption
+          ( long "block-filter"
+              <> metavar "FILTER"
+              <> help "Filter"
+          )
+      )
     <*> switch
       ( long "useLatest"
           <> help "Use latest block"
