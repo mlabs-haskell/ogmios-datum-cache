@@ -1,6 +1,35 @@
 # ogmios-datum-cache
 ## Datum query
 ### Plutus `Data` in JSON
+
+```
+Ogmios Datum Cache
+
+Usage: ogmios-datum-cache --db-connection DB_CONNECTION_PARAMETERS
+                          --server-port PORT
+                          --server-api SERVER_CONTROL_API_TOKEN
+                          --ogmios-address ADDRESS --ogmios-port PORT
+                          --block-slot INT --block-hash HASH 
+                          [--block-filter FILTER] [--use-latest] 
+                          [--queue-size NATURAL]
+
+Available options:
+  --db-connection DB_CONNECTION_PARAMETERS
+                           Data base connection string
+  --server-port PORT       Server Port
+  --server-api SERVER_CONTROL_API_TOKEN
+                           Token for server api
+  --ogmios-address ADDRESS Ogmios address
+  --ogmios-port PORT       Ogmios port
+  --block-slot INT         Block slot
+  --block-hash HASH        Hash of block header
+  --block-filter FILTER    Filter
+  --use-latest             Use latest block
+  --queue-size NATURAL     Queue size
+  -h,--help                Show this help text
+```
+
+
 ```haskell
 data Data =
       Constr Integer [Data]
@@ -18,6 +47,7 @@ instance ToJSON Data where
     I int -> toJSON int
     B bs -> toJSON $ BSBase16.encodeBase16 bs
 ```
+
 
 ### `GET /datum/<hash>`
 Request: `GET /datum/179f56ecaaad4a92dd6554aaeaac7089dc4bd9903ffb047c28d75da90fe3f259`

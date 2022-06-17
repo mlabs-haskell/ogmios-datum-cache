@@ -100,6 +100,7 @@ argParser =
   Config
     <$> strOption
       ( long "db-connection"
+          <> metavar "DB_CONNECTION_PARAMETERS"
           <> help "Data base connection string"
       )
       <*> option
