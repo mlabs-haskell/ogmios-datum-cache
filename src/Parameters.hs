@@ -84,12 +84,12 @@ parseBlockFetcher =
           )
       )
     <*> switch
-      ( long "useLatest"
+      ( long "use-latest"
           <> help "Use latest block"
       )
     <*> option
       auto
-      ( long "queueSize"
+      ( long "queue-size"
           <> value 64
           <> metavar "NATURAL"
           <> help "Queue size"
@@ -99,28 +99,28 @@ argParser :: Parser Config
 argParser =
   Config
     <$> strOption
-      ( long "dbConnection"
+      ( long "db-connection"
           <> help "Data base connection string"
       )
       <*> option
         auto
-        ( long "serverPort"
+        ( long "server-port"
             <> metavar "PORT"
             <> help "Server Port"
         )
       <*> strOption
-        ( long "serverApi"
+        ( long "server-api"
             <> metavar "SERVER_CONTROL_API_TOKEN"
             <> help "Token for server api"
         )
       <*> strOption
-        ( long "ogmiosAddress"
+        ( long "ogmios-address"
             <> metavar "ADDRESS"
             <> help "Ogmios address"
         )
       <*> option
         auto
-        ( long "ogmiosPort"
+        ( long "ogmios-port"
             <> metavar "PORT"
             <> help "Ogmios port"
         )
@@ -140,27 +140,29 @@ configAsCLIOptions Config {..} =
   let (BlockInfo slot hash) = cfgFetcher.cfgFetcherBlock
       useLatesString =
         if cfgFetcher.cfgFetcherUseLatest
-          then "--useLatest"
-          else ""
+          then ["--use-latest"]
+          else []
       mostParams =
-        useLatesString :
-        [ command "block-slot" slot
-        , stringCommand "block-hash" $ Text.unpack hash
-        , command "queueSize" cfgFetcher.cfgFetcherQueueSize
-        , stringCommand "dbConnection" $
-            (Text.unpack . Text.Encoding.decodeUtf8) cfgDbConnectionString
-        , command "serverPort" cfgServerPort
-        , stringCommand "serverApi" $ unControlApiToken cfgServerControlApiToken
-        , stringCommand "ogmiosAddress" cfgOgmiosAddress
-        , command "ogmiosPort" cfgOgmiosPort
-        ]
-   in case cfgFetcher.cfgFetcherFilterJson of
-        Just fil ->
-          stringCommand
-            "block-filter"
-            ((Text.Lazy.unpack . Text.Lazy.Encoding.decodeUtf8) fil) :
-          mostParams
-        _ -> mostParams
+        useLatesString
+          <> [ command "block-slot" slot
+             , stringCommand "block-hash" $ Text.unpack hash
+             , command "queue-size" cfgFetcher.cfgFetcherQueueSize
+             , stringCommand "db-connection" $
+                (Text.unpack . Text.Encoding.decodeUtf8) cfgDbConnectionString
+             , command "server-port" cfgServerPort
+             , stringCommand "server-api" $
+                unControlApiToken cfgServerControlApiToken
+             , stringCommand "ogmios-address" cfgOgmiosAddress
+             , command "ogmios-port" cfgOgmiosPort
+             ]
+   in maybe
+        mostParams
+        ( (: mostParams)
+            . stringCommand "block-filter"
+            . Text.Lazy.unpack
+            . Text.Lazy.Encoding.decodeUtf8
+        )
+        cfgFetcher.cfgFetcherFilterJson
   where
     command :: Show a => String -> a -> String
     command name x = "--" <> name <> "=" <> show x
