@@ -7,13 +7,8 @@ module Config (
   configAsCLIOptions,
 ) where
 
-import Control.Monad.IO.Class (MonadIO)
 import Data.ByteString (ByteString)
 import Data.ByteString.Lazy qualified as LBS
-import Data.Int (Int64)
-import Data.List (intercalate)
-import Data.Maybe (fromMaybe)
-import Data.String.ToString (toString)
 import Data.Text qualified as Text
 import Data.Text.Encoding qualified as Text.Encoding
 import Data.Text.Lazy qualified as Text.Lazy

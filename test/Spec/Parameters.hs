@@ -3,14 +3,8 @@
 module Spec.Parameters (spec, example) where
 
 import Data.ByteString.Lazy.UTF8 (fromString)
-import Data.List (intercalate, intersperse)
-import Data.String.Interpolate (i)
-import Debug.Trace (trace)
 import Options.Applicative (ParserResult (Success), defaultPrefs, execParserPure)
-import System.Directory (getCurrentDirectory, setCurrentDirectory)
-import System.IO.Temp (withSystemTempDirectory)
 import Test.Hspec (Spec, describe, it, shouldBe)
-import Test.Hspec.QuickCheck (prop)
 
 import Block.Types (BlockInfo (BlockInfo, blockId, blockSlot))
 import Config (
@@ -32,15 +26,13 @@ import Config (
   ),
   configAsCLIOptions,
  )
-import Parameters (argParser, parserInfo)
+import Parameters (parserInfo)
 
 spec :: Spec
 spec = do
   describe "Config" $ do
     it "fixedConfig" $
       (parseParams . configAsCLIOptions) example `shouldBe` Right example
-    prop "propertyTest" $ \conf ->
-      (parseParams . configAsCLIOptions) conf `shouldBe` Right conf
 
 example :: Config
 example =

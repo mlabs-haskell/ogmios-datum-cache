@@ -161,10 +161,8 @@ test-suite ogmios-datum-cache-test
   build-depends:
     , aeson
     , base
-    , directory
     , exceptions
     , hspec
-    , QuickCheck
     , hspec-wai
     , ogmios-datum-cache
     , optparse-applicative
@@ -172,5 +170,4 @@ test-suite ogmios-datum-cache-test
     , record-hasfield
     , servant-server
     , string-interpolate
-    , temporary
     ,utf8-string

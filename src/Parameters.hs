@@ -4,7 +4,6 @@ module Parameters (
   parserInfo,
 ) where
 
-import App.Env (ControlApiToken)
 import Block.Types (BlockInfo (BlockInfo))
 import Config (
   BlockFetcherConfig (
@@ -15,9 +14,9 @@ import Config (
 import Control.Applicative ((<|>))
 import Options.Applicative (
   Parser,
+  ParserInfo,
   auto,
   execParser,
-  flag',
   fullDesc,
   header,
   help,
@@ -26,8 +25,6 @@ import Options.Applicative (
   long,
   metavar,
   option,
-  short,
-  str,
   strOption,
   switch,
   value,
@@ -106,6 +103,7 @@ argParser =
         )
       <*> parseBlockFetcher
 
+parserInfo :: ParserInfo Config
 parserInfo =
   ( info
       (argParser <**> helper)
