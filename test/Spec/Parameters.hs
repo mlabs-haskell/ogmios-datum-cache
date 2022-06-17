@@ -1,5 +1,3 @@
-{-# LANGUAGE QuasiQuotes #-}
-
 module Spec.Parameters (spec, example) where
 
 import Data.ByteString.Lazy.UTF8 (fromString)

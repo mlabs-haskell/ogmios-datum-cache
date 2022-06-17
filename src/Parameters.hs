@@ -11,7 +11,6 @@ import Config (
   ),
   Config (Config),
  )
-import Control.Applicative ((<|>))
 import Options.Applicative (
   Parser,
   ParserInfo,
@@ -25,6 +24,7 @@ import Options.Applicative (
   long,
   metavar,
   option,
+  optional,
   strOption,
   switch,
   value,
@@ -52,13 +52,13 @@ parseBlockFetcher :: Parser BlockFetcherConfig
 parseBlockFetcher =
   BlockFetcherConfig
     <$> parseFirstBlock
-    <*> ( Just
-            <$> strOption
-              ( long "block-filter"
-                  <> metavar "FILTER"
-                  <> help "Filter"
-              )
-            <|> pure Nothing
+    <*> ( optional
+            ( strOption
+                ( long "block-filter"
+                    <> metavar "FILTER"
+                    <> help "Filter"
+                )
+            )
         )
     <*> switch
       ( long "useLatest"
@@ -105,10 +105,9 @@ argParser =
 
 parserInfo :: ParserInfo Config
 parserInfo =
-  ( info
-      (argParser <**> helper)
-      (fullDesc <> header "Ogmios Datum Cache")
-  )
+  info
+    (argParser <**> helper)
+    (fullDesc <> header "Ogmios Datum Cache")
 
 parseArgs :: IO Config
 parseArgs = execParser parserInfo
