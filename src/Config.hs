@@ -36,7 +36,14 @@ instance Arbitrary BlockFetcherConfig where
   arbitrary =
     BlockFetcherConfig
       <$> (BlockInfo <$> arbitrary <*> (Text.pack <$> arbitrary))
-        <*> frequency [(8, Just . Text.Lazy.Encoding.encodeUtf8 . Text.Lazy.pack <$> arbitrary), (2, pure Nothing)]
+        <*> frequency
+          [ (2, pure Nothing)
+          ,
+            ( 8
+            , Just . Text.Lazy.Encoding.encodeUtf8 . Text.Lazy.pack
+                <$> arbitrary
+            )
+          ]
         <*> arbitrary
         <*> arbitrarySizedNatural
 
@@ -72,21 +79,24 @@ configAsCLIOptions Config {..} =
         [ command "block-slot" slot
         , stringCommand "block-hash" $ Text.unpack hash
         , command "queueSize" cfgFetcher.cfgFetcherQueueSize
-        , stringCommand "dbConnection" $ (Text.unpack . Text.Encoding.decodeUtf8) cfgDbConnectionString
+        , stringCommand "dbConnection" $
+            (Text.unpack . Text.Encoding.decodeUtf8) cfgDbConnectionString
         , command "serverPort" cfgServerPort
         , stringCommand "serverApi" $ unControlApiToken cfgServerControlApiToken
         , stringCommand "ogmiosAddress" cfgOgmiosAddress
         , command "ogmiosPort" cfgOgmiosPort
         ]
    in case cfgFetcher.cfgFetcherFilterJson of
-        Just fil -> stringCommand "block-filter" ((Text.Lazy.unpack . Text.Lazy.Encoding.decodeUtf8) fil) : mostParams
+        Just fil ->
+          stringCommand
+            "block-filter"
+            ((Text.Lazy.unpack . Text.Lazy.Encoding.decodeUtf8) fil) :
+          mostParams
         _ -> mostParams
   where
     command :: Show a => String -> a -> String
     command name x = "--" <> name <> "=" <> show x
 
+    -- TODO : Handle empty strings for quickCheck
     stringCommand :: String -> String -> String
-    stringCommand name x =
-      if x == ""
-        then "--" <> name <> "=" <> "a"
-        else "--" <> name <> "=" <> x
+    stringCommand name x = "--" <> name <> "=" <> x

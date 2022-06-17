@@ -37,7 +37,8 @@ spec = do
 example :: Config
 example =
   Config
-    { cfgDbConnectionString = "host=localhost port=5432 user=seabug dbname=ogmios-datum-cache"
+    { cfgDbConnectionString =
+        "host=localhost port=5432 user=seabug dbname=ogmios-datum-cache"
     , cfgServerPort = 9999
     , cfgServerControlApiToken = "API_TOKEN"
     , cfgOgmiosAddress = "127.0.0.1"
@@ -47,7 +48,8 @@ example =
           { cfgFetcherBlock =
               BlockInfo
                 { blockSlot = 44366242
-                , blockId = "d2a4249fe3d0607535daa26caf12a38da2233586bc51e79ed0b3a36170471bf5"
+                , blockId =
+                    "d2a4249fe3d0607535daa26caf12a38da2233586bc51e79ed0b3a36170471bf5"
                 }
           , cfgFetcherFilterJson =
               (Just . fromString)
