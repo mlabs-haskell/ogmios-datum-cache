@@ -93,6 +93,7 @@ library
     , mtl
     , network
     , optparse-applicative
+    , QuickCheck
     , record-dot-preprocessor
     , record-hasfield
     , serialise
@@ -107,7 +108,6 @@ library
     , unordered-containers
     , vector
     , websockets
-    , QuickCheck
 
 executable ogmios-datum-cache
   import:         common-language
@@ -170,4 +170,4 @@ test-suite ogmios-datum-cache-test
     , record-hasfield
     , servant-server
     , string-interpolate
-    ,utf8-string
+    , utf8-string
