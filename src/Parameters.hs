@@ -138,10 +138,7 @@ parseArgs = execParser parserInfo
 configAsCLIOptions :: Config -> [String]
 configAsCLIOptions Config {..} =
   let (BlockInfo slot hash) = cfgFetcher.cfgFetcherBlock
-      useLatesString =
-        if cfgFetcher.cfgFetcherUseLatest
-          then ["--use-latest"]
-          else []
+      useLatesString = ["--use-latest" | cfgFetcher.cfgFetcherUseLatest]
       mostParams =
         useLatesString
           <> [ command "block-slot" slot
