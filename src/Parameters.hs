@@ -69,7 +69,7 @@ parseFirstBlock =
     <*> strOption
       ( long "block-hash"
           <> metavar "HASH"
-          <> help "Block hash"
+          <> help "Hash of block header"
       )
 
 parseBlockFetcher :: Parser BlockFetcherConfig
