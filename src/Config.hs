@@ -2,11 +2,9 @@
 {-# LANGUAGE NamedFieldPuns #-}
 
 module Config (
-  loadConfig,
   Config (..),
   BlockFetcherConfig (..),
-  cliParameters2Config,
-  showConfigAsCLIOptions,
+  configAsCLIOptions,
 ) where
 
 import Control.Monad.IO.Class (MonadIO)
@@ -16,31 +14,20 @@ import Data.Int (Int64)
 import Data.List (intercalate)
 import Data.Maybe (fromMaybe)
 import Data.String.ToString (toString)
+import Data.Text qualified as Text
+import Data.Text.Encoding qualified as Text.Encoding
+import Data.Text.Lazy qualified as Text.Lazy
+import Data.Text.Lazy.Encoding qualified as Text.Lazy.Encoding
 import GHC.Natural (Natural)
-import Toml (TomlCodec, dimap, dioptional, (.=))
-import Toml qualified
-
-import App.Env (ControlApiToken (ControlApiToken))
-import Block.Types (BlockInfo (BlockInfo), blockId, blockSlot)
-import Parameters (
-  BlockFetcherParameters (
-    BlockFetcherParameters,
-    blockFilter,
-    blockInfo,
-    queueSize,
-    useLatest
-  ),
-  OgmiosParameters (ogmiosAddress, ogmiosPort),
-  OldConfigOption (OldConfigOption, config),
-  Parameters (
-    Parameters,
-    blockFetcherParameters,
-    dbConnectionString,
-    ogmiosParameters,
-    serverParameters
-  ),
-  ServerParameters (serverControlApiToken, serverPort),
+import Test.QuickCheck (
+  Arbitrary,
+  arbitrary,
+  arbitrarySizedNatural,
+  frequency,
  )
+
+import App.Env (ControlApiToken (ControlApiToken, unControlApiToken))
+import Block.Types (BlockInfo (BlockInfo))
 
 data BlockFetcherConfig = BlockFetcherConfig
   { cfgFetcherBlock :: BlockInfo
@@ -49,6 +36,14 @@ data BlockFetcherConfig = BlockFetcherConfig
   , cfgFetcherQueueSize :: Natural
   }
   deriving stock (Show, Eq)
+
+instance Arbitrary BlockFetcherConfig where
+  arbitrary =
+    BlockFetcherConfig
+      <$> (BlockInfo <$> arbitrary <*> (Text.pack <$> arbitrary))
+        <*> frequency [(8, Just . Text.Lazy.Encoding.encodeUtf8 . Text.Lazy.pack <$> arbitrary), (2, pure Nothing)]
+        <*> arbitrary
+        <*> arbitrarySizedNatural
 
 data Config = Config
   { cfgDbConnectionString :: ByteString
@@ -60,103 +55,43 @@ data Config = Config
   }
   deriving stock (Show, Eq)
 
-withDefault :: a -> TomlCodec a -> TomlCodec a
-withDefault d c = dimap pure (fromMaybe d) (Toml.dioptional c)
-
-int64 :: Toml.Key -> TomlCodec Int64
-int64 k = dimap fromIntegral fromIntegral (Toml.integer k)
-
-blockInfoT :: TomlCodec BlockInfo
-blockInfoT = do
-  blockSlot' <-
-    int64 "blockFetcher.firstBlock.slot"
-      .= blockSlot
-  blockId' <-
-    Toml.text "blockFetcher.firstBlock.id"
-      .= blockId
-  pure $ BlockInfo blockSlot' blockId'
-
-withFetcherT :: TomlCodec BlockFetcherConfig
-withFetcherT = do
-  cfgFetcherFilterJson <-
-    Toml.dioptional (Toml.lazyByteString "blockFetcher.filter")
-      .= cfgFetcherFilterJson
-  cfgFetcherBlock <- blockInfoT .= cfgFetcherBlock
-  cfgFetcherUseLatest <-
-    withDefault False (Toml.bool "blockFetcher.startFromLast")
-      .= cfgFetcherUseLatest
-  cfgFetcherQueueSize <-
-    withDefault 64 (Toml.natural "blockFetcher.queueSize") .= cfgFetcherQueueSize
-  pure BlockFetcherConfig {..}
-
-configT :: TomlCodec Config
-configT = do
-  cfgDbConnectionString <- Toml.byteString "dbConnectionString" .= cfgDbConnectionString
-  cfgServerPort <- Toml.int "server.port" .= cfgServerPort
-  cfgServerControlApiToken <-
-    Toml.diwrap (Toml.string "server.controlApiToken") .= cfgServerControlApiToken
-  cfgOgmiosAddress <- Toml.string "ogmios.address" .= cfgOgmiosAddress
-  cfgOgmiosPort <- Toml.int "ogmios.port" .= cfgOgmiosPort
-  cfgFetcher <- withFetcherT .= cfgFetcher
-  pure Config {..}
-
-loadConfig :: MonadIO m => OldConfigOption -> m Config
-loadConfig OldConfigOption {config} = do
-  tomlRes <- Toml.decodeFileEither configT config
-  case tomlRes of
-    Left errs -> error $ toString $ Toml.prettyTomlDecodeErrors errs
-    Right conf -> return conf
-
--- TODO : Define slot and hash for origin block
--- then we can delete the `Maybe` in the return type
-blockParameters2Config :: BlockFetcherParameters -> Maybe BlockFetcherConfig
-blockParameters2Config BlockFetcherParameters {..} = do
-  (slot, hash) <- blockInfo
-  pure
-    BlockFetcherConfig
-      { cfgFetcherBlock = BlockInfo slot hash
-      , cfgFetcherFilterJson = blockFilter
-      , cfgFetcherUseLatest = useLatest
-      , cfgFetcherQueueSize = queueSize
-      }
-
-cliParameters2Config :: Parameters -> Maybe Config
-cliParameters2Config Parameters {..} = do
-  block <- blockParameters2Config blockFetcherParameters
-  pure
+instance Arbitrary Config where
+  arbitrary =
     Config
-      { cfgDbConnectionString = dbConnectionString
-      , cfgServerPort = serverParameters.serverPort
-      , cfgServerControlApiToken = serverParameters.serverControlApiToken
-      , cfgOgmiosAddress = ogmiosParameters.ogmiosAddress
-      , cfgOgmiosPort = ogmiosParameters.ogmiosPort
-      , cfgFetcher = block
-      }
+      <$> (Text.Encoding.encodeUtf8 . Text.pack <$> arbitrary)
+      <*> arbitrary
+      <*> (ControlApiToken <$> arbitrary)
+      <*> arbitrary
+      <*> arbitrary
+      <*> arbitrary
 
-showConfigAsCLIOptions :: Config -> String
-showConfigAsCLIOptions Config {..} =
+configAsCLIOptions :: Config -> [String]
+configAsCLIOptions Config {..} =
   let (BlockInfo slot hash) = cfgFetcher.cfgFetcherBlock
       useLatesString =
         if cfgFetcher.cfgFetcherUseLatest
-          then " --useLatest"
+          then "--useLatest"
           else ""
-   in intercalate
-        " "
+      mostParams =
+        useLatesString :
         [ command "block-slot" slot
-        , command "block-hash" hash
-        , command "block-filter" cfgFetcher.cfgFetcherFilterJson
+        , stringCommand "block-hash" $ Text.unpack hash
         , command "queueSize" cfgFetcher.cfgFetcherQueueSize
-        , command "DBConnection" cfgDbConnectionString
+        , stringCommand "dbConnection" $ (Text.unpack . Text.Encoding.decodeUtf8) cfgDbConnectionString
         , command "serverPort" cfgServerPort
-        , command "serverApi" cfgServerControlApiToken
-        , command "ogmiosAddress" cfgOgmiosAddress
+        , stringCommand "serverApi" $ unControlApiToken cfgServerControlApiToken
+        , stringCommand "ogmiosAddress" cfgOgmiosAddress
         , command "ogmiosPort" cfgOgmiosPort
         ]
-        <> useLatesString
+   in case cfgFetcher.cfgFetcherFilterJson of
+        Just fil -> stringCommand "block-filter" ((Text.Lazy.unpack . Text.Lazy.Encoding.decodeUtf8) fil) : mostParams
+        _ -> mostParams
   where
     command :: Show a => String -> a -> String
-    command name x = "--" <> name <> "=" <> between x
+    command name x = "--" <> name <> "=" <> show x
 
-    --TODO : scape " inside strings
-    between :: Show a => a -> String
-    between x = "\"" <> show x <> "\""
+    stringCommand :: String -> String -> String
+    stringCommand name x =
+      if x == ""
+        then "--" <> name <> "=" <> "a"
+        else "--" <> name <> "=" <> x

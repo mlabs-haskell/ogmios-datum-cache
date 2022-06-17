@@ -1,11 +1,16 @@
 {-# LANGUAGE QuasiQuotes #-}
 
-module Spec.Config (spec) where
+module Spec.Parameters (spec, example) where
 
+import Data.ByteString.Lazy.UTF8 (fromString)
+import Data.List (intercalate, intersperse)
 import Data.String.Interpolate (i)
+import Debug.Trace (trace)
+import Options.Applicative (ParserResult (Success), defaultPrefs, execParserPure)
 import System.Directory (getCurrentDirectory, setCurrentDirectory)
 import System.IO.Temp (withSystemTempDirectory)
 import Test.Hspec (Spec, describe, it, shouldBe)
+import Test.Hspec.QuickCheck (prop)
 
 import Block.Types (BlockInfo (BlockInfo, blockId, blockSlot))
 import Config (
@@ -25,26 +30,17 @@ import Config (
     cfgServerControlApiToken,
     cfgServerPort
   ),
-  loadConfig,
+  configAsCLIOptions,
  )
-import Parameters (OldConfigOption (OldConfigOption, config), Parameters (Parameters))
+import Parameters (argParser, parserInfo)
 
 spec :: Spec
 spec = do
   describe "Config" $ do
-    it "simplest" $ do
-      [i|
-             dbConnectionString = "host=localhost port=5432 user=seabug dbname=ogmios-datum-cache"
-             server.port = 9999
-             server.controlApiToken = "API_TOKEN"
-             ogmios.address = "127.0.0.1"
-             ogmios.port = 1337
-             blockFetcher.autoStart = true
-             blockFetcher.startFromLast = true
-             blockFetcher.firstBlock.slot = 44366242
-             blockFetcher.firstBlock.id = "d2a4249fe3d0607535daa26caf12a38da2233586bc51e79ed0b3a36170471bf5"
-      |]
-        `configShouldBe` example
+    it "fixedConfig" $
+      (parseParams . configAsCLIOptions) example `shouldBe` Right example
+    prop "propertyTest" $ \conf ->
+      (parseParams . configAsCLIOptions) conf `shouldBe` Right conf
 
 example :: Config
 example =
@@ -61,17 +57,28 @@ example =
                 { blockSlot = 44366242
                 , blockId = "d2a4249fe3d0607535daa26caf12a38da2233586bc51e79ed0b3a36170471bf5"
                 }
-          , cfgFetcherFilterJson = Nothing
+          , cfgFetcherFilterJson =
+              (Just . fromString)
+                "{\
+                \    \"all\": [\
+                \        {\
+                \            \"hash\": \"foobar\"\
+                \        },\
+                \        {\
+                \            \"any\": [\
+                \                { \"address\": \"addr_abc\" },\
+                \                { \"address\": \"addr_xyz\" }\
+                \            ]\
+                \        }\
+                \    ]\
+                \}"
           , cfgFetcherUseLatest = True
           , cfgFetcherQueueSize = 64
           }
     }
 
-configShouldBe :: String -> Config -> IO ()
-toml `configShouldBe` conf = do
-  wd <- getCurrentDirectory
-  withSystemTempDirectory "ogmios-datum-cache-test" $ \path -> do
-    setCurrentDirectory path
-    writeFile "config.toml" toml
-    loadConfig (OldConfigOption "config.toml") >>= (`shouldBe` conf)
-  setCurrentDirectory wd
+parseParams :: [String] -> Either String Config
+parseParams strs =
+  case execParserPure defaultPrefs parserInfo strs of
+    Success conf -> Right conf
+    a -> Left $ show a

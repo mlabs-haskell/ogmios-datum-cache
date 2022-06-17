@@ -1,21 +1,18 @@
 module Parameters (
-  Parameters (..),
   argParser,
-  paramInfo,
-  OldConfigOption (..),
-  oldConfigParser,
-  BlockFetcherParameters (..),
-  OgmiosParameters (..),
-  ServerParameters (..),
+  parseArgs,
+  parserInfo,
 ) where
 
 import App.Env (ControlApiToken)
+import Block.Types (BlockInfo (BlockInfo))
+import Config (
+  BlockFetcherConfig (
+    BlockFetcherConfig
+  ),
+  Config (Config),
+ )
 import Control.Applicative ((<|>))
-import Data.ByteString (ByteString)
-import Data.ByteString.Lazy qualified as LBS
-import Data.Int (Int64)
-import Data.Text (Text)
-import GHC.Natural (Natural)
 import Options.Applicative (
   Parser,
   auto,
@@ -37,136 +34,83 @@ import Options.Applicative (
   (<**>),
  )
 
-data OldConfigOption = OldConfigOption {config :: FilePath}
-
-data BlockFetcherParameters = BlockFetcherParameters
-  { blockInfo :: Maybe (Int64, Text)
-  , blockFilter :: Maybe LBS.ByteString
-  , useLatest :: Bool
-  , queueSize :: Natural
-  }
-  deriving stock (Eq, Show)
-
-parseFirstBlock :: Parser (Maybe (Int64, Text))
+parseFirstBlock :: Parser BlockInfo
 parseFirstBlock =
-  Just
-    <$> ( (,)
-            <$> option
-              auto
-              ( long "block-slot"
-                  <> help "Block slot"
-              )
-            <*> strOption
-              ( long "block-hash"
-                  <> help "Block hash"
-              )
-        )
+  BlockInfo
+    <$> option
+      auto
+      ( long
+          "block-slot"
+          <> metavar
+            "INT"
+          <> help "Block slot"
+      )
+    <*> strOption
+      ( long "block-hash"
+          <> metavar "HASH"
+          <> help "Block hash"
+      )
 
-parseFirstBlockOrigin :: Parser (Maybe (Int64, Text))
-parseFirstBlockOrigin =
-  flag'
-    Nothing
-    ( long "origin"
-        <> help "Use the origin block"
-    )
-
-parseBlockFetcher :: Parser BlockFetcherParameters
+parseBlockFetcher :: Parser BlockFetcherConfig
 parseBlockFetcher =
-  BlockFetcherParameters
-    <$> (parseFirstBlock <|> parseFirstBlockOrigin)
+  BlockFetcherConfig
+    <$> parseFirstBlock
     <*> ( Just
             <$> strOption
               ( long "block-filter"
-                  <> metavar "Filter"
+                  <> metavar "FILTER"
                   <> help "Filter"
               )
             <|> pure Nothing
         )
     <*> switch
-      ( long "useLastest"
-          <> help "Use latests block"
+      ( long "useLatest"
+          <> help "Use latest block"
       )
     <*> option
       auto
       ( long "queueSize"
           <> value 64
-          <> metavar "Natural"
+          <> metavar "NATURAL"
           <> help "Queue size"
       )
 
-parseDBParameters :: Parser ByteString
-parseDBParameters =
-  strOption
-    ( long "DBConnection"
-        <> help "DB connection string"
-    )
-
-data ServerParameters = ServerParameters
-  { serverPort :: Int
-  , serverControlApiToken :: ControlApiToken
-  }
-  deriving stock (Eq, Show)
-
-parseServerParameters :: Parser ServerParameters
-parseServerParameters =
-  ServerParameters
-    <$> option
-      auto
-      ( long "serverPort"
-          <> metavar "Port"
-          <> help "Server Port"
-      )
-    <*> strOption
-      ( long "serverApi"
-          <> metavar "ServerControlApiToken"
-          <> help "Token for server api"
-      )
-
-data OgmiosParameters = OgmiosParameters
-  { ogmiosAddress :: String
-  , ogmiosPort :: Int
-  }
-  deriving stock (Eq, Show)
-
-parseOgmios :: Parser OgmiosParameters
-parseOgmios =
-  OgmiosParameters
-    <$> strOption
-      ( long "ogmiosAddress"
-          <> metavar "Address"
-          <> help "Ogmios address"
-      )
-    <*> option
-      auto
-      ( long "ogmiosPort"
-          <> metavar "Port"
-          <> help "Ogmios port"
-      )
-
-data Parameters = Parameters
-  { dbConnectionString :: ByteString
-  , serverParameters :: ServerParameters
-  , ogmiosParameters :: OgmiosParameters
-  , blockFetcherParameters :: BlockFetcherParameters
-  }
-  deriving stock (Eq, Show)
-
-argParser :: Parser Parameters
+argParser :: Parser Config
 argParser =
-  Parameters
-    <$> parseDBParameters
-    <*> parseServerParameters
-    <*> parseOgmios
-    <*> parseBlockFetcher
-
-oldConfigParser :: Parser OldConfigOption
-oldConfigParser =
-  OldConfigOption
+  Config
     <$> strOption
-      ( long "config"
-          <> metavar "FILEPATH [DEPRECATED]"
-          <> help "filepath where config is loaded from [DEPRECATED]"
+      ( long "dbConnection"
+          <> help "Data base connection string"
       )
+      <*> option
+        auto
+        ( long "serverPort"
+            <> metavar "PORT"
+            <> help "Server Port"
+        )
+      <*> strOption
+        ( long "serverApi"
+            <> metavar "SERVER_CONTROL_API_TOKEN"
+            <> help "Token for server api"
+        )
+      <*> strOption
+        ( long "ogmiosAddress"
+            <> metavar "ADDRESS"
+            <> help "Ogmios address"
+        )
+      <*> option
+        auto
+        ( long "ogmiosPort"
+            <> metavar "PORT"
+            <> help "Ogmios port"
+        )
+      <*> parseBlockFetcher
 
-paramInfo :: IO (Either OldConfigOption Parameters)
-paramInfo = execParser (info ((Right <$> argParser) <|> (Left <$> oldConfigParser) <**> helper) (fullDesc <> header "Ogmios Datum Cache"))
+parserInfo =
+  ( info
+      (argParser <**> helper)
+      (fullDesc <> header "Ogmios Datum Cache")
+  )
+
+parseArgs :: IO Config
+parseArgs = execParser parserInfo

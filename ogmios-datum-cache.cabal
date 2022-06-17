@@ -107,6 +107,7 @@ library
     , unordered-containers
     , vector
     , websockets
+    , QuickCheck
 
 executable ogmios-datum-cache
   import:         common-language
@@ -148,7 +149,7 @@ test-suite ogmios-datum-cache-test
   other-modules:
     Spec.Api.Handlers
     Spec.Api.WebSocket.Types
-    Spec.Config
+    Spec.Parameters
 
   ghc-options:
     -Wall -Wcompat -Wincomplete-uni-patterns
@@ -163,10 +164,13 @@ test-suite ogmios-datum-cache-test
     , directory
     , exceptions
     , hspec
+    , QuickCheck
     , hspec-wai
     , ogmios-datum-cache
+    , optparse-applicative
     , record-dot-preprocessor
     , record-hasfield
     , servant-server
     , string-interpolate
     , temporary
+    ,utf8-string

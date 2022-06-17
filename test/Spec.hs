@@ -9,12 +9,9 @@ import App (
   appService,
   bootstrapEnvFromConfig,
  )
-import Config (loadConfig)
-import Parameters (OldConfigOption (OldConfigOption), Parameters (Parameters))
-
 import Spec.Api.Handlers qualified
 import Spec.Api.WebSocket.Types qualified
-import Spec.Config qualified
+import Spec.Parameters qualified
 
 main :: IO ()
 main = do
@@ -22,9 +19,9 @@ main = do
   let handleDbException err
         | ci = error $ "Test environment is not running: " <> show err
         | otherwise = return $ Left $ show @DbConnectionAcquireException err
-  cfg <- loadConfig $ OldConfigOption "config.toml"
+      cfg = Spec.Parameters.example
   app <- (Right . appService <$> bootstrapEnvFromConfig cfg) `catch` handleDbException
   hspec $ do
     Spec.Api.Handlers.spec app
     Spec.Api.WebSocket.Types.spec
-    Spec.Config.spec
+    Spec.Parameters.spec

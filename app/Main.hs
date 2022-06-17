@@ -11,25 +11,13 @@ import Network.Wai.Middleware.Cors (simpleCors)
 import System.IO (BufferMode (NoBuffering), hSetBuffering, stdout)
 
 import App (appService, bootstrapEnvFromConfig)
-import Config (Config (..), loadConfig, cliParameters2Config, showConfigAsCLIOptions)
-import Parameters (paramInfo)
+import Config (Config (Config, cfgServerControlApiToken, cfgServerPort))
+import Parameters (parseArgs)
 
 main :: IO ()
 main = do
   hSetBuffering stdout NoBuffering
-  parameters <- paramInfo
-  (Just (cfg@Config{..}) ) <-  case parameters of 
-        Right cliParameters -> 
-          pure $ cliParameters2Config cliParameters
-        Left oldConfigOption -> 
-          do 
-          out <- loadConfig oldConfigOption
-          runStdoutLoggingT $ do
-            logWarnNS "ogmios-datum-cache" . Text.pack $ 
-              ("The use of a toml file is deprecated, the new cli syntax for "
-              <> "your current config file is :"
-              <> "ogmios-datum-cache " <> showConfigAsCLIOptions out)
-          return $ Just out
+  cfg@Config {..} <- parseArgs
   runStdoutLoggingT $ do
     logInfoNS "ogmios-datum-cache" $ Text.pack $ show cfg
     when (cfgServerControlApiToken == "usr:pwd") $

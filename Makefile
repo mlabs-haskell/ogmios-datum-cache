@@ -9,6 +9,7 @@ usage:
 	@echo
 	@echo "Available commands:"
 	@echo "  build               -- Run cabal v2-build"
+	@echo "  test                -- Run cabal v2-test"
 	@echo "  format              -- Apply source code formatting with fourmolu"
 	@echo "  format_check        -- Check source code formatting without making changes"
 	@echo "  cabalfmt            -- Apply cabal formatting with cabal-fmt"
@@ -33,6 +34,9 @@ CABAL_SOURCES := $(shell fd -ecabal)
 
 build: project
 	cabal v2-build all $(GHC_FLAGS)
+
+test: project
+	cabal v2-test $(GHC_FLAGS) 
 
 ## Formatting
 
