@@ -50,18 +50,17 @@ import UnliftIO.Concurrent (threadDelay)
 
 import Block.Filter (DatumFilter, runDatumFilter)
 import Block.Types (
-  AlonzoBlock (AlonzoBlock, body, header, headerHash),
-  AlonzoBlockHeader (AlonzoBlockHeader, slot),
-  BabbageBlock (BabbageBlock, body, header, headerHash),
-  BabbageBlockHeader (BabbageBlockHeader, slot),
-  Block (MkAlonzoBlock, MkBabbageBlock, OtherBlock),
+  Block (MkDatumBlock, OtherBlock),
   BlockInfo (BlockInfo),
+  DatumBlock (DatumBlock, body, header, headerHash),
+  DatumBlockHeader (DatumBlockHeader, slot),
+  DatumTransaction,
   FindIntersectResult (IntersectionFound, IntersectionNotFound),
   OgmiosFindIntersectResponse,
   OgmiosRequestNextResponse,
   OgmiosResponse (_result),
   RequestNextResult (RollBackward, RollForward),
-  Transaction (datums),
+  datums,
   mkFindIntersectRequest,
   mkRequestNextRequest,
  )
@@ -209,16 +208,8 @@ receiveBlocksLoop conn datumFilter = forever $ do
       logWarnNS
         "receiveBlocksLoop"
         $ "Received non-Alonzo block in the RollForward response: " <> Text.pack (toString raw)
-    Right (RollForward (MkAlonzoBlock block) _tip) -> do
-      let AlonzoBlock {headerHash, header = AlonzoBlockHeader {slot}, body} = block
-      logInfoReceiveBlocksLoop headerHash slot
-      saveDatumsTransactions body datumFilter
-      case headerHash of
-        Just headerHash' ->
-          updateLastBlock $ BlockInfo slot headerHash'
-        Nothing -> logWarnNoHeaderHash block
-    Right (RollForward (MkBabbageBlock block) _tip) -> do
-      let BabbageBlock {headerHash, header = BabbageBlockHeader {slot}, body} = block
+    Right (RollForward (MkDatumBlock block) _tip) -> do
+      let DatumBlock {headerHash, header = DatumBlockHeader {slot}, body} = block
       logInfoReceiveBlocksLoop headerHash slot
       saveDatumsTransactions body datumFilter
       case headerHash of
@@ -235,8 +226,8 @@ receiveBlocksLoop conn datumFilter = forever $ do
         $ Text.pack $ "Block without header hash: " <> show block
 
 saveDatumsTransactions ::
-  (MonadIO m, MonadLogger m, MonadReader r m, Has Hasql.Connection r, Transaction tx out) =>
-  [tx] ->
+  (MonadIO m, MonadLogger m, MonadReader r m, Has Hasql.Connection r) =>
+  [DatumTransaction] ->
   DatumFilter ->
   m ()
 saveDatumsTransactions txs datumFilter = do
