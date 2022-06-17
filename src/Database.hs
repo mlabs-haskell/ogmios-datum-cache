@@ -140,12 +140,11 @@ initLastBlock (BlockInfo slot hash) = do
 updateLastBlock ::
   ( MonadIO m
   , MonadLogger m
-  , MonadReader r m
-  , Has Connection r
   ) =>
+  Connection ->
   BlockInfo ->
   m ()
-updateLastBlock (BlockInfo slot hash) = do
+updateLastBlock dbConnection (BlockInfo slot hash) = do
   let sql = "UPDATE last_block SET slot = $1, hash = $2"
       enc =
         mconcat
@@ -154,7 +153,6 @@ updateLastBlock (BlockInfo slot hash) = do
           ]
       dec = Decoders.noResult
       stmt = Session.statement (slot, hash) $ Statement sql enc dec True
-  dbConnection <- ask
   res <- liftIO $ Session.run stmt dbConnection
   case res of
     Right _ -> pure ()
@@ -165,11 +163,10 @@ updateLastBlock (BlockInfo slot hash) = do
 getLastBlock ::
   ( MonadIO m
   , MonadLogger m
-  , MonadReader r m
-  , Has Connection r
   ) =>
+  Connection ->
   m (Maybe BlockInfo)
-getLastBlock = do
+getLastBlock dbConnection = do
   let sql = "SELECT slot, hash FROM last_block LIMIT 1"
       enc = Encoders.noParams
       dec =
@@ -178,7 +175,6 @@ getLastBlock = do
             <$> Decoders.column (Decoders.nonNullable Decoders.int8)
             <*> Decoders.column (Decoders.nonNullable Decoders.text)
       stmt = Session.statement () $ Statement sql enc dec True
-  dbConnection <- ask
   res <- liftIO $ Session.run stmt dbConnection
   case res of
     Right x -> pure . pure $ x
@@ -242,13 +238,11 @@ getDatumsByHashes hashes = runExceptT $ do
 saveDatums ::
   ( MonadIO m
   , MonadLogger m
-  , MonadReader r m
-  , Has Connection r
   ) =>
+  Connection ->
   [(Text, ByteString)] ->
   m ()
-saveDatums datums = do
-  dbConnection <- ask
+saveDatums dbConnection datums = do
   let (datumHashes, datumValues) = unzip datums
   logInfoNS "saveDatumsBlock" $
     "Inserting datums: " <> Text.intercalate ", " datumHashes

@@ -7,13 +7,11 @@ module Api.Handler (
 
 import Control.Monad.Catch (throwM)
 import Control.Monad.Logger (logInfoNS)
-import Data.Default (def)
-import Data.Maybe (fromMaybe)
 import Data.String.ToString (toString)
 import Data.Text (Text)
 import Data.Text qualified as Text
 import Network.WebSockets qualified as WebSockets
-import Servant (err404, err422, err500)
+import Servant (err404, err500)
 import Servant.API.BasicAuth (BasicAuthData (BasicAuthData))
 import Servant.API.Generic (ToServant)
 import Servant.Server (
@@ -23,35 +21,30 @@ import Servant.Server (
 import Servant.Server.Generic (AsServerT, genericServerT)
 
 import Api (
-  ControlApi (ControlApi, cancelBlockFetching, startBlockFetching),
+  ControlApi (ControlApi, setDatumFilter, setStartingBlock),
   DatumApi (DatumApi, getDatumByHash, getDatumsByHashes, getHealthcheck, getLastBlock),
   Routes (Routes, controlRoutes, datumRoutes, websocketRoutes),
   WebSocketApi (WebSocketApi, websocketApi),
  )
 import Api.Error (JsonError (JsonError), throwJsonError)
 import Api.Types (
-  CancelBlockFetchingResponse (CancelBlockFetchingResponse),
   ControlApiAuthData (ControlApiAuthData),
   GetDatumByHashResponse (GetDatumByHashResponse),
   GetDatumsByHashesDatum (GetDatumsByHashesDatum),
   GetDatumsByHashesRequest (GetDatumsByHashesRequest),
   GetDatumsByHashesResponse (GetDatumsByHashesResponse),
-  StartBlockFetchingRequest (StartBlockFetchingRequest),
-  StartBlockFetchingResponse (StartBlockFetchingResponse),
+  SetDatumFilterRequest (SetDatumFilterRequest),
+  SetStartingBlockRequest (SetStartingBlockRequest),
  )
 import Api.WebSocket (websocketServer)
 import App.Env (ControlApiToken (ControlApiToken), Env (Env, envControlApiToken))
 import App.Types (App)
-import Block.Fetch (
-  StartBlockFetcherError (StartBlockFetcherErrorAlreadyRunning),
-  StopBlockFetcherError (StopBlockFetcherErrorNotRunning),
-  startBlockErrMsg,
-  startBlockFetcher,
-  stopBlockErrMsg,
-  stopBlockFetcher,
+import Block.Fetch (changeDatumFilter, changeStartingBlock)
+import Block.Types (BlockInfo, CursorPoint)
+import Control.Monad.Reader.Has (ask)
+import Database (
+  DatabaseError (DatabaseErrorDecodeError, DatabaseErrorNotFound),
  )
-import Block.Types (BlockInfo (BlockInfo))
-import Database (DatabaseError (DatabaseErrorDecodeError, DatabaseErrorNotFound))
 import Database qualified
 
 controlApiAuthCheck :: Env -> BasicAuthCheck ControlApiAuthData
@@ -96,7 +89,8 @@ datumServiceHandlers =
 
     getLastBlock :: App BlockInfo
     getLastBlock = do
-      block' <- Database.getLastBlock
+      dbConn <- ask
+      block' <- Database.getLastBlock dbConn
       case block' of
         Just block -> pure block
         Nothing -> throwM err404
@@ -104,31 +98,21 @@ datumServiceHandlers =
     getHealthcheck :: App ()
     getHealthcheck = pure ()
 
+    setStartingBlock :: SetStartingBlockRequest -> App CursorPoint
+    setStartingBlock (SetStartingBlockRequest blockInfo) = do
+      intersection' <- changeStartingBlock blockInfo
+      case intersection' of
+        Nothing -> throwM err404
+        Just x -> pure x
+
+    setDatumFilter :: SetDatumFilterRequest -> App ()
+    setDatumFilter (SetDatumFilterRequest datumFilter) = do
+      changeDatumFilter datumFilter
+
     controlRoutes :: ControlApiAuthData -> ToServant ControlApi (AsServerT App)
     controlRoutes ControlApiAuthData =
       genericServerT
-        ControlApi {startBlockFetching, cancelBlockFetching}
-
-    startBlockFetching ::
-      StartBlockFetchingRequest ->
-      App StartBlockFetchingResponse
-    startBlockFetching
-      (StartBlockFetchingRequest firstBlockSlot firstBlockId datumFilter') = do
-        let datumFilter = fromMaybe def datumFilter'
-        res <- startBlockFetcher (BlockInfo firstBlockSlot firstBlockId) datumFilter
-        case res of
-          Left err@StartBlockFetcherErrorAlreadyRunning ->
-            throwJsonError err422 $ startBlockErrMsg err
-          Right () ->
-            pure $ StartBlockFetchingResponse "Started block fetcher"
-
-    cancelBlockFetching :: App CancelBlockFetchingResponse
-    cancelBlockFetching = do
-      res <- stopBlockFetcher
-      case res of
-        Left err@StopBlockFetcherErrorNotRunning ->
-          throwJsonError err422 $ stopBlockErrMsg err
-        Right () -> pure $ CancelBlockFetchingResponse "Stopped block fetcher"
+        ControlApi {setStartingBlock, setDatumFilter}
 
     websocketRoutes :: ToServant WebSocketApi (AsServerT App)
     websocketRoutes = genericServerT WebSocketApi {websocketApi}

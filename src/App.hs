@@ -1,34 +1,14 @@
-module App (mkAppEnv, appService, DbConnectionAcquireException (..)) where
+module App (DbConnectionAcquireException (..), bootstrapEnvFromConfig, appService) where
 
-import Control.Monad.Catch (Exception, throwM, try)
+import Control.Exception (Exception, try)
+import Control.Monad.Catch (throwM)
 import Control.Monad.Except (ExceptT (ExceptT))
 import Control.Monad.Logger (runStdoutLoggingT)
 import Control.Monad.Reader (runReaderT)
-import Hasql.Connection qualified as Connection
+import Data.Aeson (eitherDecode)
+import Data.Default (def)
+import Data.Maybe (fromMaybe)
 import Hasql.Connection qualified as Hasql
-
-import Api (Routes, datumCacheApi, datumCacheContext)
-import Api.Handler (controlApiAuthCheck, datumServiceHandlers)
-import Api.Types (ControlApiAuthData)
-import App.Env (
-  Env (Env, envControlApiToken, envDbConnection, envOgmiosInfo, envOgmiosWorker),
- )
-import App.Types (App (unApp))
-import Block.Fetch (
-  OgmiosInfo (OgmiosInfo),
-  createStoppedFetcher,
- )
-import Config (
-  Config (
-    Config,
-    cfgDbConnectionString,
-    cfgFetcher,
-    cfgOgmiosAddress,
-    cfgOgmiosPort,
-    cfgServerControlApiToken,
-    cfgServerPort
-  ),
- )
 import Servant.API.Generic (ToServantApi)
 import Servant.Server (
   Application,
@@ -41,15 +21,19 @@ import Servant.Server (
  )
 import Servant.Server.Generic (genericServerT)
 
-mkAppEnv :: Config -> IO Env
-mkAppEnv Config {..} = do
-  envDbConnection <-
-    Connection.acquire cfgDbConnectionString
-      >>= either (throwM . DbConnectionAcquireException) pure
-  let envOgmiosInfo = OgmiosInfo cfgOgmiosPort cfgOgmiosAddress
-  envOgmiosWorker <- createStoppedFetcher
-  let envControlApiToken = cfgServerControlApiToken
-  return Env {..}
+import Api (Routes, datumCacheApi, datumCacheContext)
+import Api.Handler (controlApiAuthCheck, datumServiceHandlers)
+import Api.Types (ControlApiAuthData)
+import App.Env (
+  Env (Env, envBlockFetcherEnv, envBlockProcessorEnv, envControlApiToken, envDbConnection),
+ )
+import App.Types (App (unApp))
+import Block.Fetch (
+  OgmiosInfo (OgmiosInfo),
+  startBlockFetcherAndProcessor,
+ )
+import Config (Config)
+import Database (getLastBlock, initLastBlock, initTables, updateLastBlock)
 
 newtype DbConnectionAcquireException
   = DbConnectionAcquireException Hasql.ConnectionError
@@ -76,3 +60,40 @@ appService env =
 
     appServerT :: ServerT (ToServantApi Routes) App
     appServerT = genericServerT datumServiceHandlers
+
+-- | Connect to database, start block fetcher and block processor
+bootstrapEnvFromConfig :: Config -> IO Env
+bootstrapEnvFromConfig cfg = do
+  dbConn <-
+    Hasql.acquire cfg.cfgDbConnectionString
+      >>= either (throwM . DbConnectionAcquireException) pure
+  runStdoutLoggingT . flip runReaderT dbConn $ do
+    initTables
+    let datumFilter' = case cfg.cfgFetcher.cfgFetcherFilterJson of
+          Just filterJson -> eitherDecode filterJson
+          Nothing -> pure def
+    datumFilter <- case datumFilter' of
+      Left e -> error $ show e
+      Right x -> pure x
+    latestBlock' <- getLastBlock dbConn
+    let firstBlock =
+          if cfg.cfgFetcher.cfgFetcherUseLatest
+            then fromMaybe cfg.cfgFetcher.cfgFetcherBlock latestBlock'
+            else cfg.cfgFetcher.cfgFetcherBlock
+    initLastBlock firstBlock
+    updateLastBlock dbConn firstBlock
+    let ogmiosInfo = OgmiosInfo cfg.cfgOgmiosPort cfg.cfgOgmiosAddress
+    (blockFetcherEnv, blockProcessorEnv) <-
+      startBlockFetcherAndProcessor
+        ogmiosInfo
+        dbConn
+        firstBlock
+        datumFilter
+        cfg.cfgFetcher.cfgFetcherQueueSize
+    pure $
+      Env
+        { envBlockFetcherEnv = blockFetcherEnv
+        , envDbConnection = dbConn
+        , envBlockProcessorEnv = blockProcessorEnv
+        , envControlApiToken = cfg.cfgServerControlApiToken
+        }

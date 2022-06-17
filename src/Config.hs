@@ -9,6 +9,7 @@ import Data.ByteString.Lazy qualified as LBS
 import Data.Int (Int64)
 import Data.Maybe (fromMaybe)
 import Data.String.ToString (toString)
+import GHC.Natural (Natural)
 import Parameters (Parameters (Parameters, config))
 import Toml (TomlCodec, dimap, dioptional, (.=))
 import Toml qualified
@@ -20,6 +21,7 @@ data BlockFetcherConfig = BlockFetcherConfig
   { cfgFetcherBlock :: BlockInfo
   , cfgFetcherFilterJson :: Maybe LBS.ByteString
   , cfgFetcherUseLatest :: Bool
+  , cfgFetcherQueueSize :: Natural
   }
   deriving stock (Show, Eq)
 
@@ -29,7 +31,7 @@ data Config = Config
   , cfgServerControlApiToken :: ControlApiToken
   , cfgOgmiosAddress :: String
   , cfgOgmiosPort :: Int
-  , cfgFetcher :: Maybe BlockFetcherConfig
+  , cfgFetcher :: BlockFetcherConfig
   }
   deriving stock (Show, Eq)
 
@@ -38,13 +40,6 @@ withDefault d c = dimap pure (fromMaybe d) (Toml.dioptional c)
 
 int64 :: Toml.Key -> TomlCodec Int64
 int64 k = dimap fromIntegral fromIntegral (Toml.integer k)
-
-matchTrue :: Toml.Value t -> Either Toml.MatchError Bool
-matchTrue (Toml.Bool True) = Right True
-matchTrue value = Toml.mkMatchError Toml.TBool value
-
-true :: Toml.Key -> TomlCodec Bool
-true = Toml.match $ Toml.mkAnyValueBiMap matchTrue Toml.Bool
 
 blockInfoT :: TomlCodec BlockInfo
 blockInfoT = do
@@ -58,7 +53,6 @@ blockInfoT = do
 
 withFetcherT :: TomlCodec BlockFetcherConfig
 withFetcherT = do
-  true "blockFetcher.autoStart" .= const True
   cfgFetcherFilterJson <-
     Toml.dioptional (Toml.lazyByteString "blockFetcher.filter")
       .= cfgFetcherFilterJson
@@ -66,6 +60,8 @@ withFetcherT = do
   cfgFetcherUseLatest <-
     withDefault False (Toml.bool "blockFetcher.startFromLast")
       .= cfgFetcherUseLatest
+  cfgFetcherQueueSize <-
+    withDefault 64 (Toml.natural "blockFetcher.queueSize") .= cfgFetcherQueueSize
   pure BlockFetcherConfig {..}
 
 configT :: TomlCodec Config
@@ -76,7 +72,7 @@ configT = do
     Toml.diwrap (Toml.string "server.controlApiToken") .= cfgServerControlApiToken
   cfgOgmiosAddress <- Toml.string "ogmios.address" .= cfgOgmiosAddress
   cfgOgmiosPort <- Toml.int "ogmios.port" .= cfgOgmiosPort
-  cfgFetcher <- Toml.dimatch id Just withFetcherT .= cfgFetcher
+  cfgFetcher <- withFetcherT .= cfgFetcher
   pure Config {..}
 
 loadConfig :: MonadIO m => Parameters -> m Config

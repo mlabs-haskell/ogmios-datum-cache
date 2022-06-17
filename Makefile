@@ -28,7 +28,7 @@ endif
 
 
 project: $(PROJECT_SOURCES) $(CABAL_SOURCES)
-PROJECT_SOURCES := $(shell git ls-tree -r HEAD --full-tree --name-only | grep -E '.*\.hs' )
+PROJECT_SOURCES := $(shell fd -ehs )
 CABAL_SOURCES := $(shell fd -ecabal)
 
 build: project
@@ -37,7 +37,7 @@ build: project
 ## Formatting
 
 # Extensions we need to tell fourmolu about
-FORMAT_EXTENSIONS := -o -XTypeApplications -o -XImportQualifiedPost
+FORMAT_EXTENSIONS := -o -XTypeApplications -o -XImportQualifiedPost -o -fplugin=RecordDotPreprocessor
 # Extentions we need to tell Hlint about
 HLINT_EXTS := # None so far
 

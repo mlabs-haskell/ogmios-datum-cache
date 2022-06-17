@@ -5,19 +5,14 @@ import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Logger (logErrorNS)
 import Control.Monad.Reader.Has (ask)
 import Data.Aeson qualified as Aeson
-import Data.Default (def)
-import Data.Int (Int64)
-import Data.Maybe (fromMaybe)
 import Data.Text (Text)
 import Data.Text qualified as Text
 import Data.Vector qualified as Vector
 import Network.WebSockets qualified as WebSockets
 
 import Api.WebSocket.Json (
-  JsonWspFault,
+  JsonWspFault (JsonWspFault),
   JsonWspResponse,
-  mkCancelFetchBlocksFault,
-  mkCancelFetchBlocksResponse,
   mkGetBlockFault,
   mkGetBlockResponse,
   mkGetDatumByHashFault,
@@ -25,31 +20,27 @@ import Api.WebSocket.Json (
   mkGetDatumsByHashesFault,
   mkGetDatumsByHashesResponse,
   mkHealthcheckResponse,
-  mkStartFetchBlocksFault,
-  mkStartFetchBlocksResponse,
+  mkSetDatumFilterResponse,
+  mkSetStartingBlockFault,
+  mkSetStartingBlockResponse,
  )
 import Api.WebSocket.Types (
   GetDatumsByHashesDatum (GetDatumsByHashesDatum),
   JsonWspRequest (JsonWspRequest),
   Method (
-    CancelFetchBlocks,
     GetBlock,
     GetDatumByHash,
     GetDatumsByHashes,
     GetHealthcheck,
-    StartFetchBlocks
+    SetDatumFilter,
+    SetStartingBlock
   ),
  )
 import App.Env (ControlApiToken)
 import App.Types (App)
-import Block.Fetch (
-  startBlockErrMsg,
-  startBlockFetcher,
-  stopBlockErrMsg,
-  stopBlockFetcher,
- )
+import Block.Fetch (changeDatumFilter, changeStartingBlock)
 import Block.Filter (DatumFilter)
-import Block.Types (BlockInfo (BlockInfo))
+import Block.Types (BlockInfo)
 import Database (
   DatabaseError (DatabaseErrorDecodeError, DatabaseErrorNotFound),
  )
@@ -96,49 +87,38 @@ getDatumsByHashes hashes = do
 
 getLastBlock :: App WSResponse
 getLastBlock = do
-  block' <- Database.getLastBlock
+  dbConn <- ask
+  block' <- Database.getLastBlock dbConn
   pure $ case block' of
     Nothing ->
       Left mkGetBlockFault
     Just block ->
       Right $ mkGetBlockResponse block
 
-withControlAuthToken :: ControlApiToken -> App WSResponse -> App WSResponse
-withControlAuthToken token action = do
+withControlAuthToken :: ControlApiToken -> Text -> App WSResponse -> App WSResponse
+withControlAuthToken token methodName action = do
   expectToken <- ask
   if expectToken == token
     then action
-    else pure $ Left $ mkCancelFetchBlocksFault "Control API token not granted"
-
-startFetchBlocks ::
-  Int64 ->
-  Text ->
-  DatumFilter ->
-  ControlApiToken ->
-  App WSResponse
-startFetchBlocks firstBlockSlot firstBlockId datumFilter token =
-  withControlAuthToken token $ do
-    res <- startBlockFetcher (BlockInfo firstBlockSlot firstBlockId) datumFilter
-    pure $ case res of
-      Left err ->
-        Left $ mkStartFetchBlocksFault $ startBlockErrMsg err
-      Right () ->
-        Right mkStartFetchBlocksResponse
-
-cancelFetchBlocks ::
-  ControlApiToken ->
-  App WSResponse
-cancelFetchBlocks token = withControlAuthToken token $ do
-  res <- stopBlockFetcher
-  pure $ case res of
-    Left err ->
-      Left $ mkCancelFetchBlocksFault $ stopBlockErrMsg err
-    Right () ->
-      Right mkCancelFetchBlocksResponse
+    else pure $ Left $ JsonWspFault methodName "Control API token not granted" ""
 
 getHealthcheck :: App WSResponse
 getHealthcheck = do
   pure $ Right mkHealthcheckResponse
+
+setStartingBlock :: BlockInfo -> App WSResponse
+setStartingBlock blockInfo = do
+  intersection' <- changeStartingBlock blockInfo
+  pure $ case intersection' of
+    Nothing ->
+      Left mkSetStartingBlockFault
+    Just x ->
+      Right $ mkSetStartingBlockResponse x
+
+setDatumFilter :: DatumFilter -> App WSResponse
+setDatumFilter datumFilter = do
+  changeDatumFilter datumFilter
+  pure $ Right mkSetDatumFilterResponse
 
 websocketServer ::
   WebSockets.Connection ->
@@ -156,13 +136,13 @@ websocketServer conn = forever $ do
           getDatumsByHashes hashes
         GetBlock ->
           getLastBlock
-        StartFetchBlocks firstBlockSlot firstBlockId datumFilter' token -> do
-          let datumFilter = fromMaybe def datumFilter'
-          startFetchBlocks firstBlockSlot firstBlockId datumFilter token
-        CancelFetchBlocks token ->
-          cancelFetchBlocks token
         GetHealthcheck ->
           getHealthcheck
+        SetStartingBlock token block ->
+          withControlAuthToken token "SetStartingBlock" $ setStartingBlock block
+        SetDatumFilter token datumFilter ->
+          withControlAuthToken token "SetDatumFilter" $ setDatumFilter datumFilter
+
       let jsonResp =
             either
               (\l -> Aeson.encode $ l mirror)

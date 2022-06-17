@@ -1,5 +1,4 @@
 {-# LANGUAGE DuplicateRecordFields #-}
-{-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE NamedFieldPuns #-}
 
 module Block.Types (
@@ -16,12 +15,12 @@ module Block.Types (
   DatumTxOut (..),
   OgmiosResponse (..),
   BlockInfo (..),
+  CursorPoint (..),
   datums,
 ) where
 
 import Data.Aeson (FromJSON, ToJSON, withObject, (.:), (.:?))
 import Data.Aeson qualified as Aeson
-import Data.ByteString.Lazy (ByteString)
 import Data.HashMap.Strict qualified as HashMap
 import Data.Int (Int64)
 import Data.Map (Map)
@@ -36,7 +35,7 @@ data BlockInfo = BlockInfo
   , blockId :: Text
   }
   deriving stock (Generic, Show, Eq)
-  deriving anyclass (ToJSON)
+  deriving anyclass (ToJSON, FromJSON)
 
 type OgmiosMirror = Int
 
@@ -125,11 +124,8 @@ data ResultTip = ResultTip
   deriving anyclass (FromJSON)
 
 data FindIntersectResult
-  = IntersectionFound
-      { point :: CursorPoint
-      , tip :: ResultTip
-      }
-  | IntersectionNotFound {tip :: ResultTip}
+  = IntersectionFound CursorPoint ResultTip
+  | IntersectionNotFound ResultTip
   deriving stock (Eq, Show, Generic)
 
 instance FromJSON FindIntersectResult where
@@ -157,18 +153,12 @@ instance FromJSON FindIntersectResult where
 type OgmiosRequestNextResponse = OgmiosResponse RequestNextResult OgmiosMirror
 
 data RequestNextResult
-  = RollBackward
-      { point :: CursorPoint
-      , tip :: ResultTip
-      }
-  | RollForward
-      { block :: Block
-      , tip :: ResultTip
-      }
+  = RollBackward CursorPoint ResultTip
+  | RollForward Block ResultTip
   deriving stock (Eq, Show, Generic)
 
 data Block
-  = OtherBlock ByteString
+  = OtherBlock Text
   | -- | Block with datum (Alonzo, Babbage)
     MkDatumBlock DatumBlock
   deriving stock (Eq, Show, Generic)
@@ -196,8 +186,8 @@ instance FromJSON RequestNextResult where
                   | type_ `elem` ["alonzo", "babbage"] -> do
                     block <- Aeson.parseJSON @DatumBlock blockValue
                     pure $ RollForward (MkDatumBlock block) tip
-                [(_, _blockObj)] ->
-                  pure $ RollForward (OtherBlock $ Aeson.encode blockObj) tip
+                  | otherwise ->
+                    pure $ RollForward (OtherBlock type_) tip
                 _ -> fail "Unexpected block value"
           )
           rollObj
@@ -206,7 +196,7 @@ instance FromJSON RequestNextResult where
 data DatumBlock = DatumBlock
   { body :: [DatumTransaction]
   , header :: DatumBlockHeader
-  , headerHash :: Maybe Text
+  , headerHash :: Text
   }
   deriving stock (Eq, Show, Generic)
   deriving anyclass (FromJSON)
