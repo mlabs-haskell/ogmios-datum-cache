@@ -11,8 +11,10 @@ import Network.Wai.Middleware.Cors (simpleCors)
 import System.IO (BufferMode (NoBuffering), hSetBuffering, stdout)
 
 import App (appService, bootstrapEnvFromConfig)
-import Config (Config (Config, cfgServerControlApiToken, cfgServerPort))
-import Parameters (parseArgs)
+import Parameters (
+  Config (Config, cfgServerControlApiToken, cfgServerPort),
+  parseArgs,
+ )
 
 main :: IO ()
 main = do

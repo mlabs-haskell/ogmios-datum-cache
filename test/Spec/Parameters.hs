@@ -5,7 +5,7 @@ import Options.Applicative (ParserResult (Success), defaultPrefs, execParserPure
 import Test.Hspec (Spec, describe, it, shouldBe)
 
 import Block.Types (BlockInfo (BlockInfo, blockId, blockSlot))
-import Config (
+import Parameters (
   BlockFetcherConfig (
     BlockFetcherConfig,
     cfgFetcherBlock,
@@ -23,8 +23,8 @@ import Config (
     cfgServerPort
   ),
   configAsCLIOptions,
+  parserInfo,
  )
-import Parameters (parserInfo)
 
 spec :: Spec
 spec = do
