@@ -1,5 +1,7 @@
 # Environment for integral tests with vasil network
 
+Configuration: https://book.world.dev.cardano.org/environments.html#vasil-dev
+
 ## Prerequisite
 
 - docker
@@ -45,7 +47,7 @@ In order, the following will be built (use -v for more details):
 ## Fetch from the first block
 
 ``` shellsession
-$ http POST localhost:9999/control/fetch_blocks slot:=0 id="f4ba3c4db14c9e9d0879bae07a249fe7169bff64e357199ffe5179cbfe83b19e"
+$ http POST localhost:9999/control/startingBlock startingBlock[blockSlot]:=0 startingBlock[blockId]="f4ba3c4db14c9e9d0879bae07a249fe7169bff64e357199ffe5179cbfe83b19e" --auth usr:pwd -v
 HTTP/1.1 200 OK
 Content-Type: application/json;charset=utf-8
 Date: Wed, 08 Jun 2022 08:15:09 GMT
