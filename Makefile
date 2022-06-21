@@ -9,6 +9,8 @@ usage:
 	@echo
 	@echo "Available commands:"
 	@echo "  build               -- Run cabal v2-build"
+	@echo "  test                -- Run cabal v2-test"
+	@echo "  hoogle              -- Start local hoogle"
 	@echo "  format              -- Apply source code formatting with fourmolu"
 	@echo "  format_check        -- Check source code formatting without making changes"
 	@echo "  cabalfmt            -- Apply cabal formatting with cabal-fmt"
@@ -31,8 +33,14 @@ project: $(PROJECT_SOURCES) $(CABAL_SOURCES)
 PROJECT_SOURCES := $(shell fd -ehs )
 CABAL_SOURCES := $(shell fd -ecabal)
 
-build: project
+build: requires_nix_shell project
 	cabal v2-build all $(GHC_FLAGS)
+
+test: requires_nix_shell project
+	cabal v2-test $(GHC_FLAGS) 
+
+hoogle: requires_nix_shell
+	hoogle server --local
 
 ## Formatting
 
