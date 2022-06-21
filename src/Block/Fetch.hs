@@ -51,10 +51,10 @@ import Network.WebSockets.Stream qualified as Stream
 
 import Block.Filter (DatumFilter, runDatumFilter)
 import Block.Types (
-  AlonzoBlock (body, header, headerHash),
-  AlonzoBlockHeader (slot),
+  AlonzoBlock (AlonzoBlock, body, header, headerHash),
+  AlonzoBlockHeader (AlonzoBlockHeader, slot),
   AlonzoTransaction (datums),
-  Block (MkAlonzoBlock, OtherBlock),
+  Block (MkAlonzoBlock, MkByronBlock, OtherBlock),
   BlockInfo (BlockInfo),
   CursorPoint,
   FindIntersectResult (IntersectionFound, IntersectionNotFound),
@@ -62,6 +62,7 @@ import Block.Types (
   OgmiosRequestNextResponse,
   OgmiosResponse (_result),
   RequestNextResult (RollBackward, RollForward),
+  StartingBlock (StartingBlock),
   mkFindIntersectRequest,
   mkRequestNextRequest,
  )
@@ -148,7 +149,7 @@ startBlockFetcherAndProcessor ::
   MonadIO m =>
   OgmiosInfo ->
   Hasql.Connection ->
-  BlockInfo ->
+  StartingBlock ->
   DatumFilter ->
   Natural ->
   m (MVar BlockFetcherEnv, BlockProcessorEnv)
@@ -172,7 +173,8 @@ startBlockFetcherAndProcessor ogmiosInfo dbConn blockInfo datumFilter queueSize 
         lastBlock' <- runStdoutLoggingT $ getLastBlock dbConn
         case lastBlock' of
           Nothing -> runInner blockInfo
-          Just lastBlock -> runInner lastBlock
+          Just lastBlock -> runInner $ StartingBlock lastBlock
+      runInner :: StartingBlock -> IO ()
       runInner startingBlock = handle handleException $
         runClientWith'
           ogmiosInfo.ogmiosAddress
@@ -202,7 +204,7 @@ newtype BlockFetcherApp a = BlockFetcherApp
 -- | Indefinite loop fetching blocks from ogmios and pushing them to the queue.
 fetchLoop ::
   (MonadIO m, MonadReader BlockFetcherEnv m, MonadLogger m) =>
-  BlockInfo ->
+  StartingBlock ->
   m ()
 fetchLoop blockInfo = forever $ do
   logInfoNS "fetchLoop" "Starting..."
@@ -224,7 +226,7 @@ sendAndReceive toSend = do
 -- | Wrapper for 'findIntersection' to be called from user-facing API.
 changeStartingBlock ::
   (MonadIO m, MonadReader r m, Has (MVar BlockFetcherEnv) r) =>
-  BlockInfo ->
+  StartingBlock ->
   m (Maybe CursorPoint)
 changeStartingBlock blockInfo = do
   env' <- Has.ask
@@ -238,7 +240,7 @@ changeStartingBlock blockInfo = do
 -}
 findIntersection ::
   (MonadIO m, MonadLogger m, MonadReader BlockFetcherEnv m) =>
-  BlockInfo ->
+  StartingBlock ->
   m (Maybe CursorPoint)
 findIntersection blockInfo = do
   env <- ask
@@ -286,15 +288,23 @@ fetchNextBlock = do
         $ Text.pack $ "Error decoding RequestNext response: " <> e
     Right (RollBackward _point _tip) ->
       logWarnNS "fetchNextBlock" "Received RollBackward response"
-    Right (RollForward OtherBlock _tip) ->
+    Right (RollForward (OtherBlock str) _tip) ->
       logWarnNS
         "fetchNextBlock"
-        "Received non-Alonzo block in the RollForward response"
+        $ "Received non-Alonzo block in the RollForward response: " <> Text.pack (show str)
+    Right (RollForward (MkByronBlock block) _tip) -> do
+      -- This will be replaced with more general block in #64
+      let block' = AlonzoBlock [] (AlonzoBlockHeader block.slot block.hash) block.hash
+      liftIO $ atomically $ writeTBQueue env.queue block'
+      logInfoNS "fetchNextBlock" $
+        Text.pack $
+          "Fetched Byron block: "
+            <> show (block.slot, block.hash)
     Right (RollForward (MkAlonzoBlock block) _tip) -> do
       liftIO $ atomically $ writeTBQueue env.queue block
       logInfoNS "fetchNextBlock" $
         Text.pack $
-          "Fetched block: "
+          "Fetched Alonzo block: "
             <> show (slot $ header block, headerHash block)
 
 -- * Processor

@@ -5,7 +5,7 @@ import Data.ByteString.Lazy.UTF8 (fromString)
 import Options.Applicative (ParserResult (Success), defaultPrefs, execParserPure)
 import Test.Hspec (Spec, describe, it, shouldBe)
 
-import Block.Types (BlockInfo (BlockInfo, blockId, blockSlot))
+import Block.Types (BlockInfo (BlockInfo, blockId, blockSlot), StartingBlock (StartingBlock))
 import Parameters (
   BlockFetcherConfig (
     BlockFetcherConfig,
@@ -73,11 +73,12 @@ example =
     , cfgFetcher =
         BlockFetcherConfig
           { cfgFetcherBlock =
-              BlockInfo
-                { blockSlot = 44366242
-                , blockId =
-                    "d2a4249fe3d0607535daa26caf12a38da2233586bc51e79ed0b3a36170471bf5"
-                }
+              StartingBlock $
+                BlockInfo
+                  { blockSlot = 44366242
+                  , blockId =
+                      "d2a4249fe3d0607535daa26caf12a38da2233586bc51e79ed0b3a36170471bf5"
+                  }
           , cfgFetcherFilterJson =
               (Just . fromString)
                 "{\
