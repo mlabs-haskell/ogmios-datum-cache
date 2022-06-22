@@ -43,13 +43,13 @@ spec = do
       (parseParams . configAsCLIOptions) example `shouldBe` Right example
     it "DBConnection2string Non password" $
       dbConnection2ByteString (dbConnectionExample Nothing)
-        `shouldBe` "port=5432 host=\"localhost\" user=\"seabug\" \
-                   \dbname=\"ogmios-datum-cache\""
+        `shouldBe` "port=5432 host=localhost user=seabug \
+                   \dbname=ogmios-datum-cache"
 
     it "DBConnection2string with password" $
       dbConnection2ByteString (dbConnectionExample $ Just "fakePass")
-        `shouldBe` "port=5432 host=\"localhost\" user=\"seabug\" \
-                   \dbname=\"ogmios-datum-cache\" password=\"fakePass\""
+        `shouldBe` "port=5432 host=localhost user=seabug \
+                   \dbname=ogmios-datum-cache password=fakePass"
 
 dbConnectionExample :: Maybe ByteString -> DBConnection
 dbConnectionExample pass =

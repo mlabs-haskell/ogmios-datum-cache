@@ -11,6 +11,7 @@ module Parameters (
 
 import Data.ByteString (ByteString)
 import Data.ByteString.Lazy qualified as LBS
+import Data.List (intersperse)
 import Data.Text qualified as Text
 import Data.Text.Encoding qualified as Text.Encoding
 import Data.Text.Lazy qualified as Text.Lazy
@@ -69,15 +70,15 @@ data DBConnection = DBConnection
 
 dbConnection2ByteString :: DBConnection -> ByteString
 dbConnection2ByteString DBConnection {..} =
-  toBytes $
-    unwords
-      [ "port=" <> show dbPort
-      , "host=" <> show dbHost
-      , "user=" <> show dbUser
-      , "dbname=" <> show dbName
-      ]
-      <> maybe "" (\pass -> " password=" <> show pass) dbPassword
+  unwords'
+    [ "port=" <> toBytes (show dbPort)
+    , "host=" <> dbHost
+    , "user=" <> dbUser
+    , "dbname=" <> dbName
+    ]
+    <> foldMap (" password=" <>) dbPassword
   where
+    unwords' = mconcat . intersperse (toBytes " ")
     toBytes :: String -> ByteString
     toBytes = Text.Encoding.encodeUtf8 . Text.pack
 
