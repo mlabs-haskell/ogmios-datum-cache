@@ -32,8 +32,8 @@ import Block.Fetch (
   OgmiosInfo (OgmiosInfo),
   startBlockFetcherAndProcessor,
  )
-import Config (Config)
 import Database (getLastBlock, initLastBlock, initTables, updateLastBlock)
+import Parameters (Config)
 
 newtype DbConnectionAcquireException
   = DbConnectionAcquireException Hasql.ConnectionError

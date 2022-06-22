@@ -11,14 +11,15 @@ import Network.Wai.Middleware.Cors (simpleCors)
 import System.IO (BufferMode (NoBuffering), hSetBuffering, stdout)
 
 import App (appService, bootstrapEnvFromConfig)
-import Config (Config (..), loadConfig)
-import Parameters (paramInfo)
+import Parameters (
+  Config (Config, cfgServerControlApiToken, cfgServerPort),
+  parseArgs,
+ )
 
 main :: IO ()
 main = do
   hSetBuffering stdout NoBuffering
-  parameters <- paramInfo
-  cfg@Config {..} <- loadConfig parameters
+  cfg@Config {..} <- parseArgs
   runStdoutLoggingT $ do
     logInfoNS "ogmios-datum-cache" $ Text.pack $ show cfg
     when (cfgServerControlApiToken == "usr:pwd") $
