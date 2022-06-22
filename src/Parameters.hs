@@ -71,12 +71,12 @@ data DBConnection = DBConnection
 dbConnection2ByteString :: DBConnection -> ByteString
 dbConnection2ByteString DBConnection {..} =
   unwords'
-  [ "port=" <> toBytes (show dbPort)
-  , "host=" <> dbHost
-  , "user=" <> dbUser
-  , "dbname=" <> dbName
-  ]
-  <> foldMap (" password=" <>) dbPassword
+    [ "port=" <> toBytes (show dbPort)
+    , "host=" <> dbHost
+    , "user=" <> dbUser
+    , "dbname=" <> dbName
+    ]
+    <> foldMap (" password=" <>) dbPassword
   where
     unwords' = mconcat . intersperse (toBytes " ")
     toBytes :: String -> ByteString
