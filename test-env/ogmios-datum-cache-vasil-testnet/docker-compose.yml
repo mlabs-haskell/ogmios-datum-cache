@@ -2,7 +2,7 @@ version: "3.5"
 
 services:
   cardano-node:
-    image: inputoutput/cardano-node:vasil-testnet-v1
+    image: inputoutput/cardano-node:1.35.0-rc4
     command: run --config /config/config.json --topology /config/topology.json --database-path /data --socket-path /ipc/node.socket
     volumes:
       - node-db:/data
@@ -16,7 +16,7 @@ services:
 
   ogmios:
     build:
-      context: https://github.com/CardanoSolutions/ogmios.git#8b08ce856c5dda12f7918cd21718a8da5fc4904f
+      context: https://github.com/CardanoSolutions/ogmios.git#e3b53aa5b2dac80fc80ea61982a6e555494399cb
       target: ogmios
     restart: on-failure
     command: [
