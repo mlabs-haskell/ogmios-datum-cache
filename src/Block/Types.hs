@@ -1,6 +1,7 @@
 {-# LANGUAGE DuplicateRecordFields #-}
 {-# LANGUAGE NamedFieldPuns #-}
 
+{- HLINT ignore "Use ==" -}
 module Block.Types (
   mkFindIntersectRequest,
   mkRequestNextRequest,
