@@ -15,10 +15,12 @@ module Block.Types (
   TxOut (..),
   BlockInfo (..),
   CursorPoint (..),
+  StartingBlock (..),
 ) where
 
-import Data.Aeson (FromJSON, ToJSON, withObject, (.:), (.:?))
+import Data.Aeson (FromJSON, ToJSON, withObject, (.:), (.:?), (.=))
 import Data.Aeson qualified as Aeson
+import Data.Aeson.Types (prependFailure, unexpected)
 import Data.HashMap.Strict qualified as HashMap
 import Data.Int (Int64)
 import Data.Map (Map)
@@ -26,6 +28,26 @@ import Data.Map qualified as Map
 import Data.Text (Text)
 import GHC.Exts (toList)
 import GHC.Generics (Generic)
+
+data StartingBlock = StartingBlock BlockInfo | Origin
+  deriving stock (Show, Eq)
+
+instance ToJSON StartingBlock where
+  toJSON Origin = "origin"
+  toJSON (StartingBlock (BlockInfo slot hash)) =
+    Aeson.object
+      [ "blockSlot" .= slot
+      , "blockId" .= hash
+      ]
+
+instance FromJSON StartingBlock where
+  parseJSON (Aeson.String "origin") = pure Origin
+  parseJSON (Aeson.Object v) =
+    fmap StartingBlock $
+      BlockInfo
+        <$> v .: "blockSlot"
+        <*> v .: "blockId"
+  parseJSON invalid = prependFailure "parsing StartingBlock failed" $ unexpected invalid
 
 data BlockInfo = BlockInfo
   { blockSlot :: Int64
@@ -36,12 +58,26 @@ data BlockInfo = BlockInfo
 
 type OgmiosMirror = Int
 
-data CursorPoint = CursorPoint
-  { slot :: Integer
-  , hash :: Text
-  }
-  deriving stock (Eq, Show, Generic)
-  deriving anyclass (ToJSON, FromJSON)
+data CursorPoint
+  = CursorPoint Integer Text
+  | CursorOrigin
+  deriving stock (Eq, Show)
+
+instance ToJSON CursorPoint where
+  toJSON CursorOrigin = "origin"
+  toJSON (CursorPoint slot hash) =
+    Aeson.object
+      [ "slot" .= slot
+      , "hash" .= hash
+      ]
+
+instance FromJSON CursorPoint where
+  parseJSON (Aeson.String "origin") = pure CursorOrigin
+  parseJSON (Aeson.Object v) =
+    CursorPoint
+      <$> v .: "slot"
+      <*> v .: "hash"
+  parseJSON invalid = prependFailure "parsing CursorPoint failed" $ unexpected invalid
 
 newtype CursorPoints = CursorPoints
   { points :: [CursorPoint]
@@ -67,8 +103,8 @@ type OgmiosFindIntersectRequest = OgmiosRequest CursorPoints OgmiosMirror
 
 type OgmiosRequestNextRequest = OgmiosRequest (Map Text Text) OgmiosMirror
 
-mkFindIntersectRequest :: BlockInfo -> OgmiosFindIntersectRequest
-mkFindIntersectRequest (BlockInfo firstBlockSlot firstBlockId) =
+mkFindIntersectRequest :: StartingBlock -> OgmiosFindIntersectRequest
+mkFindIntersectRequest startingBlock =
   OgmiosRequest
     { _type = "jsonwsp/request"
     , _version = "1.0"
@@ -78,8 +114,10 @@ mkFindIntersectRequest (BlockInfo firstBlockSlot firstBlockId) =
     , _mirror = 0
     }
   where
-    points =
-      CursorPoints [CursorPoint (fromIntegral firstBlockSlot) firstBlockId]
+    points = case startingBlock of
+      StartingBlock (BlockInfo firstBlockSlot firstBlockId) ->
+        CursorPoints [CursorPoint (fromIntegral firstBlockSlot) firstBlockId]
+      Origin -> CursorPoints [CursorOrigin]
 
 mkRequestNextRequest :: Int -> OgmiosRequestNextRequest
 mkRequestNextRequest n =
@@ -155,7 +193,8 @@ data RequestNextResult
   deriving stock (Eq, Show, Generic)
 
 data Block
-  = OtherBlock
+  = OtherBlock String
+  | MkByronBlock ByronBlock
   | MkAlonzoBlock AlonzoBlock
   deriving stock (Eq, Show, Generic)
 
@@ -200,6 +239,19 @@ data AlonzoBlock = AlonzoBlock
   deriving stock (Eq, Show, Generic)
   deriving anyclass (FromJSON)
 
+data ByronBlock = ByronBlock
+  { hash :: Text
+  , slot :: Int64
+  }
+  deriving stock (Eq, Show)
+
+instance FromJSON ByronBlock where
+  parseJSON = Aeson.withObject "ByronBlock" $ \v -> do
+    hash <- v .: "hash"
+    header <- v .: "header"
+    slot <- header .: "slot"
+    pure $ ByronBlock hash slot
+
 instance FromJSON RequestNextResult where
   parseJSON = withObject "RequestNextResult" $ \o -> do
     case toList o of
@@ -219,11 +271,14 @@ instance FromJSON RequestNextResult where
               tip <- obj .: "tip"
               blockObj <- obj .: "block"
               case HashMap.toList blockObj of
+                [("byron" :: Text, blockValue)] -> do
+                  block <- Aeson.parseJSON @ByronBlock blockValue
+                  pure $ RollForward (MkByronBlock block) tip
                 [("alonzo" :: Text, blockValue)] -> do
                   block <- Aeson.parseJSON @AlonzoBlock blockValue
                   pure $ RollForward (MkAlonzoBlock block) tip
                 [(_, _blockObj)] ->
-                  pure $ RollForward OtherBlock tip
+                  pure $ RollForward (OtherBlock $ show blockObj) tip
                 _ -> fail "Unexpected block value"
           )
           rollObj

@@ -39,10 +39,10 @@ import Options.Applicative (
  )
 
 import App.Env (ControlApiToken (unControlApiToken))
-import Block.Types (BlockInfo (BlockInfo))
+import Block.Types (BlockInfo (BlockInfo), StartingBlock (Origin, StartingBlock))
 
 data BlockFetcherConfig = BlockFetcherConfig
-  { cfgFetcherBlock :: BlockInfo
+  { cfgFetcherBlock :: StartingBlock
   , cfgFetcherFilterJson :: Maybe LBS.ByteString
   , cfgFetcherUseLatest :: Bool
   , cfgFetcherQueueSize :: Natural
@@ -82,27 +82,31 @@ dbConnection2ByteString DBConnection {..} =
     toBytes :: String -> ByteString
     toBytes = Text.Encoding.encodeUtf8 . Text.pack
 
-parseFirstBlock :: Parser BlockInfo
+parseOrigin :: Parser StartingBlock
+parseOrigin = Origin <$ switch (long "origin" <> help "Start block fetcher from origin")
+
+parseFirstBlock :: Parser StartingBlock
 parseFirstBlock =
-  BlockInfo
-    <$> option
-      auto
-      ( long
-          "block-slot"
-          <> metavar
-            "INT"
-          <> help "Slot of first block to fetch by initial block fetcher."
-      )
-    <*> strOption
-      ( long "block-hash"
-          <> metavar "HASH"
-          <> help "hash of block's HEADER not hash of a block itself"
-      )
+  fmap StartingBlock $
+    BlockInfo
+      <$> option
+        auto
+        ( long
+            "block-slot"
+            <> metavar
+              "INT"
+            <> help "Slot of first block to fetch by initial block fetcher."
+        )
+      <*> strOption
+        ( long "block-hash"
+            <> metavar "HASH"
+            <> help "hash of block's HEADER not hash of a block itself"
+        )
 
 parseBlockFetcher :: Parser BlockFetcherConfig
 parseBlockFetcher =
   BlockFetcherConfig
-    <$> parseFirstBlock
+    <$> (parseFirstBlock <|> parseOrigin)
     <*> optional
       ( strOption
           ( long "block-filter"
@@ -208,13 +212,17 @@ parseArgs = execParser parserInfo
 
 configAsCLIOptions :: Config -> [String]
 configAsCLIOptions Config {..} =
-  let (BlockInfo slot hash) = cfgFetcher.cfgFetcherBlock
+  let blockOptions = case cfgFetcher.cfgFetcherBlock of
+        StartingBlock (BlockInfo slot hash) ->
+          [ command "block-slot" slot
+          , stringCommand "block-hash" $ Text.unpack hash
+          ]
+        Origin -> ["--origin"]
       useLatesString = ["--use-latest" | cfgFetcher.cfgFetcherUseLatest]
       mostParams =
         useLatesString
-          <> [ command "block-slot" slot
-             , stringCommand "block-hash" $ Text.unpack hash
-             , command "queue-size" cfgFetcher.cfgFetcherQueueSize
+          <> blockOptions
+          <> [ command "queue-size" cfgFetcher.cfgFetcherQueueSize
              , stringCommand "db-connection" $
                 (Text.unpack . Text.Encoding.decodeUtf8) cfgDbConnectionString
              , command "server-port" cfgServerPort
