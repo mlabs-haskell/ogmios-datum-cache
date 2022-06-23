@@ -17,6 +17,7 @@ module Block.Types (
   BlockInfo (..),
   CursorPoint (..),
   datums,
+  noDatum2datumBlock,
   StartingBlock (..),
 ) where
 
@@ -28,7 +29,9 @@ import Data.Int (Int64)
 import Data.Map (Map)
 import Data.Map qualified as Map
 import Data.Maybe (mapMaybe)
+import Data.String.ToString (toString)
 import Data.Text (Text)
+import Data.Text qualified as Text
 import GHC.Exts (toList)
 import GHC.Generics (Generic)
 
@@ -196,24 +199,17 @@ data RequestNextResult
   deriving stock (Eq, Show, Generic)
 
 data Block
-  = OtherBlock Text
+  = UnsupportedBlock
+      Text -- block type
+      Text -- raw
   | -- | Block with datum (Alonzo, Babbage)
-    MkDatumBlock DatumBlock
-  | MkByronBlock ByronBlock
+    MkDatumBlock
+      Text -- block type
+      DatumBlock
+  | MkNoDatumBlock
+      Text -- block type
+      NoDatumBlock
   deriving stock (Eq, Show, Generic)
-
-data ByronBlock = ByronBlock
-  { hash :: Text
-  , slot :: Int64
-  }
-  deriving stock (Eq, Show)
-
-instance FromJSON ByronBlock where
-  parseJSON = Aeson.withObject "ByronBlock" $ \v -> do
-    hash <- v .: "hash"
-    header <- v .: "header"
-    slot <- header .: "slot"
-    pure $ ByronBlock hash slot
 
 instance FromJSON RequestNextResult where
   parseJSON = withObject "RequestNextResult" $ \o -> do
@@ -234,15 +230,16 @@ instance FromJSON RequestNextResult where
               tip <- obj .: "tip"
               blockObj <- obj .: "block"
               case HashMap.toList blockObj of
-                [("byron" :: Text, blockValue)] -> do
-                  block <- Aeson.parseJSON @ByronBlock blockValue
-                  pure $ RollForward (MkByronBlock block) tip
                 [(type_ :: Text, blockValue)]
+                  | type_ `elem` ["byron"] -> do
+                    block <- Aeson.parseJSON @NoDatumBlock blockValue
+                    pure $ RollForward (MkNoDatumBlock type_ block) tip
                   | type_ `elem` ["alonzo", "babbage"] -> do
                     block <- Aeson.parseJSON @DatumBlock blockValue
-                    pure $ RollForward (MkDatumBlock block) tip
-                  | otherwise ->
-                    pure $ RollForward (OtherBlock type_) tip
+                    pure $ RollForward (MkDatumBlock type_ block) tip
+                  | otherwise -> do
+                    let raw = Text.pack $ toString $ Aeson.encode blockValue
+                    pure $ RollForward (UnsupportedBlock type_ raw) tip
                 _ -> fail "Unexpected block value"
           )
           rollObj
@@ -303,3 +300,19 @@ instance FromJSON DatumTxOut where
     datumHash <- o .:? "datumHash"
     datum <- o .:? "datum"
     pure $ DatumTxOut {..}
+
+data NoDatumBlock = NoDatumBlock
+  { hash :: Text
+  , slot :: Int64
+  }
+  deriving stock (Eq, Show)
+
+instance FromJSON NoDatumBlock where
+  parseJSON = Aeson.withObject "NoDatumBlock" $ \v -> do
+    hash <- v .: "hash"
+    header <- v .: "header"
+    slot <- header .: "slot"
+    pure $ NoDatumBlock hash slot
+
+noDatum2datumBlock :: NoDatumBlock -> DatumBlock
+noDatum2datumBlock NoDatumBlock {slot, hash} = DatumBlock [] (DatumBlockHeader slot hash) hash
