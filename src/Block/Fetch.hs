@@ -51,16 +51,17 @@ import Network.WebSockets.Stream qualified as Stream
 
 import Block.Filter (DatumFilter, runDatumFilter)
 import Block.Types (
-  Block (MkDatumBlock, OtherBlock),
+  Block (MkByronBlock, MkDatumBlock, OtherBlock),
   BlockInfo (BlockInfo),
   CursorPoint,
-  DatumBlock (body, header, headerHash),
-  DatumBlockHeader (slot),
+  DatumBlock (DatumBlock, body, header, headerHash),
+  DatumBlockHeader (DatumBlockHeader, slot),
   FindIntersectResult (IntersectionFound, IntersectionNotFound),
   OgmiosFindIntersectResponse,
   OgmiosRequestNextResponse,
   OgmiosResponse (_result),
   RequestNextResult (RollBackward, RollForward),
+  StartingBlock (StartingBlock),
   datums,
   mkFindIntersectRequest,
   mkRequestNextRequest,
@@ -148,7 +149,7 @@ startBlockFetcherAndProcessor ::
   MonadIO m =>
   OgmiosInfo ->
   Hasql.Connection ->
-  BlockInfo ->
+  StartingBlock ->
   DatumFilter ->
   Natural ->
   m (MVar BlockFetcherEnv, BlockProcessorEnv)
@@ -172,7 +173,8 @@ startBlockFetcherAndProcessor ogmiosInfo dbConn blockInfo datumFilter queueSize 
         lastBlock' <- runStdoutLoggingT $ getLastBlock dbConn
         case lastBlock' of
           Nothing -> runInner blockInfo
-          Just lastBlock -> runInner lastBlock
+          Just lastBlock -> runInner $ StartingBlock lastBlock
+      runInner :: StartingBlock -> IO ()
       runInner startingBlock = handle handleException $
         runClientWith'
           ogmiosInfo.ogmiosAddress
@@ -202,7 +204,7 @@ newtype BlockFetcherApp a = BlockFetcherApp
 -- | Indefinite loop fetching blocks from ogmios and pushing them to the queue.
 fetchLoop ::
   (MonadIO m, MonadReader BlockFetcherEnv m, MonadLogger m) =>
-  BlockInfo ->
+  StartingBlock ->
   m ()
 fetchLoop blockInfo = forever $ do
   logInfoNS "fetchLoop" "Starting..."
@@ -224,7 +226,7 @@ sendAndReceive toSend = do
 -- | Wrapper for 'findIntersection' to be called from user-facing API.
 changeStartingBlock ::
   (MonadIO m, MonadReader r m, Has (MVar BlockFetcherEnv) r) =>
-  BlockInfo ->
+  StartingBlock ->
   m (Maybe CursorPoint)
 changeStartingBlock blockInfo = do
   env' <- Has.ask
@@ -238,7 +240,7 @@ changeStartingBlock blockInfo = do
 -}
 findIntersection ::
   (MonadIO m, MonadLogger m, MonadReader BlockFetcherEnv m) =>
-  BlockInfo ->
+  StartingBlock ->
   m (Maybe CursorPoint)
 findIntersection blockInfo = do
   env <- ask
@@ -290,11 +292,19 @@ fetchNextBlock = do
       logWarnNS
         "fetchNextBlock"
         $ "Received non-{Alonzo,Babbage} block in the RollForward response" <> type_
+    Right (RollForward (MkByronBlock block) _tip) -> do
+      -- This will be replaced with more general block in #64
+      let block' = DatumBlock [] (DatumBlockHeader block.slot block.hash) block.hash
+      liftIO $ atomically $ writeTBQueue env.queue block'
+      logInfoNS "fetchNextBlock" $
+        Text.pack $
+          "Fetched Byron block: "
+            <> show (block.slot, block.hash)
     Right (RollForward (MkDatumBlock block) _tip) -> do
       liftIO $ atomically $ writeTBQueue env.queue block
       logInfoNS "fetchNextBlock" $
         Text.pack $
-          "Fetched block: "
+          "Fetched Alonzo block: "
             <> show (slot $ header block, headerHash block)
 
 -- * Processor

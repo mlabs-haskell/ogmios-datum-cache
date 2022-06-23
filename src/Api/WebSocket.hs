@@ -40,7 +40,7 @@ import App.Env (ControlApiToken)
 import App.Types (App)
 import Block.Fetch (changeDatumFilter, changeStartingBlock)
 import Block.Filter (DatumFilter)
-import Block.Types (BlockInfo)
+import Block.Types (StartingBlock)
 import Database (
   DatabaseError (DatabaseErrorDecodeError, DatabaseErrorNotFound),
  )
@@ -106,9 +106,9 @@ getHealthcheck :: App WSResponse
 getHealthcheck = do
   pure $ Right mkHealthcheckResponse
 
-setStartingBlock :: BlockInfo -> App WSResponse
-setStartingBlock blockInfo = do
-  intersection' <- changeStartingBlock blockInfo
+setStartingBlock :: StartingBlock -> App WSResponse
+setStartingBlock startingBlock = do
+  intersection' <- changeStartingBlock startingBlock
   pure $ case intersection' of
     Nothing ->
       Left mkSetStartingBlockFault

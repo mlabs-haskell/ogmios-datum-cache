@@ -10,7 +10,7 @@ import Api.WebSocket.Types (
   JsonWspRequest (JsonWspRequest),
   Method (GetHealthcheck, SetStartingBlock),
  )
-import Block.Types (BlockInfo (BlockInfo))
+import Block.Types (BlockInfo (BlockInfo), StartingBlock (StartingBlock))
 
 spec :: Spec
 spec = do
@@ -56,4 +56,4 @@ spec = do
             }
           |]
           `shouldBe` Just
-            (JsonWspRequest Nothing $ SetStartingBlock "X" (BlockInfo 1 "ID"))
+            (JsonWspRequest Nothing $ SetStartingBlock "X" (StartingBlock $ BlockInfo 1 "ID"))

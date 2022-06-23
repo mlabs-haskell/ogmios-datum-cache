@@ -14,7 +14,7 @@ import Data.Vector (Vector)
 import Servant.API.Generic (Generic)
 
 import Block.Filter (DatumFilter)
-import Block.Types (BlockInfo)
+import Block.Types (StartingBlock)
 import PlutusData qualified
 
 newtype GetDatumByHashResponse = GetDatumByHashResponse PlutusData.Data
@@ -41,7 +41,7 @@ newtype GetDatumsByHashesResponse = GetDatumsByHashesResponse
   deriving anyclass (ToJSON)
 
 newtype SetStartingBlockRequest = SetStartingBlockRequest
-  { startingBlock :: BlockInfo
+  { startingBlock :: StartingBlock
   }
   deriving stock (Generic)
   deriving anyclass (FromJSON)

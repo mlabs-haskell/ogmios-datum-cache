@@ -11,7 +11,7 @@ import GHC.Generics (Generic)
 
 import App.Env (ControlApiToken (ControlApiToken))
 import Block.Filter (DatumFilter)
-import Block.Types (BlockInfo)
+import Block.Types (StartingBlock)
 import PlutusData qualified
 
 data JsonWspRequest = JsonWspRequest
@@ -55,7 +55,7 @@ data Method
   | GetDatumsByHashes [Text]
   | GetBlock
   | GetHealthcheck
-  | SetStartingBlock ControlApiToken BlockInfo
+  | SetStartingBlock ControlApiToken StartingBlock
   | SetDatumFilter ControlApiToken DatumFilter
   deriving stock (Show, Eq)
 
