@@ -37,6 +37,7 @@ import Control.Monad.Reader.Has (Has)
 import Control.Monad.Reader.Has qualified as Has
 import Control.Monad.Trans (liftIO)
 import Data.Aeson qualified as Aeson
+import Data.ByteString.Base16 qualified as Base16
 import Data.ByteString.Base64 qualified as Base64
 import Data.ByteString.Lazy (ByteString)
 import Data.Map qualified as Map
@@ -350,12 +351,15 @@ saveDatumsFromBlock block = do
         Map.fromList
           . concatMap getFilteredDatums
           $ txs
-      decodeDatumValue = Base64.decodeBase64 . fromString . toString
+      decodeDatumValue dt =
+        let bs = fromString $ toString dt
+         in -- Base64 can be removed when ogmios >= 5.5.0
+            Base64.decodeBase64 bs <> Base16.decodeBase16 bs
       (failedDecodings, requestedDatumsWithDecodedValues) =
         Map.mapEither decodeDatumValue requestedDatums
   unless (null failedDecodings) $ do
     logErrorNS "saveDatumsFromBlock" $
-      "Error decoding values for datums: "
+      "Error decoding values for datums (Base64 or Base16): "
         <> Text.intercalate ", " (Map.keys failedDecodings)
     pure ()
   let datums_ = Map.toList requestedDatumsWithDecodedValues
