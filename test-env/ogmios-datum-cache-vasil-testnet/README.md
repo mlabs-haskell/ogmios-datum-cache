@@ -10,8 +10,7 @@ Configuration: https://book.world.dev.cardano.org/environments.html#vasil-dev
 ## Starting up a development environment
 
 ``` shell
-$ pwd
-.../ogmios-datum-cache/test-env/ogmios-datum-cache-vasil-testnet
+$ cd test-env/ogmios-datum-cache-vasil-testnet
 $ mkdir node-db node-ipc ogmios-datum-cache-postgresql
 $ docker-compose up
 ```
@@ -21,7 +20,10 @@ If you already have synced node-db, you need to update volume section in `docker
 ## Check node
 
 ``` shellsession
-$ CARDANO_NODE_SOCKET_PATH=$PWD/node-ipc/node.socket cardano-cli query tip --testnet-magic 9
+$ cd test-env/ogmios-datum-cache-vasil-testnet
+$ export CARDANO_NODE_SOCKET_PATH=$PWD/node-ipc/node.socket
+$ sudo chmod 0666 $CARDANO_NODE_SOCKET_PATH
+$ cardano-cli query tip --testnet-magic 9
 {
     "block": 31723,
     "epoch": 99,
@@ -37,27 +39,17 @@ $ CARDANO_NODE_SOCKET_PATH=$PWD/node-ipc/node.socket cardano-cli query tip --tes
 ``` shellsession
 $ pwd
 .../ogmios-datum-cache
-$ cabal run ogmios-datum-cache
+$ cabal run ogmios-datum-cache --disable-optimisation -- --db-connection 'host=localhost port=5432 user=aske dbname=ogmios-datum-cache' --server-port 9999 --server-api 'usr:pwd' --ogmios-address '127.0.0.1' --ogmios-port 1337 --origin --use-latest 
 Build profile: -w ghc-8.10.7 -O0
 In order, the following will be built (use -v for more details):
  - ogmios-datum-cache-0.1.0.0 (exe:ogmios-datum-cache) (file app/Main.hs changed)
 ...
 ```
 
-## Fetch from the first block
+## DB inspection
 
 ``` shellsession
-$ http POST localhost:9999/control/startingBlock startingBlock[blockSlot]:=0 startingBlock[blockId]="f4ba3c4db14c9e9d0879bae07a249fe7169bff64e357199ffe5179cbfe83b19e" --auth usr:pwd -v
-HTTP/1.1 200 OK
-Content-Type: application/json;charset=utf-8
-Date: Wed, 08 Jun 2022 08:15:09 GMT
-Server: Warp/3.3.17
-Transfer-Encoding: chunked
-
-{
-    "message": "Started block fetcher"
-}
-
+$ psql -U aske -d ogmios-datum-cache -h localhost
 ```
 
 ## Cleanup
