@@ -22,8 +22,7 @@
 
   outputs = { self, nixpkgs, unstable_nixpkgs, ... }:
     let
-      supportedSystems =
-        [ "x86_64-linux" "x86_64-darwin" "aarch64-linux" "aarch64-darwin" ];
+      supportedSystems = [ "x86_64-linux" ];
       perSystem = nixpkgs.lib.genAttrs supportedSystems;
       nixpkgsFor = system: import nixpkgs { inherit system; };
       unstableNixpkgsFor = system: import unstable_nixpkgs { inherit system; };
@@ -74,30 +73,24 @@
           hpkgs = hpkgsFor system;
           upkgs = unstableNixpkgsFor system;
           uhpkgs = unstableHpkgsFor system;
-        in {
+        in self.packages.${system} // {
           formatting-check = pkgs.runCommand "formatting-check" {
             nativeBuildInputs =
               [ hpkgs.cabal-fmt pkgs.fd pkgs.nixfmt uhpkgs.fourmolu ];
           } ''
             cd ${self}
             export IN_NIX_SHELL=pure
-            make format_check
-            cabal-fmt --check $(fd -ecabal)
-            nixfmt --check $(fd -enix)
+            make format_check_all
             touch $out
           '';
-          lint-check = pkgs.runCommand "formatting-check" {
+          lint-check = pkgs.runCommand "lint-check" {
             nativeBuildInputs = [ uhpkgs.hlint ];
           } ''
             cd ${self}
-            hlint .
+            export IN_NIX_SHELL=pure
+            make lint
             touch $out
           '';
         });
-      check = perSystem (system:
-        (nixpkgsFor system).runCommand "combined-test" {
-          nativeBuildInputs = builtins.attrValues self.checks.${system}
-            ++ builtins.attrValues self.packages.${system};
-        } "touch $out");
     };
 }
