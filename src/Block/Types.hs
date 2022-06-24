@@ -1,5 +1,7 @@
 {-# LANGUAGE DuplicateRecordFields #-}
+{-# LANGUAGE NamedFieldPuns #-}
 
+{- HLINT ignore "Use ==" -}
 module Block.Types (
   mkFindIntersectRequest,
   mkRequestNextRequest,
@@ -8,13 +10,15 @@ module Block.Types (
   FindIntersectResult (..),
   RequestNextResult (..),
   Block (..),
-  AlonzoBlock (..),
-  AlonzoBlockHeader (..),
-  AlonzoTransaction (..),
+  DatumBlock (..),
+  DatumBlockHeader (..),
+  DatumTransaction (..),
+  DatumTxOut (..),
   OgmiosResponse (..),
-  TxOut (..),
   BlockInfo (..),
   CursorPoint (..),
+  datums,
+  noDatum2datumBlock,
   StartingBlock (..),
 ) where
 
@@ -25,7 +29,10 @@ import Data.HashMap.Strict qualified as HashMap
 import Data.Int (Int64)
 import Data.Map (Map)
 import Data.Map qualified as Map
+import Data.Maybe (mapMaybe)
+import Data.String.ToString (toString)
 import Data.Text (Text)
+import Data.Text qualified as Text
 import GHC.Exts (toList)
 import GHC.Generics (Generic)
 
@@ -193,64 +200,17 @@ data RequestNextResult
   deriving stock (Eq, Show, Generic)
 
 data Block
-  = OtherBlock String
-  | MkByronBlock ByronBlock
-  | MkAlonzoBlock AlonzoBlock
+  = UnsupportedBlock
+      Text -- block type
+      Text -- raw
+  | -- | Block with datum (Alonzo, Babbage)
+    MkDatumBlock
+      Text -- block type
+      DatumBlock
+  | MkNoDatumBlock
+      Text -- block type
+      NoDatumBlock
   deriving stock (Eq, Show, Generic)
-
-data TxOut = TxOut
-  { address :: Text
-  , datumHash :: Maybe Text
-  }
-  deriving stock (Eq, Show, Generic)
-
-instance FromJSON TxOut where
-  parseJSON = withObject "TxOut" $ \o -> do
-    address <- o .: "address"
-    datumHash <- o .:? "datum"
-    pure $ TxOut {..}
-
-data AlonzoTransaction = AlonzoTransaction
-  { datums :: Map Text Text
-  , outputs :: [TxOut]
-  }
-  deriving stock (Eq, Show, Generic)
-
-instance FromJSON AlonzoTransaction where
-  parseJSON = withObject "AlonzoTransaction" $ \o -> do
-    witness <- o .: "witness"
-    datums <- witness .: "datums"
-    body <- o .: "body"
-    outputs <- body .: "outputs"
-    pure $ AlonzoTransaction datums outputs
-
-data AlonzoBlockHeader = AlonzoBlockHeader
-  { slot :: Int64
-  , blockHash :: Text
-  }
-  deriving stock (Eq, Show, Generic)
-  deriving anyclass (FromJSON)
-
-data AlonzoBlock = AlonzoBlock
-  { body :: [AlonzoTransaction]
-  , header :: AlonzoBlockHeader
-  , headerHash :: Text
-  }
-  deriving stock (Eq, Show, Generic)
-  deriving anyclass (FromJSON)
-
-data ByronBlock = ByronBlock
-  { hash :: Text
-  , slot :: Int64
-  }
-  deriving stock (Eq, Show)
-
-instance FromJSON ByronBlock where
-  parseJSON = Aeson.withObject "ByronBlock" $ \v -> do
-    hash <- v .: "hash"
-    header <- v .: "header"
-    slot <- header .: "slot"
-    pure $ ByronBlock hash slot
 
 instance FromJSON RequestNextResult where
   parseJSON = withObject "RequestNextResult" $ \o -> do
@@ -271,15 +231,89 @@ instance FromJSON RequestNextResult where
               tip <- obj .: "tip"
               blockObj <- obj .: "block"
               case HashMap.toList blockObj of
-                [("byron" :: Text, blockValue)] -> do
-                  block <- Aeson.parseJSON @ByronBlock blockValue
-                  pure $ RollForward (MkByronBlock block) tip
-                [("alonzo" :: Text, blockValue)] -> do
-                  block <- Aeson.parseJSON @AlonzoBlock blockValue
-                  pure $ RollForward (MkAlonzoBlock block) tip
-                [(_, _blockObj)] ->
-                  pure $ RollForward (OtherBlock $ show blockObj) tip
+                [(type_ :: Text, blockValue)]
+                  | type_ `elem` ["byron"] -> do
+                    block <- Aeson.parseJSON @NoDatumBlock blockValue
+                    pure $ RollForward (MkNoDatumBlock type_ block) tip
+                  | type_ `elem` ["alonzo", "babbage"] -> do
+                    block <- Aeson.parseJSON @DatumBlock blockValue
+                    pure $ RollForward (MkDatumBlock type_ block) tip
+                  | otherwise -> do
+                    let raw = Text.pack $ toString $ Aeson.encode blockValue
+                    pure $ RollForward (UnsupportedBlock type_ raw) tip
                 _ -> fail "Unexpected block value"
           )
           rollObj
       _ -> fail "Unexpected object key"
+
+data DatumBlock = DatumBlock
+  { body :: [DatumTransaction]
+  , header :: DatumBlockHeader
+  , headerHash :: Text
+  }
+  deriving stock (Eq, Show, Generic)
+  deriving anyclass (FromJSON)
+
+data DatumBlockHeader = DatumBlockHeader
+  { slot :: Int64
+  , blockHash :: Text
+  }
+  deriving stock (Eq, Show, Generic)
+  deriving anyclass (FromJSON)
+
+data DatumTransaction = DatumTransaction
+  { dtDatums :: Map Text Text
+  , dtOutputs :: [DatumTxOut]
+  }
+  deriving stock (Eq, Show, Generic)
+
+datums :: DatumTransaction -> Map Text Text
+datums DatumTransaction {dtDatums, dtOutputs} =
+  dtDatums <> Map.fromList (mapMaybe fromTxOut dtOutputs)
+  where
+    fromTxOut
+      DatumTxOut
+        { datumHash = Just datumHash
+        , datum = Just datum
+        } = Just (datumHash, datum)
+    fromTxOut _txOut =
+      Nothing
+
+instance FromJSON DatumTransaction where
+  parseJSON = withObject "DatumTransaction" $ \o -> do
+    witness <- o .: "witness"
+    dtDatums <- witness .: "datums"
+    body <- o .: "body"
+    dtOutputs <- body .: "outputs"
+    pure $ DatumTransaction {..}
+
+data DatumTxOut = DatumTxOut
+  { address :: Text
+  , datumHash :: Maybe Text
+  , datum :: Maybe Text
+  -- , script :: Maybe Text
+  }
+  deriving stock (Eq, Show, Generic)
+
+instance FromJSON DatumTxOut where
+  parseJSON = withObject "BabbageTxOut" $ \o -> do
+    address <- o .: "address"
+    datumHash <- o .:? "datumHash"
+    datum <- o .:? "datum"
+    pure $ DatumTxOut {..}
+
+data NoDatumBlock = NoDatumBlock
+  { hash :: Text
+  , slot :: Int64
+  }
+  deriving stock (Eq, Show)
+
+instance FromJSON NoDatumBlock where
+  parseJSON = Aeson.withObject "NoDatumBlock" $ \v -> do
+    hash <- v .: "hash"
+    header <- v .: "header"
+    slot <- header .: "slot"
+    pure $ NoDatumBlock hash slot
+
+noDatum2datumBlock :: NoDatumBlock -> DatumBlock
+noDatum2datumBlock NoDatumBlock {slot, hash} = DatumBlock [] (DatumBlockHeader slot hash) hash

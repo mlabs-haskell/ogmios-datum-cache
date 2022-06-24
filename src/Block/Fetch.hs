@@ -37,12 +37,14 @@ import Control.Monad.Reader.Has (Has)
 import Control.Monad.Reader.Has qualified as Has
 import Control.Monad.Trans (liftIO)
 import Data.Aeson qualified as Aeson
+import Data.ByteString.Base16 qualified as Base16
 import Data.ByteString.Base64 qualified as Base64
 import Data.ByteString.Lazy (ByteString)
 import Data.Map qualified as Map
 import Data.Maybe (isJust)
+import Data.String (fromString)
+import Data.String.ToString (toString)
 import Data.Text qualified as Text
-import Data.Text.Encoding qualified as Text
 import GHC.Natural (Natural)
 import Hasql.Connection qualified as Hasql
 import Network.Socket qualified as Socket
@@ -51,20 +53,21 @@ import Network.WebSockets.Stream qualified as Stream
 
 import Block.Filter (DatumFilter, runDatumFilter)
 import Block.Types (
-  AlonzoBlock (AlonzoBlock, body, header, headerHash),
-  AlonzoBlockHeader (AlonzoBlockHeader, slot),
-  AlonzoTransaction (datums),
-  Block (MkAlonzoBlock, MkByronBlock, OtherBlock),
+  Block (MkDatumBlock, MkNoDatumBlock, UnsupportedBlock),
   BlockInfo (BlockInfo),
   CursorPoint,
+  DatumBlock (body, header, headerHash),
+  DatumBlockHeader (slot),
   FindIntersectResult (IntersectionFound, IntersectionNotFound),
   OgmiosFindIntersectResponse,
   OgmiosRequestNextResponse,
   OgmiosResponse (_result),
   RequestNextResult (RollBackward, RollForward),
   StartingBlock (StartingBlock),
+  datums,
   mkFindIntersectRequest,
   mkRequestNextRequest,
+  noDatum2datumBlock,
  )
 import Database (getLastBlock, saveDatums, updateLastBlock)
 
@@ -75,7 +78,7 @@ data OgmiosInfo = OgmiosInfo
 
 data BlockFetcherEnv = BlockFetcherEnv
   { -- | Queue used to push blocks for block processor.
-    queue :: TBQueue AlonzoBlock
+    queue :: TBQueue DatumBlock
   , -- | WS connection to ogmios. Should be used only via 'sendAndReceive'.
     wsConnMVar :: MVar WebSockets.Connection
   , -- | Intersection from which block fetcher will start fetching blocks.
@@ -85,7 +88,7 @@ data BlockFetcherEnv = BlockFetcherEnv
 
 data BlockProcessorEnv = BlockProcessorEnv
   { -- | Queue to read blocks from.
-    queue :: TBQueue AlonzoBlock
+    queue :: TBQueue DatumBlock
   , -- | Datum filer.
     datumFilterMVar :: MVar DatumFilter
   , -- | Connection to postgres database.
@@ -288,24 +291,22 @@ fetchNextBlock = do
         $ Text.pack $ "Error decoding RequestNext response: " <> e
     Right (RollBackward _point _tip) ->
       logWarnNS "fetchNextBlock" "Received RollBackward response"
-    Right (RollForward (OtherBlock str) _tip) ->
+    Right (RollForward (UnsupportedBlock type_ raw) _tip) ->
       logWarnNS
         "fetchNextBlock"
-        $ "Received non-Alonzo block in the RollForward response: " <> Text.pack (show str)
-    Right (RollForward (MkByronBlock block) _tip) -> do
-      -- This will be replaced with more general block in #64
-      let block' = AlonzoBlock [] (AlonzoBlockHeader block.slot block.hash) block.hash
+        $ "Received unsupported block in the RollForward response with type: "
+          <> type_
+          <> " raw: " -- TODO: raw output only on debug logging level
+          <> raw
+    Right (RollForward (MkNoDatumBlock type_ block) _tip) -> do
+      let block' = noDatum2datumBlock block
       liftIO $ atomically $ writeTBQueue env.queue block'
       logInfoNS "fetchNextBlock" $
-        Text.pack $
-          "Fetched Byron block: "
-            <> show (block.slot, block.hash)
-    Right (RollForward (MkAlonzoBlock block) _tip) -> do
+        "Fetched no datum " <> type_ <> " block: " <> Text.pack (show (block.slot, block.hash))
+    Right (RollForward (MkDatumBlock type_ block) _tip) -> do
       liftIO $ atomically $ writeTBQueue env.queue block
       logInfoNS "fetchNextBlock" $
-        Text.pack $
-          "Fetched Alonzo block: "
-            <> show (slot $ header block, headerHash block)
+        "Fetched " <> type_ <> " block: " <> Text.pack (show (slot $ header block, headerHash block))
 
 -- * Processor
 
@@ -324,23 +325,23 @@ processLoop = do
   forever $ do
     -- TODO: maybe batching?
     block <- getBlock
-    saveDatumsFromAlonzoBlock block
+    saveDatumsFromBlock block
     updateLastBlock env.dbConn (BlockInfo block.header.slot block.headerHash)
 
 -- | Pop block for queue, blocking if no block in queue.
 getBlock ::
   (MonadIO m, MonadReader BlockProcessorEnv m) =>
-  m AlonzoBlock
+  m DatumBlock
 getBlock = do
   env <- ask
   liftIO $ atomically $ readTBQueue env.queue
 
--- | Extract and save datums from `AlonzoBlock`.
-saveDatumsFromAlonzoBlock ::
+-- | Extract and save datums from `DatumBlock` (alonzo and babbage).
+saveDatumsFromBlock ::
   (MonadIO m, MonadReader BlockProcessorEnv m, MonadLogger m) =>
-  AlonzoBlock ->
+  DatumBlock ->
   m ()
-saveDatumsFromAlonzoBlock block = do
+saveDatumsFromBlock block = do
   env <- ask
   datumFilter <- liftIO $ readMVar env.datumFilterMVar
   let txs = body block
@@ -350,16 +351,19 @@ saveDatumsFromAlonzoBlock block = do
         Map.fromList
           . concatMap getFilteredDatums
           $ txs
-      decodeDatumValue = Base64.decodeBase64 . Text.encodeUtf8
+      decodeDatumValue dt =
+        let bs = fromString $ toString dt
+         in -- Base64 can be removed when ogmios >= 5.5.0
+            Base64.decodeBase64 bs <> Base16.decodeBase16 bs
       (failedDecodings, requestedDatumsWithDecodedValues) =
         Map.mapEither decodeDatumValue requestedDatums
   unless (null failedDecodings) $ do
-    logErrorNS "saveDatumsFromAlonzoBlock" $
-      "Error decoding values for datums: "
+    logErrorNS "saveDatumsFromBlock" $
+      "Error decoding values for datums (Base64 or Base16): "
         <> Text.intercalate ", " (Map.keys failedDecodings)
     pure ()
-  let datums = Map.toList requestedDatumsWithDecodedValues
-  unless (null datums) $ saveDatums env.dbConn datums
+  let datums_ = Map.toList requestedDatumsWithDecodedValues
+  unless (null datums_) $ saveDatums env.dbConn datums_
 
 -- | Change block processor's datum filer. Safe to call from user facing API.
 changeDatumFilter ::

@@ -6,7 +6,7 @@ import Data.Maybe (mapMaybe)
 import Data.Text (Text)
 import GHC.Exts (toList)
 
-import Block.Types (AlonzoTransaction (outputs), TxOut (address, datumHash))
+import Block.Types (DatumTransaction (dtOutputs), DatumTxOut (address, datumHash))
 
 data DatumFilter
   = ConstFilter Bool
@@ -37,7 +37,7 @@ instance FromJSON DatumFilter where
       [("address", String a)] -> pure $ AddressFilter a
       _ -> fail "Failed parsing DatumFilter"
 
-runDatumFilter :: DatumFilter -> AlonzoTransaction -> (Text, Text) -> Bool
+runDatumFilter :: DatumFilter -> DatumTransaction -> (Text, Text) -> Bool
 runDatumFilter (ConstFilter b) _ _ = b
 runDatumFilter (AnyFilter filters) tx datum =
   any (\f -> runDatumFilter f tx datum) filters
@@ -48,6 +48,5 @@ runDatumFilter (DatumHashFilter expectedHash) _ (actualHash, _) =
 runDatumFilter (AddressFilter expectedAddress) tx (actualHash, _) =
   let hashes =
         mapMaybe datumHash $
-          filter ((== expectedAddress) . address) $
-            outputs tx
+          filter ((== expectedAddress) . address) $ dtOutputs tx
    in actualHash `elem` hashes
