@@ -1,5 +1,7 @@
 # ogmios-datum-cache
+
 ## Datum query
+
 ### Plutus `Data` in JSON
 
 ```haskell
@@ -22,6 +24,7 @@ instance ToJSON Data where
 
 
 ### `GET /datum/<hash>`
+
 Request: `GET /datum/179f56ecaaad4a92dd6554aaeaac7089dc4bd9903ffb047c28d75da90fe3f259`
 
 Response:
@@ -61,6 +64,7 @@ Response:
 ```
 
 ### `GET /datums`
+
 Request:
 ```jsonc
 {
@@ -155,9 +159,14 @@ Responses:
 Response:
 * 200 `[]`
 
-## WebSocket API
-### Examples from ogmios-datum-cache
+## WebSocket API methods
+
+Endpoint: `/ws`
+
+### Datum query
+
 #### GetDatumByHash
+
 Request:
 ```jsonc
 {
@@ -250,6 +259,7 @@ Response (fault):
 ```
 
 #### GetDatumsByHashes
+
 Datums missing in the db are omitted from the response, if none datums are found an empty array is returned.
 
 Request:
@@ -348,7 +358,7 @@ Request:
   "type": "jsonwsp/request",
   "version": "1.0",
   "servicename": "ogmios",
-  "methodname": "GetBlock"
+  "methodname": "GetBlock",
   "mirror": "req.no.1"
 }
 ```
@@ -370,6 +380,8 @@ Response:
 }
 ```
 
+### Control API
+
 #### SetStartingBlock
 
 Request:
@@ -384,7 +396,7 @@ Request:
       "blockSlot": 59809992,
       "blockId": "7c8aec019a21ffd0049d64b0c9874d93376ed5662b4cf7d78e186b5958ecb00d"
     },
-    "token": "SECRET_CONTROL_API_TOKEN"
+    "token": "usr:pwd"
   },
   "mirror": "foo"
 }
@@ -418,11 +430,12 @@ Response (fault - 1):
   "type": "jsonwsp/fault",
   "reflection": "foo"
 }
+```
 
 Response (fault - 2):
 ```jsonc
 {
-  "methodname": "StartFetchBlocks",
+  "methodname": "SetStartingBlock",
   "version": "1.0",
   "fault": {
     "string": "Control API token not granted",
@@ -434,7 +447,7 @@ Response (fault - 2):
 }
 ```
 
-#### CancelFetchBlocks
+#### SetDatumFilter
 
 Request:
 ```jsonc
@@ -442,9 +455,20 @@ Request:
   "type": "jsonwsp/request",
   "version": "1.0",
   "servicename": "ogmios-datum-cache",
-  "methodname": "CancelFetchBlocks",
+  "methodname": "SetDatumFilter",
   "args": {
-    "token": "SECRET_CONTROL_API_TOKEN",
+    "datumFilter": 
+      {
+        "all": [
+          {"hash": "foobar"}, 
+          {"any": [
+            {"address": "addr_abc"},
+            {"address": "addr_xyz"}
+            ]
+          }
+        ]
+      },
+    "token": "usr:pwd",
   },
   "reflection": "foo"
 }
@@ -466,22 +490,7 @@ Response:
 Response (fault - 1):
 ```jsonc
 {
-  "methodname": "CancelFetchBlocks",
-  "version": "1.0",
-  "fault": {
-    "string": "No block fetcher running",
-    "code": "client"
-  },
-  "servicename": "ogmios-datum-cache",
-  "type": "jsonwsp/fault",
-  "reflection": "foo"
-}
-```
-
-Response (fault - 2):
-```jsonc
-{
-  "methodname": "CancelFetchBlocks",
+  "methodname": "SetDatumFilter",
   "version": "1.0",
   "fault": {
     "string": "Control API token not granted",
@@ -494,6 +503,7 @@ Response (fault - 2):
 ```
 
 #### GetHealthcheck
+
 Request:
 ```jsonc
 {
@@ -518,6 +528,7 @@ Response:
 ```
 
 ## Block data from ogmios local chain sync
+
 Structure:
 ```jsonc
 {
@@ -683,12 +694,15 @@ Available options:
                            be processed, default=64.
   -h,--help                Show this help text
 ```
-  
-### Filter
+
+Example: `ogmios-datum-cache --db-connection 'host=localhost port=5432 user=aske dbname=ogmios-datum-cache' --server-port 9999 --server-api 'usr:pwd' --ogmios-address '127.0.0.1' --ogmios-port 1337 --block-slot 44366242 --block-hash d2a4249fe3d0607535daa26caf12a38da2233586bc51e79ed0b3a36170471bf5  --use-latest --block-filter '{"all": [{"hash": "foobar"}, {"any": [{ "address": "addr_abc" },{ "address": "addr_xyz" }]}]}'`
+
+### Datum filter
 
 Datum filter can filter datum hash and address of utxo with given datum. Filters can be combined with logical `or`s and `and`s.
 
 Example (filter will save datums only if hash is `foobar` and (utxo with datum is on address `addr_abc` or `addr_xyz`)):
+
 ```jsonc
 {
     "all": [
