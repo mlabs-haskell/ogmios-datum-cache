@@ -30,6 +30,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Add support for Vasil hardfork (require ogmios `>= 5.5.0`).
 - Add `GET /healthcheck` endpoint.
 - Add `GetHealthcheck` WebSocket method.
+- Add `GET /tx/<txId>` endpoint.
+- Add `GetTxByHash` WebSocket method.
 - Add presets for testing environments `test-env`.
 
 ### Fixed
