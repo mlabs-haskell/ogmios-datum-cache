@@ -73,7 +73,7 @@
           hpkgs = hpkgsFor system;
           upkgs = unstableNixpkgsFor system;
           uhpkgs = unstableHpkgsFor system;
-        in {
+        in self.packages.${system} // {
           formatting-check = pkgs.runCommand "formatting-check" {
             nativeBuildInputs =
               [ hpkgs.cabal-fmt pkgs.fd pkgs.nixfmt uhpkgs.fourmolu ];
@@ -92,10 +92,5 @@
             touch $out
           '';
         });
-      check = perSystem (system:
-        (nixpkgsFor system).runCommand "combined-test" {
-          nativeBuildInputs = builtins.attrValues self.checks.${system}
-            ++ builtins.attrValues self.packages.${system};
-        } "touch $out");
     };
 }
