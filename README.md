@@ -626,3 +626,9 @@ Example of an Alonzo block returned during local chain sync:
   },
   "headerHash": "aa03bbdd33659be6ece4d73acff51fd875b3dcc4e8c19a58ba94ca7e7b52ec3b"
 }
+### Available support channels info
+
+You can find help, more information and ongoing discusion about the project here:
+- [link] - short description
+- [link] - short description
+
