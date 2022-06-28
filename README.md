@@ -661,10 +661,10 @@ Usage: ogmios-datum-cache (--db-port PORT --db-host HOST_NAME
                             --db-connection POSTGRES_LIBPQ_CONNECTION_STRING)
                           --server-port PORT
                           --server-api SERVER_CONTROL_API_TOKEN
-                          --ogmios-address ADDRESS --ogmios-port PORT
-                          [--block-slot INT --block-hash HASH | --origin]
+                          --ogmios-address ADDRESS --ogmios-port PORT 
+                          [--block-slot INT --block-hash HASH | --origin] 
                           [--block-filter FILTER] [--use-latest] 
-                          [--queue-size NATURAL]
+                          [--queue-size NATURAL] [--log-level LOG_LEVEL]
 
 Available options:
   --db-port PORT           Postgres libpq connection port
@@ -692,6 +692,9 @@ Available options:
                            --block-hash.
   --queue-size NATURAL     Defines size of queue of prefetched blocks ready to
                            be processed, default=64.
+  --log-level LOG_LEVEL    One of [debug | info | warn | error], every level is
+                           more restrictive than the previous level. By default
+                           set to warn
   -h,--help                Show this help text
 ```
 

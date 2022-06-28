@@ -189,8 +189,8 @@ parseLogLevel =
         <> metavar "LOG_LEVEL"
         <> value LevelWarn
         <> help
-          "One of [info | debug | warn | error], every level\
-          \ is more restrictive than the previous level."
+          "One of [debug | info | warn | error], every level\
+          \ is more restrictive than the previous level. By default set to warn"
     )
   where
     validateLevel str
