@@ -649,7 +649,7 @@ Example of an Alonzo block returned during local chain sync:
 ### Step 1
 Run local ogmios instance:
 ```
-docker-compose up -f deploy/docker-compose.yml -d
+docker-compose -f deploy/docker-compose.yml up -d
 ```
 
 ### Step 2 - Passing arguments to ODC
