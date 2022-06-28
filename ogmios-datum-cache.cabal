@@ -171,3 +171,4 @@ test-suite ogmios-datum-cache-test
     , servant-server
     , string-interpolate
     , utf8-string
+    , monad-logger
