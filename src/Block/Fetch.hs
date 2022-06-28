@@ -29,6 +29,7 @@ import Control.Monad.Logger (
   MonadLogger,
   NoLoggingT (runNoLoggingT),
   filterLogger,
+  logDebugNS,
   logErrorNS,
   logInfoNS,
   logWarnNS,
@@ -303,13 +304,13 @@ fetchNextBlock = do
         $ Text.pack $ "Error decoding RequestNext response: " <> e
     Right (RollBackward _point _tip) ->
       logWarnNS "fetchNextBlock" "Received RollBackward response"
-    Right (RollForward (UnsupportedBlock type_ raw) _tip) ->
+    Right (RollForward (UnsupportedBlock type_ raw) _tip) -> do
       logWarnNS
         "fetchNextBlock"
         $ "Received unsupported block in the RollForward response with type: "
           <> type_
-          <> " raw: " -- TODO: raw output only on debug logging level
-          <> raw
+      logDebugNS "fetchNextBlock" $
+        "The unsupported block raw: " <> raw
     Right (RollForward (MkNoDatumBlock type_ block) _tip) -> do
       let block' = noDatum2datumBlock block
       liftIO $ atomically $ writeTBQueue env.queue block'
