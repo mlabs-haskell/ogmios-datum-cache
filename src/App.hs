@@ -2,8 +2,8 @@ module App (DbConnectionAcquireException (..), bootstrapEnvFromConfig, appServic
 
 import Control.Exception (Exception, try)
 import Control.Monad.Catch (throwM)
-import Control.Monad.Except (ExceptT (ExceptT))
-import Control.Monad.Logger (runStdoutLoggingT)
+import Control.Monad.Except (ExceptT (ExceptT), MonadIO)
+import Control.Monad.Logger (LogLevel, LoggingT, filterLogger, runStdoutLoggingT)
 import Control.Monad.Reader (runReaderT)
 import Data.Aeson (eitherDecode)
 import Data.Default (def)
@@ -68,7 +68,7 @@ bootstrapEnvFromConfig cfg = do
   dbConn <-
     Hasql.acquire cfg.cfgDbConnectionString
       >>= either (throwM . DbConnectionAcquireException) pure
-  runStdoutLoggingT . flip runReaderT dbConn $ do
+  runLog . flip runReaderT dbConn $ do
     initTables
     let datumFilter' = case cfg.cfgFetcher.cfgFetcherFilterJson of
           Just filterJson -> eitherDecode filterJson
@@ -94,6 +94,7 @@ bootstrapEnvFromConfig cfg = do
         firstBlock
         datumFilter
         cfg.cfgFetcher.cfgFetcherQueueSize
+        logFilter
     pure $
       Env
         { envBlockFetcherEnv = blockFetcherEnv
@@ -101,3 +102,12 @@ bootstrapEnvFromConfig cfg = do
         , envBlockProcessorEnv = blockProcessorEnv
         , envControlApiToken = cfg.cfgServerControlApiToken
         }
+  where
+    logFilter = (cfg.cfgLogLevel <=)
+
+    runLog :: MonadIO m => LoggingT m a -> m a
+    runLog = runStdoutLoggingWith logFilter
+
+runStdoutLoggingWith :: MonadIO m => (LogLevel -> Bool) -> LoggingT m a -> m a
+runStdoutLoggingWith logPredicate =
+  runStdoutLoggingT . filterLogger (const logPredicate)
