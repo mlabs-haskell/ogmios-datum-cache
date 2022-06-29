@@ -187,15 +187,15 @@ parseLogLevel =
     (maybeReader validateLevel)
     ( long "log-level"
         <> metavar "LOG_LEVEL"
-        <> value LevelWarn
+        <> value LevelInfo
         <> help
           "One of [debug | info | warn | error], every level\
-          \ is more restrictive than the previous level. By default set to warn"
+          \ is more restrictive than the previous level. By default set to info"
     )
   where
     validateLevel str
-      | str == "info" = pure LevelInfo
       | str == "debug" = pure LevelDebug
+      | str == "info" = pure LevelInfo
       | str == "warn" = pure LevelWarn
       | str == "error" = pure LevelError
       | otherwise = Nothing
@@ -255,7 +255,7 @@ configAsCLIOptions Config {..} =
           LevelDebug -> ["--log-level=debug"]
           LevelWarn -> ["--log-level=warn"]
           LevelError -> ["--log-level=error"]
-          _ -> []
+          LevelOther -> error "unreachable: unsupported logging level"
 
       mostParams =
         useLatesString
