@@ -14,6 +14,7 @@ import Control.Monad.Logger (
     LevelDebug,
     LevelError,
     LevelInfo,
+    LevelOther,
     LevelWarn
   ),
  )
@@ -255,7 +256,7 @@ configAsCLIOptions Config {..} =
           LevelDebug -> ["--log-level=debug"]
           LevelWarn -> ["--log-level=warn"]
           LevelError -> ["--log-level=error"]
-          LevelOther -> error "unreachable: unsupported logging level"
+          LevelOther _ -> error "unreachable: unsupported logging level"
 
       mostParams =
         useLatesString
