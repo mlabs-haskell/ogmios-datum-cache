@@ -694,7 +694,7 @@ Available options:
                            be processed, default=64.
   --log-level LOG_LEVEL    One of [debug | info | warn | error], every level is
                            more restrictive than the previous level. By default
-                           set to warn
+                           set to info
   -h,--help                Show this help text
 ```
 
