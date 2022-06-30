@@ -66,6 +66,9 @@ library
     App.Types
     Block.Fetch
     Block.Types
+    Block.Types.Alonzo
+    Block.Types.Babbage
+    Block.Types.Byron
     Database
     Parameters
 

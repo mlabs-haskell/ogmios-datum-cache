@@ -19,6 +19,8 @@ import Api.WebSocket.Json (
   mkGetDatumByHashResponse,
   mkGetDatumsByHashesFault,
   mkGetDatumsByHashesResponse,
+  mkGetTxByHashResponse,
+  mkGetTxByHashResponseFault,
   mkHealthcheckResponse,
   mkSetDatumFilterResponse,
   mkSetStartingBlockFault,
@@ -32,6 +34,7 @@ import Api.WebSocket.Types (
     GetDatumByHash,
     GetDatumsByHashes,
     GetHealthcheck,
+    GetTxByHash,
     SetDatumFilter,
     SetStartingBlock
   ),
@@ -85,6 +88,21 @@ getDatumsByHashes hashes = do
               Vector.map (Aeson.toJSON . uncurry GetDatumsByHashesDatum) datums
       Right $ mkGetDatumsByHashesResponse (Just datums')
 
+getTxByHash ::
+  Text ->
+  App WSResponse
+getTxByHash txId = do
+  res <- Database.getTxByHash txId
+  pure $ case res of
+    Left (DatabaseErrorDecodeError faulty) ->
+      Left $
+        mkGetTxByHashResponseFault $
+          "Error deserializing data from db: " <> Text.pack (show faulty)
+    Left DatabaseErrorNotFound ->
+      Right $ mkGetTxByHashResponse Nothing
+    Right datum ->
+      Right $ mkGetTxByHashResponse $ Just datum
+
 getLastBlock :: App WSResponse
 getLastBlock = do
   dbConn <- ask
@@ -125,15 +143,23 @@ websocketServer ::
   App ()
 websocketServer conn = forever $ do
   jsonMsg <- receiveData
-  case Aeson.decode @JsonWspRequest jsonMsg of
-    Nothing ->
-      logErrorNS "websocketServer" "Error parsing action"
-    Just (JsonWspRequest mirror method) -> do
+  case Aeson.eitherDecode @JsonWspRequest jsonMsg of
+    Left msg -> do
+      logErrorNS "websocketServer" ("Error parsing action: " <> Text.pack msg)
+      sendTextData . Aeson.encode $
+        JsonWspFault
+          "unknown"
+          "client"
+          (Text.pack msg)
+          Nothing
+    Right (JsonWspRequest mirror method) -> do
       response <- case method of
         GetDatumByHash hash ->
           getDatumByHash hash
         GetDatumsByHashes hashes ->
           getDatumsByHashes hashes
+        GetTxByHash txId ->
+          getTxByHash txId
         GetBlock ->
           getLastBlock
         GetHealthcheck ->

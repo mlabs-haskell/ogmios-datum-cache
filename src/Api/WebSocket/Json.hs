@@ -3,6 +3,8 @@ module Api.WebSocket.Json (
   JsonWspFault (JsonWspFault),
   mkGetDatumByHashResponse,
   mkGetDatumByHashFault,
+  mkGetTxByHashResponse,
+  mkGetTxByHashResponseFault,
   mkGetDatumsByHashesResponse,
   mkGetDatumsByHashesFault,
   mkGetBlockResponse,
@@ -23,7 +25,7 @@ import Data.Aeson qualified as Aeson
 import Data.Text (Text)
 import GHC.Generics (Generic)
 
-import Block.Types (BlockInfo, CursorPoint)
+import Block.Types (BlockInfo, CursorPoint, SomeRawTransaction, getRawTx)
 import PlutusData qualified
 
 -- {
@@ -101,6 +103,19 @@ mkGetDatumsByHashesResponse = \case
 mkGetDatumsByHashesFault :: Text -> Maybe Aeson.Value -> JsonWspFault
 mkGetDatumsByHashesFault =
   JsonWspFault "GetDatumsByHashes" "client"
+
+mkGetTxByHashResponse :: Maybe SomeRawTransaction -> Maybe Aeson.Value -> JsonWspResponse
+mkGetTxByHashResponse = \case
+  Just tx ->
+    JsonWspResponse "GetTxByHash" (object ["TxFound" .= value])
+    where
+      value = object ["value" .= getRawTx tx]
+  Nothing ->
+    JsonWspResponse "GetTxByHash" (object ["TxNotFound" .= Null])
+
+mkGetTxByHashResponseFault :: Text -> Maybe Aeson.Value -> JsonWspFault
+mkGetTxByHashResponseFault =
+  JsonWspFault "GetTxByHash" "client"
 
 mkGetBlockResponse :: BlockInfo -> Maybe Aeson.Value -> JsonWspResponse
 mkGetBlockResponse block = JsonWspResponse "GetBlock" (object ["block" .= block])

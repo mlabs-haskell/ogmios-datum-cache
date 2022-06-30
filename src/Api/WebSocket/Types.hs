@@ -35,6 +35,10 @@ instance FromJSON JsonWspRequest where
             args <- o .: "args"
             hashes <- args .: "hashes"
             pure $ GetDatumsByHashes hashes
+          "GetTxByHash" -> do
+            args <- o .: "args"
+            hash <- args .: "hash"
+            pure $ GetTxByHash hash
           "GetBlock" -> pure GetBlock
           "GetHealthcheck" -> do
             pure GetHealthcheck
@@ -53,6 +57,7 @@ instance FromJSON JsonWspRequest where
 data Method
   = GetDatumByHash Text
   | GetDatumsByHashes [Text]
+  | GetTxByHash Text
   | GetBlock
   | GetHealthcheck
   | SetStartingBlock ControlApiToken StartingBlock

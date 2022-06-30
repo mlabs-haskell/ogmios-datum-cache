@@ -8,6 +8,8 @@ module Database (
   initLastBlock,
   updateLastBlock,
   getLastBlock,
+  saveTxs,
+  getTxByHash,
 ) where
 
 import Codec.Serialise (deserialiseOrFail)
@@ -31,7 +33,14 @@ import Hasql.Session (Session)
 import Hasql.Session qualified as Session
 import Hasql.Statement (Statement (Statement))
 
-import Block.Types (BlockInfo (BlockInfo))
+import Block.Types (
+  BlockInfo (BlockInfo),
+  SomeRawTransaction (AlonzoRawTransaction, BabbageRawTransaction),
+  getRawTx,
+  getRawTxId,
+ )
+import Block.Types.Alonzo qualified as Alonzo
+import Block.Types.Babbage qualified as Babbage
 import PlutusData qualified
 
 data Datum = Datum
@@ -101,6 +110,52 @@ insertDatumsStatement = Statement sql enc dec True
 
     dec = Decoders.noResult
 
+insertRawTransactionsStatement :: Statement [SomeRawTransaction] ()
+insertRawTransactionsStatement = Statement sql enc dec True
+  where
+    sql =
+      "INSERT INTO transactions (txId, txType, rawTx) (SELECT h::text, t::text, v::json FROM unnest($1, $2, $3) AS x(h, t, v)) ON CONFLICT DO NOTHING"
+
+    encArray elemEncoder =
+      Encoders.param $
+        Encoders.nonNullable $
+          Encoders.array $
+            Encoders.dimension foldl' $
+              Encoders.element $
+                Encoders.nonNullable elemEncoder
+    enc :: Encoders.Params [SomeRawTransaction] =
+      (fmap encId >$< encArray Encoders.text)
+        <> (fmap encType >$< encArray Encoders.text)
+        <> (fmap getRawTx >$< encArray Encoders.json)
+    encType (AlonzoRawTransaction _) = "alonzo"
+    encType (BabbageRawTransaction _) = "babbage"
+    encId (AlonzoRawTransaction tx) = tx.txId
+    encId (BabbageRawTransaction tx) = tx.txId
+    dec = Decoders.noResult
+
+insertRawTransactionsSession :: [SomeRawTransaction] -> Session ()
+insertRawTransactionsSession txs = Session.statement txs insertRawTransactionsStatement
+
+getRawTxStatement :: Statement Text SomeRawTransaction
+getRawTxStatement = Statement sql enc dec True
+  where
+    sql = "SELECT txId, txType, rawTx FROM transactions WHERE txId = $1"
+    enc = Encoders.param (Encoders.nonNullable Encoders.text)
+    dec =
+      Decoders.singleRow $ do
+        txId <- Decoders.column $ Decoders.nonNullable Decoders.text
+        ty <- Decoders.column $ Decoders.nonNullable Decoders.text
+        raw <- Decoders.column (Decoders.nonNullable Decoders.json)
+        case ty of
+          "alonzo" ->
+            pure $ AlonzoRawTransaction $ Alonzo.RawTransaction txId raw
+          "babbage" ->
+            pure $ BabbageRawTransaction $ Babbage.RawTransaction txId raw
+          _ -> error "unreachable: getRawTxStatement"
+
+getRawTxSession :: Text -> Session SomeRawTransaction
+getRawTxSession txId = Session.statement txId getRawTxStatement
+
 initTables :: (MonadIO m, MonadReader r m, Has Connection r) => m ()
 initTables = do
   let sql = do
@@ -109,6 +164,8 @@ initTables = do
         Session.sql
           "CREATE TABLE IF NOT EXISTS last_block \
           \ (onerow_id bool PRIMARY KEY DEFAULT TRUE, slot integer, hash text, CONSTRAINT onerow CHECK (onerow_id))"
+        Session.sql "CREATE TABLE IF NOT EXISTS transactions (txId text, txType text, rawTx json);"
+        Session.sql "CREATE UNIQUE INDEX CONCURRENTLY IF NOT EXISTS transactions ON datums (txId);"
   conn <- ask
   liftIO $ void $ Session.run sql conn
 
@@ -244,7 +301,7 @@ saveDatums ::
   m ()
 saveDatums dbConnection datums = do
   let (datumHashes, datumValues) = unzip datums
-  logInfoNS "saveDatumsBlock" $
+  logInfoNS "saveDatums" $
     "Inserting datums: " <> Text.intercalate ", " datumHashes
   res <-
     liftIO $
@@ -252,6 +309,35 @@ saveDatums dbConnection datums = do
   case res of
     Right _ -> pure ()
     Left err -> do
-      logErrorNS "saveDatumsBlock" $
+      logErrorNS "saveDatums" $
         "Error inserting datums: " <> Text.pack (show err)
       pure ()
+
+saveTxs ::
+  (MonadIO m, MonadLogger m) =>
+  Connection ->
+  [SomeRawTransaction] ->
+  m ()
+saveTxs dbConnection txs = do
+  logInfoNS "saveTxs" $
+    "Inserting transactions: " <> Text.intercalate ", " (fmap getRawTxId txs)
+  res <-
+    liftIO $
+      Session.run (insertRawTransactionsSession txs) dbConnection
+  case res of
+    Right _ -> pure ()
+    Left err -> do
+      logErrorNS "saveTxs" $
+        "Error inserting txs: " <> Text.pack (show err)
+      pure ()
+
+getTxByHash ::
+  (MonadIO m, MonadReader r m, Has Connection r) =>
+  Text ->
+  m (Either DatabaseError SomeRawTransaction)
+getTxByHash txId = do
+  conn <- ask
+  res' <- liftIO (Session.run (getRawTxSession txId) conn)
+  case res' of
+    Left _ -> pure $ Left DatabaseErrorNotFound
+    Right tx -> pure $ Right tx
