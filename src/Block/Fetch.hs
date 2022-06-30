@@ -60,13 +60,14 @@ import Block.Types (
   OgmiosResponse (_result),
   RequestNextResult (RollBackward, RollForward),
   SomeBlock,
-  StartingBlock (StartingBlock),
+  StartingBlock (StartingBlock, Tip),
   blockToBlockInfo,
   blockTypeStr,
   datumsInTransaction,
   mkFindIntersectRequest,
   mkRequestNextRequest,
   rawTransactionsInBlock,
+  tipToBlockInfo,
   transactionsInBlock,
  )
 import Database (getLastBlock, saveDatums, saveTxs, updateLastBlock)
@@ -247,6 +248,8 @@ findIntersection ::
   m (Maybe CursorPoint)
 findIntersection blockInfo = do
   env <- ask
+  let setIntersection val = liftIO . atomically $ writeTVar env.intersectionTVar $ Just val
+  let startFromTip tip = findIntersection $ StartingBlock $ tipToBlockInfo tip
   jsonMsg <- sendAndReceive $ Aeson.encode $ mkFindIntersectRequest blockInfo
   let msg = Aeson.decode @OgmiosFindIntersectResponse jsonMsg
   case _result <$> msg of
@@ -255,18 +258,24 @@ findIntersection blockInfo = do
         "findIntersection"
         "Error decoding WS response"
       pure Nothing
-    Just (IntersectionNotFound _) -> do
-      logErrorNS
-        "findIntersection"
-        "Intersection not found. \
-        \Consider restarting block fetcher with different block info"
-      pure Nothing
-    Just (IntersectionFound point _) -> do
-      logInfoNS
-        "findIntersection"
-        "Intersection found"
-      liftIO . atomically $ writeTVar env.intersectionTVar $ Just point
-      pure $ Just point
+    Just (IntersectionNotFound tip) -> do
+      case blockInfo of
+        Tip -> startFromTip tip
+        _ -> do
+          logErrorNS
+            "findIntersection"
+            "Intersection not found. \
+            \Consider restarting block fetcher with different block info"
+          pure Nothing
+    Just (IntersectionFound point tip) -> do
+      case blockInfo of
+        Tip -> startFromTip tip
+        _ -> do
+          logInfoNS
+            "findIntersection"
+            "Intersection found"
+          setIntersection point
+          pure $ Just point
 
 {- | Request and get block from ogmios and push it to queue. Will block until
  intersection is set.
