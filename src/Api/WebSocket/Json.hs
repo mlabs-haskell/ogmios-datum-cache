@@ -25,7 +25,7 @@ import Data.Aeson qualified as Aeson
 import Data.Text (Text)
 import GHC.Generics (Generic)
 
-import Block.Types (BlockInfo, CursorPoint, RawTransaction)
+import Block.Types (BlockInfo, CursorPoint, SomeRawTransaction, getRawTx)
 import PlutusData qualified
 
 -- {
@@ -104,12 +104,12 @@ mkGetDatumsByHashesFault :: Text -> Maybe Aeson.Value -> JsonWspFault
 mkGetDatumsByHashesFault =
   JsonWspFault "GetDatumsByHashes" "client"
 
-mkGetTxByHashResponse :: Maybe RawTransaction -> Maybe Aeson.Value -> JsonWspResponse
+mkGetTxByHashResponse :: Maybe SomeRawTransaction -> Maybe Aeson.Value -> JsonWspResponse
 mkGetTxByHashResponse = \case
   Just tx ->
     JsonWspResponse "GetTxByHash" (object ["TxFound" .= value])
     where
-      value = object ["value" .= tx.rawTx]
+      value = object ["value" .= getRawTx tx]
   Nothing ->
     JsonWspResponse "GetTxByHash" (object ["TxNotFound" .= Null])
 

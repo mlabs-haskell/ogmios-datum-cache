@@ -53,21 +53,21 @@ import Network.WebSockets.Stream qualified as Stream
 
 import Block.Filter (DatumFilter, runDatumFilter)
 import Block.Types (
-  Block (MkDatumBlock, MkNoDatumBlock, UnsupportedBlock),
-  BlockInfo (BlockInfo),
   CursorPoint,
-  DatumBlock (body, header, headerHash),
-  DatumBlockHeader (slot),
   FindIntersectResult (IntersectionFound, IntersectionNotFound),
   OgmiosFindIntersectResponse,
   OgmiosRequestNextResponse,
   OgmiosResponse (_result),
   RequestNextResult (RollBackward, RollForward),
+  SomeBlock,
   StartingBlock (StartingBlock),
-  datums,
+  blockToBlockInfo,
+  blockTypeStr,
+  datumsInTransaction,
   mkFindIntersectRequest,
   mkRequestNextRequest,
-  noDatum2datumBlock,
+  rawTransactionsInBlock,
+  transactionsInBlock,
  )
 import Database (getLastBlock, saveDatums, saveTxs, updateLastBlock)
 
@@ -78,7 +78,7 @@ data OgmiosInfo = OgmiosInfo
 
 data BlockFetcherEnv = BlockFetcherEnv
   { -- | Queue used to push blocks for block processor.
-    queue :: TBQueue DatumBlock
+    queue :: TBQueue SomeBlock
   , -- | WS connection to ogmios. Should be used only via 'sendAndReceive'.
     wsConnMVar :: MVar WebSockets.Connection
   , -- | Intersection from which block fetcher will start fetching blocks.
@@ -88,7 +88,7 @@ data BlockFetcherEnv = BlockFetcherEnv
 
 data BlockProcessorEnv = BlockProcessorEnv
   { -- | Queue to read blocks from.
-    queue :: TBQueue DatumBlock
+    queue :: TBQueue SomeBlock
   , -- | Datum filer.
     datumFilterMVar :: MVar DatumFilter
   , -- | Connection to postgres database.
@@ -291,22 +291,10 @@ fetchNextBlock = do
         $ Text.pack $ "Error decoding RequestNext response: " <> e
     Right (RollBackward _point _tip) ->
       logWarnNS "fetchNextBlock" "Received RollBackward response"
-    Right (RollForward (UnsupportedBlock type_ raw) _tip) ->
-      logWarnNS
-        "fetchNextBlock"
-        $ "Received unsupported block in the RollForward response with type: "
-          <> type_
-          <> " raw: " -- TODO: raw output only on debug logging level
-          <> raw
-    Right (RollForward (MkNoDatumBlock type_ block) _tip) -> do
-      let block' = noDatum2datumBlock block
-      liftIO $ atomically $ writeTBQueue env.queue block'
-      logInfoNS "fetchNextBlock" $
-        "Fetched no datum " <> type_ <> " block: " <> Text.pack (show (block.slot, block.hash))
-    Right (RollForward (MkDatumBlock type_ block) _tip) -> do
+    Right (RollForward block _tip) -> do
       liftIO $ atomically $ writeTBQueue env.queue block
       logInfoNS "fetchNextBlock" $
-        "Fetched " <> type_ <> " block: " <> Text.pack (show (slot $ header block, headerHash block))
+        "Fetched " <> blockTypeStr block <> " block: " <> Text.pack (show $ blockToBlockInfo block)
 
 -- * Processor
 
@@ -327,12 +315,12 @@ processLoop = do
     block <- getBlock
     saveDatumsFromBlock block
     saveTxsFromBlock block
-    updateLastBlock env.dbConn (BlockInfo block.header.slot block.headerHash)
+    updateLastBlock env.dbConn $ blockToBlockInfo block
 
 -- | Pop block for queue, blocking if no block in queue.
 getBlock ::
   (MonadIO m, MonadReader BlockProcessorEnv m) =>
-  m DatumBlock
+  m SomeBlock
 getBlock = do
   env <- ask
   liftIO $ atomically $ readTBQueue env.queue
@@ -340,14 +328,14 @@ getBlock = do
 -- | Extract and save datums from `DatumBlock` (alonzo and babbage).
 saveDatumsFromBlock ::
   (MonadIO m, MonadReader BlockProcessorEnv m, MonadLogger m) =>
-  DatumBlock ->
+  SomeBlock ->
   m ()
 saveDatumsFromBlock block = do
   env <- ask
   datumFilter <- liftIO $ readMVar env.datumFilterMVar
-  let txs = body block
+  let txs = transactionsInBlock block
       getFilteredDatums tx =
-        filter (runDatumFilter datumFilter tx) . Map.toList . datums $ tx
+        filter (runDatumFilter datumFilter tx) . Map.toList . datumsInTransaction $ tx
       requestedDatums =
         Map.fromList
           . concatMap getFilteredDatums
@@ -368,11 +356,12 @@ saveDatumsFromBlock block = do
 
 saveTxsFromBlock ::
   (MonadIO m, MonadReader BlockProcessorEnv m, MonadLogger m) =>
-  DatumBlock ->
+  SomeBlock ->
   m ()
 saveTxsFromBlock block = do
   env <- ask
-  unless (null block.rawTransactions) $ saveTxs env.dbConn block.rawTransactions
+  let txs = rawTransactionsInBlock block
+  unless (null txs) $ saveTxs env.dbConn txs
 
 -- | Change block processor's datum filer. Safe to call from user facing API.
 changeDatumFilter ::

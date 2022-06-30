@@ -41,7 +41,7 @@ import Api.WebSocket (websocketServer)
 import App.Env (ControlApiToken (ControlApiToken), Env (Env, envControlApiToken))
 import App.Types (App)
 import Block.Fetch (changeDatumFilter, changeStartingBlock)
-import Block.Types (BlockInfo, CursorPoint)
+import Block.Types (BlockInfo, CursorPoint, getRawTx)
 import Control.Monad.Reader.Has (ask)
 import Database (
   DatabaseError (DatabaseErrorDecodeError, DatabaseErrorNotFound),
@@ -99,7 +99,7 @@ datumServiceHandlers =
     getTx :: Text -> App Aeson.Value
     getTx txId = do
       tx <- Database.getTxByHash txId >>= catchDatabaseError
-      pure tx.rawTx
+      pure $ getRawTx tx
 
     getLastBlock :: App BlockInfo
     getLastBlock = do
