@@ -1,5 +1,6 @@
 module Spec.Parameters (spec, example) where
 
+import Control.Monad.Logger (LogLevel (LevelWarn))
 import Data.ByteString (ByteString)
 import Data.ByteString.Lazy.UTF8 (fromString)
 import Options.Applicative (ParserResult (Success), defaultPrefs, execParserPure)
@@ -18,6 +19,7 @@ import Parameters (
     Config,
     cfgDbConnectionString,
     cfgFetcher,
+    cfgLogLevel,
     cfgOgmiosAddress,
     cfgOgmiosPort,
     cfgServerControlApiToken,
@@ -97,6 +99,7 @@ example =
           , cfgFetcherUseLatest = True
           , cfgFetcherQueueSize = 64
           }
+    , cfgLogLevel = LevelWarn
     }
 
 parseParams :: [String] -> Either String Config

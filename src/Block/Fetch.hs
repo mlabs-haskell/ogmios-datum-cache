@@ -24,9 +24,11 @@ import Control.Exception (SomeException, handle)
 import Control.Monad (forever, guard, unless, void)
 import Control.Monad.IO.Class (MonadIO)
 import Control.Monad.Logger (
+  LogLevel (),
   LoggingT,
   MonadLogger,
   NoLoggingT (runNoLoggingT),
+  filterLogger,
   logErrorNS,
   logInfoNS,
   logWarnNS,
@@ -155,47 +157,57 @@ startBlockFetcherAndProcessor ::
   StartingBlock ->
   DatumFilter ->
   Natural ->
+  (LogLevel -> Bool) ->
   m (MVar BlockFetcherEnv, BlockProcessorEnv)
-startBlockFetcherAndProcessor ogmiosInfo dbConn blockInfo datumFilter queueSize = do
-  processorEnv <- mkBlockProcessorEnv datumFilter dbConn queueSize
-  liftIO
-    . void
-    . forkIO
-    . flip runReaderT processorEnv
-    . runStdoutLoggingT
-    . unBlockProcessorApp
-    $ processLoop
-  blockFetcherEnvMVar <- liftIO newEmptyMVar
-  let handleException (e :: SomeException) = do
-        runStdoutLoggingT $
-          logErrorNS
-            "startBlockFetcherAndProcessor"
-            $ "IO Exception occured, restarting block fetcher in 3s: " <> Text.pack (show e)
-        -- TODO: do we want delay to be configurable?
-        threadDelay 3_000_000
-        lastBlock' <- runStdoutLoggingT $ getLastBlock dbConn
-        case lastBlock' of
-          Nothing -> runInner blockInfo
-          Just lastBlock -> runInner $ StartingBlock lastBlock
-      runInner :: StartingBlock -> IO ()
-      runInner startingBlock = handle handleException $
-        runClientWith'
-          ogmiosInfo.ogmiosAddress
-          ogmiosInfo.ogmiosPort
-          ""
-          WebSockets.defaultConnectionOptions
-          []
-          $ \wsConn -> do
-            fetcherEnv <- mkBlockFetcherEnv processorEnv wsConn
-            -- Set MVar to new env, no matter if it's empty or not
-            void $ tryPutMVar blockFetcherEnvMVar fetcherEnv
-            void $ swapMVar blockFetcherEnvMVar fetcherEnv
-            flip runReaderT fetcherEnv
-              . runStdoutLoggingT
-              . unBlockFetcherApp
-              $ fetchLoop startingBlock
-  void . liftIO . forkIO . runInner $ blockInfo
-  pure (blockFetcherEnvMVar, processorEnv)
+startBlockFetcherAndProcessor
+  ogmiosInfo
+  dbConn
+  blockInfo
+  datumFilter
+  queueSize
+  logFilter = do
+    processorEnv <- mkBlockProcessorEnv datumFilter dbConn queueSize
+    liftIO
+      . void
+      . forkIO
+      . flip runReaderT processorEnv
+      . runLog
+      . unBlockProcessorApp
+      $ processLoop
+    blockFetcherEnvMVar <- liftIO newEmptyMVar
+    let handleException (e :: SomeException) = do
+          runLog $
+            logErrorNS
+              "startBlockFetcherAndProcessor"
+              $ "IO Exception occured, restarting block fetcher in 3s: " <> Text.pack (show e)
+          -- TODO: do we want delay to be configurable?
+          threadDelay 3_000_000
+          lastBlock' <- runLog $ getLastBlock dbConn
+          case lastBlock' of
+            Nothing -> runInner blockInfo
+            Just lastBlock -> runInner $ StartingBlock lastBlock
+        runInner :: StartingBlock -> IO ()
+        runInner startingBlock = handle handleException $
+          runClientWith'
+            ogmiosInfo.ogmiosAddress
+            ogmiosInfo.ogmiosPort
+            ""
+            WebSockets.defaultConnectionOptions
+            []
+            $ \wsConn -> do
+              fetcherEnv <- mkBlockFetcherEnv processorEnv wsConn
+              -- Set MVar to new env, no matter if it's empty or not
+              void $ tryPutMVar blockFetcherEnvMVar fetcherEnv
+              void $ swapMVar blockFetcherEnvMVar fetcherEnv
+              flip runReaderT fetcherEnv
+                . runLog
+                . unBlockFetcherApp
+                $ fetchLoop startingBlock
+    void . liftIO . forkIO . runInner $ blockInfo
+    pure (blockFetcherEnvMVar, processorEnv)
+    where
+      runLog :: MonadIO m => LoggingT m a -> m a
+      runLog = runStdoutLoggingT . filterLogger (const logFilter)
 
 -- * Fetcher
 

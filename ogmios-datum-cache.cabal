@@ -167,6 +167,7 @@ test-suite ogmios-datum-cache-test
     , exceptions
     , hspec
     , hspec-wai
+    , monad-logger
     , ogmios-datum-cache
     , optparse-applicative
     , record-dot-preprocessor
