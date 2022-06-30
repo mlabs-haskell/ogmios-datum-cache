@@ -1,6 +1,9 @@
 # ogmios-datum-cache
+
 ## Datum query
+
 ### Plutus `Data` in JSON
+
 ```haskell
 data Data =
       Constr Integer [Data]
@@ -19,11 +22,13 @@ instance ToJSON Data where
     B bs -> toJSON $ BSBase16.encodeBase16 bs
 ```
 
+
 ### `GET /datum/<hash>`
+
 Request: `GET /datum/179f56ecaaad4a92dd6554aaeaac7089dc4bd9903ffb047c28d75da90fe3f259`
 
 Response:
-```json
+```jsonc
 {
   "constr": 0,
   "fields": [
@@ -59,8 +64,9 @@ Response:
 ```
 
 ### `GET /datums`
+
 Request:
-```json
+```jsonc
 {
   "hashes": [
     "e827cc9fab9038391dabbe6b79440d7a14c4a38de5a69b2e130acbb46b5ae6ed",
@@ -70,7 +76,7 @@ Request:
 ```
 
 Response
-```json
+```jsonc
 {
   "datums": [
     {
@@ -95,79 +101,240 @@ Response
 }
 ```
 
+### `GET /tx/<txHash>`
+Request: `GET /tx/cc4d0a110db98600dafad27b37eea0e1918260bc49081696fdc8b1e01920338e`
+
+Response:
+```jsonc
+{
+  "body":{
+    "requiredExtraSignatures":[
+
+    ],
+    "withdrawals":{
+
+    },
+    "scriptIntegrityHash":null,
+    "validityInterval":{
+      "invalidHereafter":47480075,
+      "invalidBefore":null
+    },
+    "inputs":[
+      {
+        "index":1,
+        "txId":"de6d46a9d2a511fd33241caabf63390887f5174c779e29174c82414c78f5b49f"
+      }
+    ],
+    "fee":245581,
+    "network":null,
+    "certificates":[
+
+    ],
+    "outputs":[
+      {
+        "value":{
+          "coins":418783107,
+          "assets":{
+            "689903d80b71e0570fea2fdaaa4bf80989785ed2a2cd57da0d9a7d0a.746f6b656e5f3132":418910,
+            "06f8c5655b4e2b5911fee8ef2fc66b4ce64c8835642695c730a3d108.646464":22,
+            "06f8c5655b4e2b5911fee8ef2fc66b4ce64c8835642695c730a3d108.736473":4,
+            "bfa2e9636c9df09279d21ad14baf84ff4f6c10cc84f61b2388db3e81.74657374746f6b656e":200000,
+            "5fe03ede2b378777f68f6b4c4ec47692a6e5bc2af80de3a1781d3296.73656c66746f6b656e31":250000,
+            "06f8c5655b4e2b5911fee8ef2fc66b4ce64c8835642695c730a3d108.617364":33,
+            "7180cf30d4f4db3037bd815f89f0b348a10e31e11f0a40e6993c8189.594f5550":3000,
+            "159bc4f577978a7240d03dbf4b28722fbff1fe4ba37435e94acbaa26":2,
+            "308177c8d1c7017a7bd4a7971152e7f4cd1f76759febc1fa12613700.73656c66746f6b656e31":150000,
+            "c48f707fea6f08af67a8c06c9bea5b3ec847f5901dc08420cd7f8ade.657269632e6574682e31343333363531333131313832393534353030":1,
+            "6b248bf1bbfac692610ca7e9873f988dc5e358b9229be8d6363aedd3.4d59546f6b656e":199999999685,
+            "6c6e472b55ad49736568153e7b91d67b1b28a66eb80eb39526d3d247.646466":3,
+            "c56f63b1522fbf46fefa6c199aebba42a04e9ff99204cc0b9f557abe.5154546f6b656e":12000,
+            "2984b98bab844a0302fed0dab5c787db8f75543f09d9499239e15136.74657374746f6b656e":199995,
+            "8617488dde7b8b39881e6034dbd30860c7313d65014f203ed3e57a74.616263":1000,
+            "52babbdbf74b3661703376e592733d099510b8f0163c98effc3c18d5.616263":12,
+            "6e0d4cf285768594d0611ac0bc8e5c213c740296b76e4b78157b5db2.67696674746f6b656e":500000,
+            "6b8d07d69639e9413dd637a1a815a7323c69c86abbafb66dbfdb1aa7":2,
+            "6b974ea11a8a23d6df7bd1ff0add1f0bbc1fef46185f0aa4884c17e1.534154":700,
+            "00220fdd1fa7718c5257c3051830e8d6af280e93942d53b6b2506f16.73656c66746f6b656e31":120,
+            "b9bd3fb4511908402fbef848eece773bb44c867c25ac8c08d9ec3313.696e746a":199962,
+            "47101e3f5d731ce43eaa81f6b09e119e8792fc59b952d5f6051ace69.74657374746f6b656e":199995,
+            "e1ae600b1e0e2dde90ff4749d192524b6f7d6e08ba8b99afceacab2b.73656c6667696674":99966,
+            "159bc4f577978a7240d03dbf4b28722fbff1fe4ba37435e94acbaa26.616263":14,
+            "7cc0fd78dd44e38a928109fc7baf60a9e3f1ef530c9840e542cfee93.74657374746f6b656e":200000,
+            "c7127649494037a76d9e53b5e9b848b347a624983e5c6c7649f49941.545431":10,
+            "329728f73683fe04364631c27a7912538c116d802416ca1eaf2d7a96.736174636f696e":4999873715,
+            "52babbdbf74b3661703376e592733d099510b8f0163c98effc3c18d5.74657374":3333,
+            "8bb9f400ee6ec7c81c5afa2c656945c1ab06785b9751993653441e32.54455354":343430,
+            "8617488dde7b8b39881e6034dbd30860c7313d65014f203ed3e57a74.78797a":2000,
+            "4c0ba27aaa43124c6205dcc1314cce1f297ad734877c6523ae7ff6aa.74657374746f6b656e":200000,
+            "c56f63b1522fbf46fefa6c199aebba42a04e9ff99204cc0b9f557abe.4554546f6b656e":3000,
+            "c7127649494037a76d9e53b5e9b848b347a624983e5c6c7649f49941.545432":20,
+            "dd60cac16a3647149cfbefd16e1635e700a18ed5473b7103acb04d23.73656c66746f6b656e31":250000,
+            "06f8c5655b4e2b5911fee8ef2fc66b4ce64c8835642695c730a3d108.746f6b656e5f3132":178
+          }
+        },
+        "address":"addr_test1qzx9hu8j4ah3auytk0mwcupd69hpc52t0cw39a65ndrah86djs784u92a3m5w475w3w35tyd6v3qumkze80j8a6h5tuqq5xe8y",
+        "datum":null
+      },
+      {
+        "value":{
+          "coins":1379280,
+          "assets":{
+            "4ac3863272a4e23d99001375a52e21b3ab9dec68ac390f15f2815b78.73656c66746f6b656e31":250000
+          }
+        },
+        "address":"addr_test1qqwpl7h3g84mhr36wpetk904p7fchx2vst0z696lxk8ujsjyruqwmlsm344gfux3nsj6njyzj3ppvrqtt36cp9xyydzqzumz82",
+        "datum":null
+      }
+    ],
+    "collaterals":[
+
+    ],
+    "mint":{
+      "coins":0,
+      "assets":{
+        "4ac3863272a4e23d99001375a52e21b3ab9dec68ac390f15f2815b78.73656c66746f6b656e31":250000
+      }
+    },
+    "update":null
+  },
+  "witness":{
+    "scripts":{
+      "4ac3863272a4e23d99001375a52e21b3ab9dec68ac390f15f2815b78":{
+        "native":{
+          "2":[
+            "8be4ff3d2e63ee8ded93cb20e25c56c3d3ba37099dee28e6f04a08e8",
+            "e2a0b6adf5249b5bfdc5596dab387b32fb6e0e9c25f8dfde7be2026d",
+            "f66a20bab2ac4f592300263133cb4ecce3da6e3a2fc622601df885cc"
+          ]
+        }
+      }
+    },
+    "signatures":{
+      "bac7fc4d147f683399be36653ad387de74056d172d4cf5f8a6f0ebae066c121b":"2md38RKEfEQeDBjkTLPEiMZ/tRlmX7LwCZ4/qSU/+r7E3bMWHDEMlhWjR6wDjqjzwqZI5CoQP4zUVnepmAo0AQ==",
+      "9518c18103cbdab9c6e60b58ecc3e2eb439fef6519bb22570f391327381900a8":"YsgzSq38E/7ZDHjPeN4tjkNLwVTXS2kZ04kaT211bO4/4CJ8AhIkCZjTgvd+QaD1iqlhuOdXKb+L/yuNyS+vBA==",
+      "fa822bccea21197229226f2b640ee50db5d60d19407e20ae03855cf231cc97a0":"S/9eTokJ1ZR5iMYsIzcDHw0LTps4WU1O5cVRbr6NqEfAWzofiZnmqmnX7GMCOPG60zDUTVCpzyZzMtQ3b+CmAQ==",
+      "0912e8521d6e26f05d02cb9a586014b2f5898b5d042c265a338268b2dffae8de":"qkOjoFflrh6cSxN8IO4iKg+p2YBCv/v9UVOyIolnaKHGFz8aAZBDqXWUCx6jL4dzb4foCIUGWLFcXzyhGjDsBQ=="
+    },
+    "datums":{
+
+    },
+    "bootstrap":[
+
+    ],
+    "redeemers":{
+
+    }
+  },
+  "metadata":{
+    "hash":"bdaa99eb158414dea0a91d6c727e2268574b23efe6e08ab3b841abe8059a030c",
+    "body":{
+      "scripts":[
+
+      ],
+      "blob":{
+
+      }
+    }
+  },
+  "id":"cc4d0a110db98600dafad27b37eea0e1918260bc49081696fdc8b1e01920338e"
+}
+```
+
+
+### `GET /block`
+
+Returns block that was recently processed.
+
+Response
+```jsonc
+{
+  "blockId": "073f35fab0800201698628ef9e6bc85d05dcc78fc87c1f0633a8c4bd93a804d8",
+  "blockSlot": 47189428
+}
+```
+
 ## Control API
-### `POST /control/add_hashes`
-Request:
-```json
-{
-  "hashes": ["a", "b"]
-}
-```
 
-### `POST /control/remove_hashes`
-Request:
-```json
-{
-  "hashes": ["a", "b"]
-}
-```
+### `POST /control/startingBlock`
 
-### `POST /control/set_hashes`
-Request:
-```json
-{
-  "hashes": ["a", "b"]
-}
-```
+Request header:
 
-### `GET /control/get_hashes`
+* Basic access authentication: `Authorization: Basic dXNyOnB3ZA==`, where `dXNyOnB3ZA====` is `usr:pwd` string in Base64 encoding.
 
-### `POST /control/fetch_blocks`
 Request body:
-```json
+```jsonc
 {
-  "slot": 44366242,
-  "id": "d2a4249fe3d0607535daa26caf12a38da2233586bc51e79ed0b3a36170471bf5"
+  "startingBlock": {
+    "blockSlot": 59809992,
+    "blockId": "7c8aec019a21ffd0049d64b0c9874d93376ed5662b4cf7d78e186b5958ecb00d"
+  }
 }
 ```
-Responses:
-* 200 `{"message": "Started block fetcher"}`
-* 422 `{"error": "Block fetcher already running"}`
-* 422 `{"error": "Another block fetcher was already running, cancelling worker thread"}`
 
-### `POST /control/cancel_fetch_blocks`
 Responses:
-* 200 `{"message": "Stopped block fetcher"}`
-* 422 `{"error": "No block fetcher running"}`
+* 200 `{"hash":"7c8aec019a21ffd0049d64b0c9874d93376ed5662b4cf7d78e186b5958ecb00d","slot":59809992}`
+* 401 Unauthorized
+* 403 Forbidden
 
-## WebSocket API
-### Examples from ogmios-datum-cache
+### `POST /control/datumFilter`
+
+Request header:
+
+* Basic access authentication: `Authorization: Basic dXNyOnB3ZA==`, where `dXNyOnB3ZA====` is `usr:pwd` string in Base64 encoding.
+
+Request body:
+```jsonc
+{
+  "datumFilter": {"all": []}
+}
+```
+
+Responses:
+* 200 `[]`
+* 401 Unauthorized
+* 403 Forbidden
+
+
+### `GET /healthcheck`
+Response:
+* 200 `[]`
+
+## WebSocket API methods
+
+Endpoint: `/ws`
+
+### Datum query
+
 #### GetDatumByHash
+
 Request:
-```json
+```jsonc
 {
   "type": "jsonwsp/request",
   "version": "1.0",
-  "servicename": "ogmios",
+  "servicename": "ogmios-datum-cache",
   "methodname": "GetDatumByHash",
   "args": {
     "hash": "04caaf1336b754e0b8b4e2fa1c59aa6b85f97dd29652729f1c1e28805acdeb20"
-  }
+  },
+  // optional
+  "mirror": {"meta": "this object will be mirrored under 'reflection' field in a response to this request"}
 }
 ```
 
 Response (datum found):
 ```
 {
-  methodname: 'GetDatumByHash',
-  result: { DatumFound: { value: [Object] } },
-  version: '1.0',
-  servicename: 'ogmios-datum-cache',
-  type: 'jsonwsp/response'
+  "methodname": "GetDatumByHash",
+  "result": { DatumFound: { value: [Object] } },
+  "version": "1.0",
+  "servicename": "ogmios-datum-cache",
+  "type": "jsonwsp/response",
+  "reflection": {"meta": "this object will be mirrored under 'reflection' field in a response to this request"}
 }
 ```
 
-```json
+```jsonc
 {
   "methodname": "GetDatumByHash",
   "result": {
@@ -201,7 +368,8 @@ Response (datum found):
   },
   "version": "1.0",
   "servicename": "ogmios-datum-cache",
-  "type": "jsonwsp/response"
+  "type": "jsonwsp/response",
+  "reflection": {"meta": "this object will be mirrored under 'reflection' field in a response to this request"}
 }
 
 ```
@@ -209,56 +377,61 @@ Response (datum found):
 Response (datum not found):
 ```
 {
-  methodname: 'GetDatumByHash',
-  result: { DatumNotFound: null },
-  version: '1.0',
-  servicename: 'ogmios-datum-cache',
-  type: 'jsonwsp/response'
+  "methodname": "GetDatumByHash",
+  "result": { DatumNotFound: null },
+  "version": "1.0",
+  "servicename": "ogmios-datum-cache",
+  "type": "jsonwsp/response",
+  "reflection": {"meta": "this object will be mirrored under 'reflection field in a response to this request"}
 }
 ```
 
 Response (fault):
 ```
 {
-  methodname: 'GetDatumByHash',
-  version: '1.0',
-  fault: { string: 'Error deserializing plutus Data', code: 'client' },
-  servicename: 'ogmios-datum-cache',
-  type: 'jsonwsp/fault'
+  "methodname": "GetDatumByHash",
+  "version": "1.0",
+  "fault": { string: "Error deserializing plutus Data", code: "client" },
+  "servicename": "ogmios-datum-cache",
+  "type": "jsonwsp/fault",
+  "reflection": {"meta": "this object will be mirrored under 'reflection' field in a response to this request"}
 }
 ```
 
 #### GetDatumsByHashes
+
 Datums missing in the db are omitted from the response, if none datums are found an empty array is returned.
 
 Request:
-```json
+```jsonc
 {
   "type": "jsonwsp/request",
   "version": "1.0",
-  "servicename": "ogmios",
+  "servicename": "ogmios-datum-cache",
   "methodname": "GetDatumsByHashes",
   "args": {
     "hashes": [
       "abc",
       "04caaf1336b754e0b8b4e2fa1c59aa6b85f97dd29652729f1c1e28805acdeb20"
     ]
-  }
+  },
+  "mirror": "req.no.1"
 }
 ```
 
 Response:
 ```
 {
-  methodname: 'GetDatumsByHashes',
-  result: { DatumsFound: { value: [Array] } },
-  version: '1.0',
-  servicename: 'ogmios-datum-cache',
-  type: 'jsonwsp/response'
+  "methodname": "GetDatumsByHashes",
+  "result": { DatumsFound: { value: [Array] } },
+  "version": "1.0",
+  "servicename": "ogmios-datum-cache",
+  "type": "jsonwsp/response",
+  "reflection": "req.no.1"
 }
 ```
 
-```json
+```jsonc
 {
   "methodname": "GetDatumsByHashes",
   "result": {
@@ -297,223 +470,383 @@ Response:
   },
   "version": "1.0",
   "servicename": "ogmios-datum-cache",
-  "type": "jsonwsp/response"
+  "type": "jsonwsp/response",
+  "reflection": "req.no.1"
 }
 ```
 
 Response (fault)
 ```
 {
-  methodname: 'GetDatumsByHashes',
-  version: '1.0',
-  fault: {
-    string: 'Error deserializing plutus Data in: ["abc"]',
-    code: 'client'
+  "methodname": "GetDatumsByHashes",
+  "version": "1.0",
+  "fault": {
+    "string": "Error deserializing plutus Data in: ["abc"]",
+    "code": "client"
   },
-  servicename: 'ogmios-datum-cache',
-  type: 'jsonwsp/fault'
+  "servicename": :ogmios-datum-cache",
+  "type": "jsonwsp/fault",
+  "reflection": "req.no.1"
 }
 ```
-#### StartFetchBlocks
+
+#### GetTxByHash
 Request:
-```json
+```jsonc
 {
   "type": "jsonwsp/request",
   "version": "1.0",
   "servicename": "ogmios-datum-cache",
-  "methodname": "StartFetchBlocks",
+  "methodname": "GetTxByHash",
   "args": {
-    "slot": 1,
-    "id": "abc"
+    "hash": "cc4d0a110db98600dafad27b37eea0e1918260bc49081696fdc8b1e01920338e"
   }
 }
 ```
 
-Response:
-```json
+Response (tx found):
+```jsonc
 {
-  "methodname": "StartFetchBlocks",
-  "result": {
-    "StartedBlockFetcher": true
+  "reflection":null,
+  "methodname":"GetTxByHash",
+  "result":{
+    "TxFound":{
+      "value":{
+        "body":{
+          "requiredExtraSignatures":[
+
+          ],
+          "withdrawals":{
+
+          },
+          "scriptIntegrityHash":null,
+          "validityInterval":{
+            "invalidHereafter":47480075,
+            "invalidBefore":null
+          },
+          "inputs":[
+            {
+              "index":1,
+              "txId":"de6d46a9d2a511fd33241caabf63390887f5174c779e29174c82414c78f5b49f"
+            }
+          ],
+          "fee":245581,
+          "network":null,
+          "certificates":[
+
+          ],
+          "outputs":[
+            {
+              "value":{
+                "coins":418783107,
+                "assets":{
+                  "689903d80b71e0570fea2fdaaa4bf80989785ed2a2cd57da0d9a7d0a.746f6b656e5f3132":418910,
+                  "06f8c5655b4e2b5911fee8ef2fc66b4ce64c8835642695c730a3d108.646464":22,
+                  "06f8c5655b4e2b5911fee8ef2fc66b4ce64c8835642695c730a3d108.736473":4,
+                  "bfa2e9636c9df09279d21ad14baf84ff4f6c10cc84f61b2388db3e81.74657374746f6b656e":200000,
+                  "5fe03ede2b378777f68f6b4c4ec47692a6e5bc2af80de3a1781d3296.73656c66746f6b656e31":250000,
+                  "06f8c5655b4e2b5911fee8ef2fc66b4ce64c8835642695c730a3d108.617364":33,
+                  "7180cf30d4f4db3037bd815f89f0b348a10e31e11f0a40e6993c8189.594f5550":3000,
+                  "159bc4f577978a7240d03dbf4b28722fbff1fe4ba37435e94acbaa26":2,
+                  "308177c8d1c7017a7bd4a7971152e7f4cd1f76759febc1fa12613700.73656c66746f6b656e31":150000,
+                  "c48f707fea6f08af67a8c06c9bea5b3ec847f5901dc08420cd7f8ade.657269632e6574682e31343333363531333131313832393534353030":1,
+                  "6b248bf1bbfac692610ca7e9873f988dc5e358b9229be8d6363aedd3.4d59546f6b656e":199999999685,
+                  "6c6e472b55ad49736568153e7b91d67b1b28a66eb80eb39526d3d247.646466":3,
+                  "c56f63b1522fbf46fefa6c199aebba42a04e9ff99204cc0b9f557abe.5154546f6b656e":12000,
+                  "2984b98bab844a0302fed0dab5c787db8f75543f09d9499239e15136.74657374746f6b656e":199995,
+                  "8617488dde7b8b39881e6034dbd30860c7313d65014f203ed3e57a74.616263":1000,
+                  "52babbdbf74b3661703376e592733d099510b8f0163c98effc3c18d5.616263":12,
+                  "6e0d4cf285768594d0611ac0bc8e5c213c740296b76e4b78157b5db2.67696674746f6b656e":500000,
+                  "6b8d07d69639e9413dd637a1a815a7323c69c86abbafb66dbfdb1aa7":2,
+                  "6b974ea11a8a23d6df7bd1ff0add1f0bbc1fef46185f0aa4884c17e1.534154":700,
+                  "00220fdd1fa7718c5257c3051830e8d6af280e93942d53b6b2506f16.73656c66746f6b656e31":120,
+                  "b9bd3fb4511908402fbef848eece773bb44c867c25ac8c08d9ec3313.696e746a":199962,
+                  "47101e3f5d731ce43eaa81f6b09e119e8792fc59b952d5f6051ace69.74657374746f6b656e":199995,
+                  "e1ae600b1e0e2dde90ff4749d192524b6f7d6e08ba8b99afceacab2b.73656c6667696674":99966,
+                  "159bc4f577978a7240d03dbf4b28722fbff1fe4ba37435e94acbaa26.616263":14,
+                  "7cc0fd78dd44e38a928109fc7baf60a9e3f1ef530c9840e542cfee93.74657374746f6b656e":200000,
+                  "c7127649494037a76d9e53b5e9b848b347a624983e5c6c7649f49941.545431":10,
+                  "329728f73683fe04364631c27a7912538c116d802416ca1eaf2d7a96.736174636f696e":4999873715,
+                  "52babbdbf74b3661703376e592733d099510b8f0163c98effc3c18d5.74657374":3333,
+                  "8bb9f400ee6ec7c81c5afa2c656945c1ab06785b9751993653441e32.54455354":343430,
+                  "8617488dde7b8b39881e6034dbd30860c7313d65014f203ed3e57a74.78797a":2000,
+                  "4c0ba27aaa43124c6205dcc1314cce1f297ad734877c6523ae7ff6aa.74657374746f6b656e":200000,
+                  "c56f63b1522fbf46fefa6c199aebba42a04e9ff99204cc0b9f557abe.4554546f6b656e":3000,
+                  "c7127649494037a76d9e53b5e9b848b347a624983e5c6c7649f49941.545432":20,
+                  "dd60cac16a3647149cfbefd16e1635e700a18ed5473b7103acb04d23.73656c66746f6b656e31":250000,
+                  "06f8c5655b4e2b5911fee8ef2fc66b4ce64c8835642695c730a3d108.746f6b656e5f3132":178
+                }
+              },
+              "address":"addr_test1qzx9hu8j4ah3auytk0mwcupd69hpc52t0cw39a65ndrah86djs784u92a3m5w475w3w35tyd6v3qumkze80j8a6h5tuqq5xe8y",
+              "datum":null
+            },
+            {
+              "value":{
+                "coins":1379280,
+                "assets":{
+                  "4ac3863272a4e23d99001375a52e21b3ab9dec68ac390f15f2815b78.73656c66746f6b656e31":250000
+                }
+              },
+              "address":"addr_test1qqwpl7h3g84mhr36wpetk904p7fchx2vst0z696lxk8ujsjyruqwmlsm344gfux3nsj6njyzj3ppvrqtt36cp9xyydzqzumz82",
+              "datum":null
+            }
+          ],
+          "collaterals":[
+
+          ],
+          "mint":{
+            "coins":0,
+            "assets":{
+              "4ac3863272a4e23d99001375a52e21b3ab9dec68ac390f15f2815b78.73656c66746f6b656e31":250000
+            }
+          },
+          "update":null
+        },
+        "witness":{
+          "scripts":{
+            "4ac3863272a4e23d99001375a52e21b3ab9dec68ac390f15f2815b78":{
+              "native":{
+                "2":[
+                  "8be4ff3d2e63ee8ded93cb20e25c56c3d3ba37099dee28e6f04a08e8",
+                  "e2a0b6adf5249b5bfdc5596dab387b32fb6e0e9c25f8dfde7be2026d",
+                  "f66a20bab2ac4f592300263133cb4ecce3da6e3a2fc622601df885cc"
+                ]
+              }
+            }
+          },
+          "signatures":{
+            "bac7fc4d147f683399be36653ad387de74056d172d4cf5f8a6f0ebae066c121b":"2md38RKEfEQeDBjkTLPEiMZ/tRlmX7LwCZ4/qSU/+r7E3bMWHDEMlhWjR6wDjqjzwqZI5CoQP4zUVnepmAo0AQ==",
+            "9518c18103cbdab9c6e60b58ecc3e2eb439fef6519bb22570f391327381900a8":"YsgzSq38E/7ZDHjPeN4tjkNLwVTXS2kZ04kaT211bO4/4CJ8AhIkCZjTgvd+QaD1iqlhuOdXKb+L/yuNyS+vBA==",
+            "fa822bccea21197229226f2b640ee50db5d60d19407e20ae03855cf231cc97a0":"S/9eTokJ1ZR5iMYsIzcDHw0LTps4WU1O5cVRbr6NqEfAWzofiZnmqmnX7GMCOPG60zDUTVCpzyZzMtQ3b+CmAQ==",
+            "0912e8521d6e26f05d02cb9a586014b2f5898b5d042c265a338268b2dffae8de":"qkOjoFflrh6cSxN8IO4iKg+p2YBCv/v9UVOyIolnaKHGFz8aAZBDqXWUCx6jL4dzb4foCIUGWLFcXzyhGjDsBQ=="
+          },
+          "datums":{
+
+          },
+          "bootstrap":[
+
+          ],
+          "redeemers":{
+
+          }
+        },
+        "metadata":{
+          "hash":"bdaa99eb158414dea0a91d6c727e2268574b23efe6e08ab3b841abe8059a030c",
+          "body":{
+            "scripts":[
+
+            ],
+            "blob":{
+
+            }
+          }
+        },
+        "id":"cc4d0a110db98600dafad27b37eea0e1918260bc49081696fdc8b1e01920338e"
+      }
+    }
   },
-  "version": "1.0",
-  "servicename": "ogmios-datum-cache",
-  "type": "jsonwsp/response"
+  "version":"1.0",
+  "servicename":"ogmios-datum-cache",
+  "type":"jsonwsp/response"
 }
 ```
 
-Response (fault):
-```json
+Response (tx not found):
+```jsonc
 {
-  "methodname": "StartFetchBlocks",
+  "reflection":null,
+  "methodname":"GetTxByHash",
+  "result":{
+    "TxNotFound":null
+  },
+  "version":"1.0",
+  "servicename":"ogmios-datum-cache",
+  "type":"jsonwsp/response"
+}
+```
+
+
+#### GetBlock
+
+Request:
+```jsonc
+{
+  "type": "jsonwsp/request",
+  "version": "1.0",
+  "servicename": "ogmios-datum-cache",
+  "methodname": "GetBlock",
+  "mirror": "req.no.1"
+}
+```
+
+Response:
+```jsonc
+{
+  "methodname":"GetBlock",
+  "result":{
+    "block":{
+      "blockId":"a3a4b401629e2f72fc754abf1554f3ca12616581c41450fdb5d15f51daf6c8db",
+      "blockSlot":51779970
+    }
+  },
+  "version":"1.0",
+  "servicename":"ogmios-datum-cache",
+  "type":"jsonwsp/response",
+  "reflection": "req.no.1"
+}
+```
+
+### Control API
+
+#### SetStartingBlock
+
+Request:
+```jsonc
+{
+  "type": "jsonwsp/request",
+  "version": "1.0",
+  "servicename": "ogmios-datum-cache",
+  "methodname": "SetStartingBlock",
+  "args": {
+    "startingBlock": {
+      "blockSlot": 59809992,
+      "blockId": "7c8aec019a21ffd0049d64b0c9874d93376ed5662b4cf7d78e186b5958ecb00d"
+    },
+    "token": "usr:pwd"
+  },
+  "mirror": "foo"
+}
+```
+
+Response:
+```jsonc
+{
+  "methodname": "SetStartingBlock",
+  "result": {
+    "hash":"7c8aec019a21ffd0049d64b0c9874d93376ed5662b4cf7d78e186b5958ecb00d",
+    "slot":59809992
+  },
+  "version": "1.0",
+  "servicename": "ogmios-datum-cache",
+  "type": "jsonwsp/response",
+  "reflection": "foo"
+}
+```
+
+Response (fault - 1):
+```jsonc
+{
+  "methodname": "SetStartingBlock",
   "version": "1.0",
   "fault": {
-    "string": "Block fetcher already running",
+    "string": "notFound",
     "code": "client"
   },
   "servicename": "ogmios-datum-cache",
-  "type": "jsonwsp/fault"
+  "type": "jsonwsp/fault",
+  "reflection": "foo"
 }
 ```
 
-#### CancelFetchBlocks
-Request:
-```json
+Response (fault - 2):
+```jsonc
 {
-  "type": "jsonwsp/request",
-  "version": "1.0",
-  "servicename": "ogmios-datum-cache",
-  "methodname": "CancelFetchBlocks"
-}
-```
-
-Response:
-```json
-{
-  "methodname": "CancelFetchBlocks",
-  "result": {
-    "StoppedBlockFetcher": true
-  },
-  "version": "1.0",
-  "servicename": "ogmios-datum-cache",
-  "type": "jsonwsp/response"
-}
-```
-
-Response (fault):
-```json
-{
-  "methodname": "CancelFetchBlocks",
+  "methodname": "SetStartingBlock",
   "version": "1.0",
   "fault": {
-    "string": "No block fetcher running",
+    "string": "Control API token not granted",
     "code": "client"
   },
   "servicename": "ogmios-datum-cache",
-  "type": "jsonwsp/fault"
+  "type": "jsonwsp/fault",
+  "reflection": "foo"
 }
 ```
 
-#### DatumFilterAddHashes
+#### SetDatumFilter
+
 Request:
-```json
+```jsonc
 {
   "type": "jsonwsp/request",
   "version": "1.0",
   "servicename": "ogmios-datum-cache",
-  "methodname": "DatumFilterAddHashes",
+  "methodname": "SetDatumFilter",
   "args": {
-    "hashes": [
-      "abc",
-      "04caaf1336b754e0b8b4e2fa1c59aa6b85f97dd29652729f1c1e28805acdeb20"
-    ]
-  }
+    "datumFilter": 
+      {
+        "all": [
+          {"hash": "foobar"}, 
+          {"any": [
+            {"address": "addr_abc"},
+            {"address": "addr_xyz"}
+            ]
+          }
+        ]
+      },
+    "token": "usr:pwd",
+  },
+  "reflection": "foo"
 }
 ```
 
 Response:
-```json
+```jsonc
 {
-  "methodname": "DatumFilterAddHashes",
+  "methodname": "SetDatumFilter",
   "result": {
-    "AddedHashes": true
   },
   "version": "1.0",
   "servicename": "ogmios-datum-cache",
-  "type": "jsonwsp/response"
+  "type": "jsonwsp/response",
+  "reflection": "foo"
 }
 ```
 
-#### DatumFilterRemoveHashes
+Response (fault - 1):
+```jsonc
+{
+  "methodname": "SetDatumFilter",
+  "version": "1.0",
+  "fault": {
+    "string": "Control API token not granted",
+    "code": "client"
+  },
+  "servicename": "ogmios-datum-cache",
+  "type": "jsonwsp/fault",
+  "reflection": "foo"
+}
+```
+
+#### GetHealthcheck
+
 Request:
-```json
+```jsonc
 {
   "type": "jsonwsp/request",
   "version": "1.0",
   "servicename": "ogmios-datum-cache",
-  "methodname": "DatumFilterRemoveHashes",
-  "args": {
-    "hashes": [
-      "abc",
-      "04caaf1336b754e0b8b4e2fa1c59aa6b85f97dd29652729f1c1e28805acdeb20"
-    ]
-  }
+  "methodname": "GetHealthcheck",
+  // optional
+  "mirror": "foo"
 }
 ```
-
 Response:
-```json
+```jsonc
 {
-  "methodname": "DatumFilterRemoveHashes",
-  "result": {
-    "RemovedHashes": true
-  },
-  "version": "1.0",
-  "servicename": "ogmios-datum-cache",
-  "type": "jsonwsp/response"
-}
-```
-
-#### DatumFilterSetHashes
-Request:
-```json
-{
-  "type": "jsonwsp/request",
-  "version": "1.0",
-  "servicename": "ogmios-datum-cache",
-  "methodname": "DatumFilterSetHashes",
-  "args": {
-    "hashes": [
-      "abc",
-      "04caaf1336b754e0b8b4e2fa1c59aa6b85f97dd29652729f1c1e28805acdeb20"
-    ]
-  }
-}
-```
-
-Response:
-```json
-{
-  "methodname": "DatumFilterSetHashes",
-  "result": {
-    "SetHashes": true
-  },
-  "version": "1.0",
-  "servicename": "ogmios-datum-cache",
-  "type": "jsonwsp/response"
-}
-```
-
-#### DatumFilterGetHashes
-Request:
-```json
-{
-  "type": "jsonwsp/request",
-  "version": "1.0",
-  "servicename": "ogmios-datum-cache",
-  "methodname": "DatumFilterGetHashes"
-}
-```
-
-Response:
-```json
-{
-  "methodname": "DatumFilterGetHashes",
-  "result": {
-    "hashes": [
-      "04caaf1336b754e0b8b4e2fa1c59aa6b85f97dd29652729f1c1e28805acdeb20",
-      "abc"
-    ]
-  },
-  "version": "1.0",
-  "servicename": "ogmios-datum-cache",
-  "type": "jsonwsp/response"
+  "methodname":"GetHealthcheck",
+  "result":{ },
+  "version":"1.0",
+  "servicename":"ogmios-datum-cache",
+  "type":"jsonwsp/response",
+  "reflection":"foo"
 }
 ```
 
 ## Block data from ogmios local chain sync
+
 Structure:
-```json
+```jsonc
 {
   "body": [<transaction>],
   "header": <blockHeader>
@@ -521,7 +854,7 @@ Structure:
 ```
 
 Example of an Alonzo block returned during local chain sync:
-```json
+```jsonc
 {
   "body": [
     <...>
@@ -626,9 +959,89 @@ Example of an Alonzo block returned during local chain sync:
   },
   "headerHash": "aa03bbdd33659be6ece4d73acff51fd875b3dcc4e8c19a58ba94ca7e7b52ec3b"
 }
+
+```
+
+## Deployment v1
+### Step 1
+Run local ogmios instance:
+```
+docker-compose -f deploy/docker-compose.yml up -d
+```
+
+### Step 2 - Passing arguments to ODC
+
+```
+Usage: ogmios-datum-cache (--db-port PORT --db-host HOST_NAME
+                            --db-user USER_NAME [--db-password PASSWORD]
+                            --db-name DB_NAME |
+                            --db-connection POSTGRES_LIBPQ_CONNECTION_STRING)
+                          --server-port PORT
+                          --server-api SERVER_CONTROL_API_TOKEN
+                          --ogmios-address ADDRESS --ogmios-port PORT 
+                          [--block-slot INT --block-hash HASH | --origin] 
+                          [--block-filter FILTER] [--use-latest] 
+                          [--queue-size NATURAL] [--log-level LOG_LEVEL]
+
+Available options:
+  --db-port PORT           Postgres libpq connection port
+  --db-host HOST_NAME      Postgres libpq connection host
+  --db-user USER_NAME      Postgres libpq connection user
+  --db-password PASSWORD   Postgres libpq connection password
+  --db-name DB_NAME        Postgres libpq connection data base name
+  --db-connection POSTGRES_LIBPQ_CONNECTION_STRING
+                           "host=localhost port=5432 user=<user>
+                           password=<pass>"
+  --server-port PORT       ODC server port
+  --server-api SERVER_CONTROL_API_TOKEN
+                           Defines the secrete token, required for control API
+                           call. Format: user:password
+  --ogmios-address ADDRESS Ogmios address
+  --ogmios-port PORT       Ogmios port
+  --block-slot INT         Slot of first block to fetch by initial block
+                           fetcher.
+  --block-hash HASH        hash of block's HEADER not hash of a block itself
+  --origin                 Start block fetcher from origin
+  --block-filter FILTER    Filter.
+  --use-latest             defines if block fetcher, if started automatically,
+                           should start from last block that was proccessed
+                           rather than from block defined with --block-slot and
+                           --block-hash.
+  --queue-size NATURAL     Defines size of queue of prefetched blocks ready to
+                           be processed, default=64.
+  --log-level LOG_LEVEL    One of [debug | info | warn | error], every level is
+                           more restrictive than the previous level. By default
+                           set to info
+  -h,--help                Show this help text
+```
+
+Example: `ogmios-datum-cache --db-connection 'host=localhost port=5432 user=aske dbname=ogmios-datum-cache' --server-port 9999 --server-api 'usr:pwd' --ogmios-address '127.0.0.1' --ogmios-port 1337 --block-slot 44366242 --block-hash d2a4249fe3d0607535daa26caf12a38da2233586bc51e79ed0b3a36170471bf5  --use-latest --block-filter '{"all": [{"hash": "foobar"}, {"any": [{ "address": "addr_abc" },{ "address": "addr_xyz" }]}]}'`
+
+### Datum filter
+
+Datum filter can filter datum hash and address of utxo with given datum. Filters can be combined with logical `or`s and `and`s.
+
+Example (filter will save datums only if hash is `foobar` and (utxo with datum is on address `addr_abc` or `addr_xyz`)):
+
+```jsonc
+{
+    "all": [
+        {
+            "hash": "foobar"
+        },
+        {
+            "any": [
+                { "address": "addr_abc" },
+                { "address": "addr_xyz" }
+            ]
+        }
+    ]
+}
+
+```
+
 ### Available support channels info
 
-You can find help, more information and ongoing discusion about the project here:
-- [link] - short description
-- [link] - short description
+You can find help, more information and ongoing discussion about the project here:
+- [https://mlabs-corp.slack.com/archives/C03HVDBU9FT] - mlabs slack ODC channel (#ogmios-datum-cache).
 

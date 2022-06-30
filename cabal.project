@@ -1,0 +1,3 @@
+packages: ./ogmios-datum-cache.cabal
+
+tests: true

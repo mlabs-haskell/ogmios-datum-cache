@@ -1,35 +1,33 @@
-{-# LANGUAGE InstanceSigs #-}
+module App.Env (
+  Env (..),
+  ControlApiToken (..),
+) where
 
-module App.Env (Env (..)) where
-
-import Colog (HasLog, LogAction, Message)
-import Colog qualified
 import Control.Concurrent.MVar (MVar)
+import Control.Monad.Reader.Has (Has)
+import Data.String (IsString (fromString))
 import GHC.Generics (Generic)
 import Hasql.Connection qualified as Hasql
-import UnliftIO.Async (Async)
 
-import App.FirstFetchBlock (FirstFetchBlock)
-import App.RequestedDatumHashes (RequestedDatumHashes)
+import Block.Fetch (BlockFetcherEnv, BlockProcessorEnv)
 
-data Env m = Env
-    { envRequestedDatumHashes :: RequestedDatumHashes
-    , envSaveAllDatums :: Bool
-    , envFirstFetchBlock :: FirstFetchBlock
-    , -- TODO: (?) pool
-      envDbConnection :: Hasql.Connection
-    , envLogAction :: Colog.LogAction m Colog.Message
-    , envOgmiosAddress :: String
-    , envOgmiosPort :: Int
-    , envOgmiosWorker :: MVar (Async ())
-    }
-    deriving stock (Generic)
+data Env = Env
+  { -- TODO: Switch to pool of connections
+    envDbConnection :: Hasql.Connection
+  , envBlockFetcherEnv :: MVar BlockFetcherEnv
+  , envBlockProcessorEnv :: BlockProcessorEnv
+  , envControlApiToken :: ControlApiToken
+  }
+  deriving stock (Generic)
+  deriving anyclass
+    ( Has Hasql.Connection
+    , Has (MVar BlockFetcherEnv)
+    , Has BlockProcessorEnv
+    , Has ControlApiToken
+    )
 
-instance HasLog (Env m) Message m where
-    getLogAction :: Env m -> LogAction m Message
-    getLogAction = envLogAction
-    {-# INLINE getLogAction #-}
+newtype ControlApiToken = ControlApiToken {unControlApiToken :: String}
+  deriving stock (Eq, Show)
 
-    setLogAction :: LogAction m Message -> Env m -> Env m
-    setLogAction newLogAction env = env{envLogAction = newLogAction}
-    {-# INLINE setLogAction #-}
+instance IsString ControlApiToken where
+  fromString = ControlApiToken

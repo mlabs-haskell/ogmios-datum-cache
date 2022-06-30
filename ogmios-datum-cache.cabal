@@ -16,6 +16,7 @@ common common-language
     DeriveLift
     DeriveTraversable
     DerivingStrategies
+    DuplicateRecordFields
     ExplicitForAll
     FlexibleContexts
     FlexibleInstances
@@ -37,21 +38,24 @@ common common-language
     TypeFamilies
     TypeOperators
     TypeSynonymInstances
+    UndecidableInstances
 
 common common-configs
   default-language: Haskell2010
 
-executable ogmios-datum-cache
-  import:         common-language
-  import:         common-configs
+library
+  import:          common-language
+  import:          common-configs
   ghc-options:
-    -Wall -Wcompat -Wincomplete-uni-patterns -Wredundant-constraints
-    -Wmissing-export-lists -Wmissing-deriving-strategies -O2 -Werror
+    -Wall -Wcompat -Wincomplete-uni-patterns
+    -Wincomplete-record-updates -Wredundant-constraints
+    -Wmissing-import-lists -Wmissing-export-lists
+    -Wmissing-deriving-strategies -Werror -O2
+    -fplugin=RecordDotPreprocessor
 
-  main-is:        Main.hs
-  other-modules:
+  hs-source-dirs:  src
+  exposed-modules:
     Api
-    Api.Error
     Api.Handler
     Api.Types
     Api.WebSocket
@@ -59,56 +63,115 @@ executable ogmios-datum-cache
     Api.WebSocket.Types
     App
     App.Env
-    App.FirstFetchBlock
-    App.RequestedDatumHashes
+    App.Types
     Block.Fetch
     Block.Types
-    Config
+    Block.Types.Alonzo
+    Block.Types.Babbage
+    Block.Types.Byron
     Database
+    Parameters
+
+  other-modules:
+    Api.Error
+    Block.Filter
     PlutusData
 
-  hs-source-dirs: src
   build-depends:
     , aeson
-    , async
     , base
     , base16
     , base64
     , bytestring
+    , can-i-haz
     , cborg
-    , cborg-json
-    , co-log
-    , conduit
     , containers
-    , cryptohash-sha256
+    , data-default
     , directory
-    , esqueleto
     , exceptions
-    , filepath
     , hasql
     , http-types
     , monad-logger
     , mtl
     , network
     , optparse-applicative
-    , persistent
-    , persistent-postgresql
-    , resource-pool
+    , QuickCheck
+    , record-dot-preprocessor
+    , record-hasfield
     , serialise
     , servant
-    , servant-multipart
     , servant-server
     , servant-websockets
+    , stm
     , text
-    , time
     , tomland
-    , unliftio
-    , unliftio-core
+    , tostring
+    , transformers
     , unordered-containers
     , vector
+    , websockets
+
+executable ogmios-datum-cache
+  import:         common-language
+  import:         common-configs
+  ghc-options:
+    -Wall -Wcompat -Wincomplete-uni-patterns
+    -Wincomplete-record-updates -Wredundant-constraints
+    -Wmissing-export-lists -Wmissing-deriving-strategies -Werror -O2
+    -fplugin=RecordDotPreprocessor
+
+  hs-source-dirs: app
+  main-is:        Main.hs
+  build-depends:
+    , aeson
+    , base
+    , data-default
+    , exceptions
+    , hasql
+    , monad-logger
+    , mtl
+    , ogmios-datum-cache
+    , record-dot-preprocessor
+    , record-hasfield
+    , servant
+    , servant-server
+    , text
+    , transformers
     , wai
     , wai-cors
-    , wai-extra
     , wai-logger
     , warp
-    , websockets
+
+test-suite ogmios-datum-cache-test
+  import:         common-language
+  import:         common-configs
+  type:           exitcode-stdio-1.0
+  hs-source-dirs: test
+  main-is:        Spec.hs
+  other-modules:
+    Spec.Api.Handlers
+    Spec.Api.WebSocket.Types
+    Spec.Parameters
+
+  ghc-options:
+    -Wall -Wcompat -Wincomplete-uni-patterns
+    -Wincomplete-record-updates -Wredundant-constraints
+    -Wmissing-export-lists -Wmissing-deriving-strategies -Werror -O2
+    -Wmissing-import-lists -Wunused-packages
+    -fplugin=RecordDotPreprocessor
+
+  build-depends:
+    , aeson
+    , base
+    , bytestring
+    , exceptions
+    , hspec
+    , hspec-wai
+    , monad-logger
+    , ogmios-datum-cache
+    , optparse-applicative
+    , record-dot-preprocessor
+    , record-hasfield
+    , servant-server
+    , string-interpolate
+    , utf8-string
