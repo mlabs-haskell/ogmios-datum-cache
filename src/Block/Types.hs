@@ -20,6 +20,7 @@ module Block.Types (
   datums,
   noDatum2datumBlock,
   StartingBlock (..),
+  RawTransaction (..),
 ) where
 
 import Data.Aeson (FromJSON, ToJSON, withObject, (.:), (.:?), (.=))
@@ -246,13 +247,33 @@ instance FromJSON RequestNextResult where
           rollObj
       _ -> fail "Unexpected object key"
 
+data RawTransaction = RawTransaction
+  { txId :: Text
+  , rawTx :: Aeson.Value
+  }
+  deriving stock (Eq, Show)
+
+instance FromJSON RawTransaction where
+  parseJSON = Aeson.withObject "RawTransaction" $ \v -> do
+    RawTransaction
+      <$> v .: "id"
+      <*> pure (Aeson.Object v)
+
 data DatumBlock = DatumBlock
   { body :: [DatumTransaction]
+  , rawTransactions :: [RawTransaction]
   , header :: DatumBlockHeader
   , headerHash :: Text
   }
-  deriving stock (Eq, Show, Generic)
-  deriving anyclass (FromJSON)
+  deriving stock (Eq, Show)
+
+instance FromJSON DatumBlock where
+  parseJSON = Aeson.withObject "DatumBlock" $ \v ->
+    DatumBlock
+      <$> v .: "body"
+      <*> v .: "body"
+      <*> v .: "header"
+      <*> v .: "headerHash"
 
 data DatumBlockHeader = DatumBlockHeader
   { slot :: Int64
@@ -316,4 +337,4 @@ instance FromJSON NoDatumBlock where
     pure $ NoDatumBlock hash slot
 
 noDatum2datumBlock :: NoDatumBlock -> DatumBlock
-noDatum2datumBlock NoDatumBlock {slot, hash} = DatumBlock [] (DatumBlockHeader slot hash) hash
+noDatum2datumBlock NoDatumBlock {slot, hash} = DatumBlock [] [] (DatumBlockHeader slot hash) hash

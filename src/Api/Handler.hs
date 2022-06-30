@@ -7,6 +7,7 @@ module Api.Handler (
 
 import Control.Monad.Catch (throwM)
 import Control.Monad.Logger (logInfoNS)
+import Data.Aeson qualified as Aeson
 import Data.String.ToString (toString)
 import Data.Text (Text)
 import Data.Text qualified as Text
@@ -22,7 +23,7 @@ import Servant.Server.Generic (AsServerT, genericServerT)
 
 import Api (
   ControlApi (ControlApi, setDatumFilter, setStartingBlock),
-  DatumApi (DatumApi, getDatumByHash, getDatumsByHashes, getHealthcheck, getLastBlock),
+  DatumApi (DatumApi, getDatumByHash, getDatumsByHashes, getHealthcheck, getLastBlock, getTx),
   Routes (Routes, controlRoutes, datumRoutes, websocketRoutes),
   WebSocketApi (WebSocketApi, websocketApi),
  )
@@ -62,7 +63,15 @@ datumServiceHandlers =
   Routes {datumRoutes, controlRoutes, websocketRoutes}
   where
     datumRoutes :: ToServant DatumApi (AsServerT App)
-    datumRoutes = genericServerT DatumApi {getDatumByHash, getDatumsByHashes, getLastBlock, getHealthcheck}
+    datumRoutes =
+      genericServerT
+        DatumApi
+          { getDatumByHash
+          , getDatumsByHashes
+          , getLastBlock
+          , getHealthcheck
+          , getTx
+          }
 
     catchDatabaseError r = do
       case r of
@@ -86,6 +95,11 @@ datumServiceHandlers =
       pure $
         GetDatumsByHashesResponse $
           fmap (uncurry GetDatumsByHashesDatum) datums
+
+    getTx :: Text -> App Aeson.Value
+    getTx txId = do
+      tx <- Database.getTxByHash txId >>= catchDatabaseError
+      pure tx.rawTx
 
     getLastBlock :: App BlockInfo
     getLastBlock = do

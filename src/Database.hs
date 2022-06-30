@@ -8,6 +8,8 @@ module Database (
   initLastBlock,
   updateLastBlock,
   getLastBlock,
+  saveTxs,
+  getTxByHash,
 ) where
 
 import Codec.Serialise (deserialiseOrFail)
@@ -31,7 +33,7 @@ import Hasql.Session (Session)
 import Hasql.Session qualified as Session
 import Hasql.Statement (Statement (Statement))
 
-import Block.Types (BlockInfo (BlockInfo))
+import Block.Types (BlockInfo (BlockInfo), RawTransaction (RawTransaction))
 import PlutusData qualified
 
 data Datum = Datum
@@ -101,6 +103,42 @@ insertDatumsStatement = Statement sql enc dec True
 
     dec = Decoders.noResult
 
+insertRawTransactionsStatement :: Statement [RawTransaction] ()
+insertRawTransactionsStatement = Statement sql enc dec True
+  where
+    sql =
+      "INSERT INTO transactions (txId, rawTx) (SELECT h::text, v::json FROM unnest($1, $2) AS x(h, v)) ON CONFLICT DO NOTHING"
+
+    encArray elemEncoder =
+      Encoders.param $
+        Encoders.nonNullable $
+          Encoders.array $
+            Encoders.dimension foldl' $
+              Encoders.element $
+                Encoders.nonNullable elemEncoder
+    enc :: Encoders.Params [RawTransaction] =
+      (fmap (.txId) >$< encArray Encoders.text)
+        <> (fmap (.rawTx) >$< encArray Encoders.json)
+
+    dec = Decoders.noResult
+
+insertRawTransactionsSession :: [RawTransaction] -> Session ()
+insertRawTransactionsSession txs = Session.statement txs insertRawTransactionsStatement
+
+getRawTxStatement :: Statement Text RawTransaction
+getRawTxStatement = Statement sql enc dec True
+  where
+    sql = "SELECT txId, rawTx FROM transactions WHERE txId = $1"
+    enc = Encoders.param (Encoders.nonNullable Encoders.text)
+    dec =
+      Decoders.singleRow $
+        RawTransaction
+          <$> Decoders.column (Decoders.nonNullable Decoders.text)
+          <*> Decoders.column (Decoders.nonNullable Decoders.json)
+
+getRawTxSession :: Text -> Session RawTransaction
+getRawTxSession txId = Session.statement txId getRawTxStatement
+
 initTables :: (MonadIO m, MonadReader r m, Has Connection r) => m ()
 initTables = do
   let sql = do
@@ -109,6 +147,8 @@ initTables = do
         Session.sql
           "CREATE TABLE IF NOT EXISTS last_block \
           \ (onerow_id bool PRIMARY KEY DEFAULT TRUE, slot integer, hash text, CONSTRAINT onerow CHECK (onerow_id))"
+        Session.sql "CREATE TABLE IF NOT EXISTS transactions (txId text, rawTx json);"
+        Session.sql "CREATE UNIQUE INDEX CONCURRENTLY IF NOT EXISTS transactions ON datums (txId);"
   conn <- ask
   liftIO $ void $ Session.run sql conn
 
@@ -244,7 +284,7 @@ saveDatums ::
   m ()
 saveDatums dbConnection datums = do
   let (datumHashes, datumValues) = unzip datums
-  logInfoNS "saveDatumsBlock" $
+  logInfoNS "saveDatums" $
     "Inserting datums: " <> Text.intercalate ", " datumHashes
   res <-
     liftIO $
@@ -252,6 +292,35 @@ saveDatums dbConnection datums = do
   case res of
     Right _ -> pure ()
     Left err -> do
-      logErrorNS "saveDatumsBlock" $
+      logErrorNS "saveDatums" $
         "Error inserting datums: " <> Text.pack (show err)
       pure ()
+
+saveTxs ::
+  (MonadIO m, MonadLogger m) =>
+  Connection ->
+  [RawTransaction] ->
+  m ()
+saveTxs dbConnection txs = do
+  logInfoNS "saveTxs" $
+    "Inserting transactions: " <> Text.intercalate ", " (fmap (.txId) txs)
+  res <-
+    liftIO $
+      Session.run (insertRawTransactionsSession txs) dbConnection
+  case res of
+    Right _ -> pure ()
+    Left err -> do
+      logErrorNS "saveTxs" $
+        "Error inserting txs: " <> Text.pack (show err)
+      pure ()
+
+getTxByHash ::
+  (MonadIO m, MonadReader r m, Has Connection r) =>
+  Text ->
+  m (Either DatabaseError RawTransaction)
+getTxByHash txId = do
+  conn <- ask
+  res' <- liftIO (Session.run (getRawTxSession txId) conn)
+  case res' of
+    Left _ -> pure $ Left DatabaseErrorNotFound
+    Right tx -> pure $ Right tx

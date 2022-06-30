@@ -69,7 +69,7 @@ import Block.Types (
   mkRequestNextRequest,
   noDatum2datumBlock,
  )
-import Database (getLastBlock, saveDatums, updateLastBlock)
+import Database (getLastBlock, saveDatums, saveTxs, updateLastBlock)
 
 data OgmiosInfo = OgmiosInfo
   { ogmiosPort :: Int
@@ -326,6 +326,7 @@ processLoop = do
     -- TODO: maybe batching?
     block <- getBlock
     saveDatumsFromBlock block
+    saveTxsFromBlock block
     updateLastBlock env.dbConn (BlockInfo block.header.slot block.headerHash)
 
 -- | Pop block for queue, blocking if no block in queue.
@@ -364,6 +365,14 @@ saveDatumsFromBlock block = do
     pure ()
   let datums_ = Map.toList requestedDatumsWithDecodedValues
   unless (null datums_) $ saveDatums env.dbConn datums_
+
+saveTxsFromBlock ::
+  (MonadIO m, MonadReader BlockProcessorEnv m, MonadLogger m) =>
+  DatumBlock ->
+  m ()
+saveTxsFromBlock block = do
+  env <- ask
+  unless (null block.rawTransactions) $ saveTxs env.dbConn block.rawTransactions
 
 -- | Change block processor's datum filer. Safe to call from user facing API.
 changeDatumFilter ::
