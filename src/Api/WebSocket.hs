@@ -129,12 +129,11 @@ websocketServer conn = forever $ do
     Left msg -> do
       logErrorNS "websocketServer" ("Error parsing action: " <> Text.pack msg)
       sendTextData . Aeson.encode $
-        ( JsonWspFault
-            "unknown"
-            "client"
-            (Text.pack msg)
-            Nothing
-        )
+        JsonWspFault
+          "unknown"
+          "client"
+          (Text.pack msg)
+          Nothing
     Right (JsonWspRequest mirror method) -> do
       response <- case method of
         GetDatumByHash hash ->
