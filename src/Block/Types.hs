@@ -9,33 +9,36 @@ module Block.Types (
   OgmiosRequestNextResponse,
   FindIntersectResult (..),
   RequestNextResult (..),
-  Block (..),
-  DatumBlock (..),
-  DatumBlockHeader (..),
-  DatumTransaction (..),
-  DatumTxOut (..),
+  SomeTransaction (..),
+  SomeRawTransaction (..),
+  SomeBlock (..),
   OgmiosResponse (..),
   BlockInfo (..),
   CursorPoint (..),
-  datums,
-  noDatum2datumBlock,
   StartingBlock (..),
-  RawTransaction (..),
+  datumsInTransaction,
+  transactionsInBlock,
+  blockToBlockInfo,
+  rawTransactionsInBlock,
+  getRawTx,
+  getRawTxId,
+  blockTypeStr,
 ) where
 
-import Data.Aeson (FromJSON, ToJSON, withObject, (.:), (.:?), (.=))
+import Data.Aeson (FromJSON, ToJSON, withObject, (.:), (.=))
 import Data.Aeson qualified as Aeson
 import Data.Aeson.Types (prependFailure, unexpected)
 import Data.HashMap.Strict qualified as HashMap
 import Data.Int (Int64)
 import Data.Map (Map)
 import Data.Map qualified as Map
-import Data.Maybe (mapMaybe)
-import Data.String.ToString (toString)
 import Data.Text (Text)
-import Data.Text qualified as Text
 import GHC.Exts (toList)
 import GHC.Generics (Generic)
+
+import Block.Types.Alonzo qualified as Alonzo
+import Block.Types.Babbage qualified as Babbage
+import Block.Types.Byron qualified as Byron
 
 data StartingBlock = StartingBlock BlockInfo | Origin
   deriving stock (Show, Eq)
@@ -197,21 +200,22 @@ type OgmiosRequestNextResponse = OgmiosResponse RequestNextResult OgmiosMirror
 
 data RequestNextResult
   = RollBackward CursorPoint ResultTip
-  | RollForward Block ResultTip
+  | RollForward SomeBlock ResultTip
   deriving stock (Eq, Show, Generic)
 
-data Block
-  = UnsupportedBlock
-      Text -- block type
-      Text -- raw
-  | -- | Block with datum (Alonzo, Babbage)
-    MkDatumBlock
-      Text -- block type
-      DatumBlock
-  | MkNoDatumBlock
-      Text -- block type
-      NoDatumBlock
-  deriving stock (Eq, Show, Generic)
+data SomeTransaction
+  = AlonzoTransaction Alonzo.Transaction
+  | BabbageTransaction Babbage.Transaction
+
+data SomeRawTransaction
+  = AlonzoRawTransaction Alonzo.RawTransaction
+  | BabbageRawTransaction Babbage.RawTransaction
+
+data SomeBlock
+  = ByronBlock Byron.Block
+  | AlonzoBlock Alonzo.Block
+  | BabbageBlock Babbage.Block
+  deriving stock (Eq, Show)
 
 instance FromJSON RequestNextResult where
   parseJSON = withObject "RequestNextResult" $ \o -> do
@@ -232,109 +236,50 @@ instance FromJSON RequestNextResult where
               tip <- obj .: "tip"
               blockObj <- obj .: "block"
               case HashMap.toList blockObj of
-                [(type_ :: Text, blockValue)]
-                  | type_ `elem` ["byron"] -> do
-                    block <- Aeson.parseJSON @NoDatumBlock blockValue
-                    pure $ RollForward (MkNoDatumBlock type_ block) tip
-                  | type_ `elem` ["alonzo", "babbage"] -> do
-                    block <- Aeson.parseJSON @DatumBlock blockValue
-                    pure $ RollForward (MkDatumBlock type_ block) tip
-                  | otherwise -> do
-                    let raw = Text.pack $ toString $ Aeson.encode blockValue
-                    pure $ RollForward (UnsupportedBlock type_ raw) tip
-                _ -> fail "Unexpected block value"
+                [(ty :: Text, blockValue)]
+                  | ty == "byron" -> do
+                    block <- ByronBlock <$> Aeson.parseJSON @Byron.Block blockValue
+                    pure $ RollForward block tip
+                  | ty == "alonzo" -> do
+                    block <- AlonzoBlock <$> Aeson.parseJSON @Alonzo.Block blockValue
+                    pure $ RollForward block tip
+                  | ty == "babbage" -> do
+                    block <- BabbageBlock <$> Aeson.parseJSON @Babbage.Block blockValue
+                    pure $ RollForward block tip
+                  | otherwise -> fail $ "Unexpected block type: " <> show ty
+                _ -> fail $ "Unexpected block value: " <> show (HashMap.toList blockObj)
           )
           rollObj
       _ -> fail "Unexpected object key"
 
-data RawTransaction = RawTransaction
-  { txId :: Text
-  , rawTx :: Aeson.Value
-  }
-  deriving stock (Eq, Show)
+datumsInTransaction :: SomeTransaction -> Map Text Text
+datumsInTransaction (AlonzoTransaction tx) = Alonzo.datumsInTransaction tx
+datumsInTransaction (BabbageTransaction tx) = Babbage.datumsInTransaction tx
 
-instance FromJSON RawTransaction where
-  parseJSON = Aeson.withObject "RawTransaction" $ \v -> do
-    RawTransaction
-      <$> v .: "id"
-      <*> pure (Aeson.Object v)
+getRawTx :: SomeRawTransaction -> Aeson.Value
+getRawTx (AlonzoRawTransaction tx) = tx.rawTx
+getRawTx (BabbageRawTransaction tx) = tx.rawTx
 
-data DatumBlock = DatumBlock
-  { body :: [DatumTransaction]
-  , rawTransactions :: [RawTransaction]
-  , header :: DatumBlockHeader
-  , headerHash :: Text
-  }
-  deriving stock (Eq, Show)
+getRawTxId :: SomeRawTransaction -> Text
+getRawTxId (AlonzoRawTransaction tx) = tx.txId
+getRawTxId (BabbageRawTransaction tx) = tx.txId
 
-instance FromJSON DatumBlock where
-  parseJSON = Aeson.withObject "DatumBlock" $ \v ->
-    DatumBlock
-      <$> v .: "body"
-      <*> v .: "body"
-      <*> v .: "header"
-      <*> v .: "headerHash"
+transactionsInBlock :: SomeBlock -> [SomeTransaction]
+transactionsInBlock (ByronBlock _) = mempty
+transactionsInBlock (AlonzoBlock block) = AlonzoTransaction <$> block.body
+transactionsInBlock (BabbageBlock block) = BabbageTransaction <$> block.body
 
-data DatumBlockHeader = DatumBlockHeader
-  { slot :: Int64
-  , blockHash :: Text
-  }
-  deriving stock (Eq, Show, Generic)
-  deriving anyclass (FromJSON)
+rawTransactionsInBlock :: SomeBlock -> [SomeRawTransaction]
+rawTransactionsInBlock (ByronBlock _) = mempty
+rawTransactionsInBlock (AlonzoBlock block) = AlonzoRawTransaction <$> block.rawTransactions
+rawTransactionsInBlock (BabbageBlock block) = BabbageRawTransaction <$> block.rawTransactions
 
-data DatumTransaction = DatumTransaction
-  { dtDatums :: Map Text Text
-  , dtOutputs :: [DatumTxOut]
-  }
-  deriving stock (Eq, Show, Generic)
+blockToBlockInfo :: SomeBlock -> BlockInfo
+blockToBlockInfo (ByronBlock block) = BlockInfo block.slot block.headerHash
+blockToBlockInfo (AlonzoBlock block) = BlockInfo block.header.slot block.headerHash
+blockToBlockInfo (BabbageBlock block) = BlockInfo block.header.slot block.headerHash
 
-datums :: DatumTransaction -> Map Text Text
-datums DatumTransaction {dtDatums, dtOutputs} =
-  dtDatums <> Map.fromList (mapMaybe fromTxOut dtOutputs)
-  where
-    fromTxOut
-      DatumTxOut
-        { datumHash = Just datumHash
-        , datum = Just datum
-        } = Just (datumHash, datum)
-    fromTxOut _txOut =
-      Nothing
-
-instance FromJSON DatumTransaction where
-  parseJSON = withObject "DatumTransaction" $ \o -> do
-    witness <- o .: "witness"
-    dtDatums <- witness .: "datums"
-    body <- o .: "body"
-    dtOutputs <- body .: "outputs"
-    pure $ DatumTransaction {..}
-
-data DatumTxOut = DatumTxOut
-  { address :: Text
-  , datumHash :: Maybe Text
-  , datum :: Maybe Text
-  -- , script :: Maybe Text
-  }
-  deriving stock (Eq, Show, Generic)
-
-instance FromJSON DatumTxOut where
-  parseJSON = withObject "BabbageTxOut" $ \o -> do
-    address <- o .: "address"
-    datumHash <- o .:? "datumHash"
-    datum <- o .:? "datum"
-    pure $ DatumTxOut {..}
-
-data NoDatumBlock = NoDatumBlock
-  { hash :: Text
-  , slot :: Int64
-  }
-  deriving stock (Eq, Show)
-
-instance FromJSON NoDatumBlock where
-  parseJSON = Aeson.withObject "NoDatumBlock" $ \v -> do
-    hash <- v .: "hash"
-    header <- v .: "header"
-    slot <- header .: "slot"
-    pure $ NoDatumBlock hash slot
-
-noDatum2datumBlock :: NoDatumBlock -> DatumBlock
-noDatum2datumBlock NoDatumBlock {slot, hash} = DatumBlock [] [] (DatumBlockHeader slot hash) hash
+blockTypeStr :: SomeBlock -> Text
+blockTypeStr (ByronBlock _) = "Byron"
+blockTypeStr (AlonzoBlock _) = "Alonzo"
+blockTypeStr (BabbageBlock _) = "Babbage"
