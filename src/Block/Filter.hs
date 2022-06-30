@@ -47,13 +47,13 @@ runDatumFilter (DatumHashFilter expectedHash) _ (actualHash, _) =
   expectedHash == actualHash
 runDatumFilter (AddressFilter expectedAddress) (AlonzoTransaction tx') (actualHash, _) =
   let hashes =
-        mapMaybe (\tx -> tx.datumHash)
+        mapMaybe (.datumHash)
           . filter (\tx -> tx.address == expectedAddress)
           $ tx'.outputs
    in actualHash `elem` hashes
 runDatumFilter (AddressFilter expectedAddress) (BabbageTransaction tx') (actualHash, _) =
   let hashes =
-        mapMaybe (\tx -> tx.datumHash)
+        mapMaybe (.datumHash)
           . filter (\tx -> tx.address == expectedAddress)
           $ tx'.outputs
    in actualHash `elem` hashes
