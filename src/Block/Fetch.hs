@@ -29,7 +29,6 @@ import Control.Monad.Logger (
   MonadLogger,
   NoLoggingT (runNoLoggingT),
   filterLogger,
-  logDebugNS,
   logErrorNS,
   logInfoNS,
   logWarnNS,
