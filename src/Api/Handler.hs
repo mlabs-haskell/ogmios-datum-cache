@@ -1,145 +1,137 @@
-module Api.Handler (datumServiceHandlers) where
+{-# LANGUAGE NamedFieldPuns #-}
 
-import Codec.Serialise (deserialiseOrFail)
-import Colog (logError, logInfo, logWarning)
-import Control.Monad (unless, void, when)
+module Api.Handler (
+  controlApiAuthCheck,
+  datumServiceHandlers,
+) where
+
 import Control.Monad.Catch (throwM)
-import Control.Monad.IO.Class (liftIO)
-import Control.Monad.Reader (ask, runReaderT)
-import Data.ByteString.Lazy qualified as BSL
-import Data.Function ((&))
+import Control.Monad.Logger (logInfoNS)
+import Data.Aeson qualified as Aeson
+import Data.String.ToString (toString)
 import Data.Text (Text)
-import Data.Vector qualified as Vector
-import Hasql.Session qualified as Session
-import Network.WebSockets qualified as WS
-import Servant
+import Data.Text qualified as Text
+import Network.WebSockets qualified as WebSockets
+import Servant (err404, err500)
+import Servant.API.BasicAuth (BasicAuthData (BasicAuthData))
 import Servant.API.Generic (ToServant)
+import Servant.Server (
+  BasicAuthCheck (BasicAuthCheck),
+  BasicAuthResult (Authorized, Unauthorized),
+ )
 import Servant.Server.Generic (AsServerT, genericServerT)
-import UnliftIO.Async qualified as Async
-import UnliftIO.Exception (onException)
-import UnliftIO.MVar (isEmptyMVar, tryPutMVar, tryTakeMVar)
 
-import Api (ControlApi (..), DatumApi (..), Routes (..), WebSocketApi (..))
-import Api.Error (JsonError (..), throwJsonError)
+import Api (
+  ControlApi (ControlApi, setDatumFilter, setStartingBlock),
+  DatumApi (DatumApi, getDatumByHash, getDatumsByHashes, getHealthcheck, getLastBlock, getTx),
+  Routes (Routes, controlRoutes, datumRoutes, websocketRoutes),
+  WebSocketApi (WebSocketApi, websocketApi),
+ )
+import Api.Error (JsonError (JsonError), throwJsonError)
 import Api.Types (
-    AddDatumHashesRequest (..),
-    AddDatumHashesResponse (..),
-    CancelBlockFetchingResponse (..),
-    GetDatumByHashResponse (..),
-    GetDatumHashesResponse (..),
-    GetDatumsByHashesDatum (..),
-    GetDatumsByHashesRequest (..),
-    GetDatumsByHashesResponse (..),
-    RemoveDatumHashesRequest (..),
-    RemoveDatumHashesResponse (..),
-    SetDatumHashesRequest (..),
-    SetDatumHashesResponse (..),
-    StartBlockFetchingRequest (..),
-    StartBlockFetchingResponse (..),
+  ControlApiAuthData (ControlApiAuthData),
+  GetDatumByHashResponse (GetDatumByHashResponse),
+  GetDatumsByHashesDatum (GetDatumsByHashesDatum),
+  GetDatumsByHashesRequest (GetDatumsByHashesRequest),
+  GetDatumsByHashesResponse (GetDatumsByHashesResponse),
+  SetDatumFilterRequest (SetDatumFilterRequest),
+  SetStartingBlockRequest (SetStartingBlockRequest),
  )
 import Api.WebSocket (websocketServer)
-import App (App (..))
-import App.Env (Env (..))
-import App.RequestedDatumHashes qualified as RequestedDatumHashes
-import Database qualified as Db
-import PlutusData qualified
+import App.Env (ControlApiToken (ControlApiToken), Env (Env, envControlApiToken))
+import App.Types (App)
+import Block.Fetch (changeDatumFilter, changeStartingBlock)
+import Block.Types (BlockInfo, CursorPoint, getRawTx)
+import Control.Monad.Reader.Has (ask)
+import Database (
+  DatabaseError (DatabaseErrorDecodeError, DatabaseErrorNotFound),
+ )
+import Database qualified
 
-import Block.Fetch (wsApp)
+controlApiAuthCheck :: Env -> BasicAuthCheck ControlApiAuthData
+controlApiAuthCheck Env {envControlApiToken} =
+  BasicAuthCheck $ \(BasicAuthData usr pwd) -> do
+    let expect = envControlApiToken
+        passed = ControlApiToken $ toString (usr <> ":" <> pwd)
+    pure $
+      if expect == passed
+        then Authorized ControlApiAuthData
+        else Unauthorized
 
 datumServiceHandlers :: Routes (AsServerT App)
-datumServiceHandlers = Routes{..}
+datumServiceHandlers =
+  Routes {datumRoutes, controlRoutes, websocketRoutes}
   where
     datumRoutes :: ToServant DatumApi (AsServerT App)
-    datumRoutes = genericServerT DatumApi{..}
+    datumRoutes =
+      genericServerT
+        DatumApi
+          { getDatumByHash
+          , getDatumsByHashes
+          , getLastBlock
+          , getHealthcheck
+          , getTx
+          }
 
-    toPlutusData :: Db.Datum -> App PlutusData.Data
-    toPlutusData datumRes =
-        deserialiseOrFail @PlutusData.Data (BSL.fromStrict $ Db.value datumRes) & either (const $ throwM err500) pure
+    catchDatabaseError r = do
+      case r of
+        Left (DatabaseErrorDecodeError e) ->
+          throwJsonError err500 $
+            JsonError $ Text.pack $ "Decoding error: " <> show e
+        Left DatabaseErrorNotFound ->
+          throwM err404
+        Right x -> pure x
 
     getDatumByHash :: Text -> App GetDatumByHashResponse
     getDatumByHash hash = do
-        Env{..} <- ask
-        datumRes <- liftIO (Session.run (Db.getDatumSession hash) envDbConnection) >>= either (const $ throwM err404) pure
-        plutusData <- toPlutusData datumRes
+      datum <- Database.getDatumByHash hash >>= catchDatabaseError
+      pure $ GetDatumByHashResponse datum
 
-        pure $ GetDatumByHashResponse plutusData
-
-    getDatumsByHashes :: GetDatumsByHashesRequest -> App GetDatumsByHashesResponse
+    getDatumsByHashes ::
+      GetDatumsByHashesRequest ->
+      App GetDatumsByHashesResponse
     getDatumsByHashes (GetDatumsByHashesRequest hashes) = do
-        Env{..} <- ask
-        datums <- liftIO (Session.run (Db.getDatumsSession hashes) envDbConnection) >>= either (const $ throwM err404) pure
-        plutusDatums <- Vector.mapM (\dt -> GetDatumsByHashesDatum (Db.hash dt) <$> toPlutusData dt) datums
-        pure $ GetDatumsByHashesResponse plutusDatums
+      datums <- Database.getDatumsByHashes hashes >>= catchDatabaseError
+      pure $
+        GetDatumsByHashesResponse $
+          fmap (uncurry GetDatumsByHashesDatum) datums
 
-    -- control api
-    controlRoutes :: ToServant ControlApi (AsServerT App)
-    controlRoutes = genericServerT ControlApi{..}
+    getTx :: Text -> App Aeson.Value
+    getTx txId = do
+      tx <- Database.getTxByHash txId >>= catchDatabaseError
+      pure $ getRawTx tx
 
-    addDatumHashes :: AddDatumHashesRequest -> App AddDatumHashesResponse
-    addDatumHashes (AddDatumHashesRequest hashes) = do
-        Env{..} <- ask
-        RequestedDatumHashes.add hashes envRequestedDatumHashes
-        pure $ AddDatumHashesResponse "Successfully added hashes"
+    getLastBlock :: App BlockInfo
+    getLastBlock = do
+      dbConn <- ask
+      block' <- Database.getLastBlock dbConn
+      case block' of
+        Just block -> pure block
+        Nothing -> throwM err404
 
-    removeDatumHashes :: RemoveDatumHashesRequest -> App RemoveDatumHashesResponse
-    removeDatumHashes (RemoveDatumHashesRequest hashes) = do
-        Env{..} <- ask
-        RequestedDatumHashes.remove hashes envRequestedDatumHashes
-        pure $ RemoveDatumHashesResponse "Successfully removed hashes"
+    getHealthcheck :: App ()
+    getHealthcheck = pure ()
 
-    setDatumHashes :: SetDatumHashesRequest -> App SetDatumHashesResponse
-    setDatumHashes (SetDatumHashesRequest hashes) = do
-        Env{..} <- ask
-        RequestedDatumHashes.set hashes envRequestedDatumHashes
-        pure $ SetDatumHashesResponse "Successfully set hashes"
+    setStartingBlock :: SetStartingBlockRequest -> App CursorPoint
+    setStartingBlock (SetStartingBlockRequest blockInfo) = do
+      intersection' <- changeStartingBlock blockInfo
+      case intersection' of
+        Nothing -> throwM err404
+        Just x -> pure x
 
-    getDatumHashes :: App GetDatumHashesResponse
-    getDatumHashes = do
-        Env{..} <- ask
-        hashSet <- RequestedDatumHashes.get envRequestedDatumHashes
-        pure $ GetDatumHashesResponse hashSet
+    setDatumFilter :: SetDatumFilterRequest -> App ()
+    setDatumFilter (SetDatumFilterRequest datumFilter) = do
+      changeDatumFilter datumFilter
 
-    startBlockFetching :: StartBlockFetchingRequest -> App StartBlockFetchingResponse
-    startBlockFetching (StartBlockFetchingRequest firstBlockSlot firstBlockId) = do
-        env@Env{..} <- ask
-
-        isOgmiosWorkerRunning <- not <$> isEmptyMVar envOgmiosWorker
-        when isOgmiosWorkerRunning $ do
-            throwJsonError err422 (JsonError "Block fetcher already running")
-
-        let runOgmiosClient =
-                WS.runClient envOgmiosAddress envOgmiosPort "" $ \wsConn ->
-                    runReaderT (unApp $ wsApp wsConn (Just (firstBlockSlot, firstBlockId))) env
-
-        ogmiosWorker <- Async.async $ do
-            logInfo "Starting ogmios client"
-            liftIO runOgmiosClient
-                `onException` ( do
-                                    logError "Error starting ogmios client"
-                                    void $ tryTakeMVar envOgmiosWorker
-                              )
-
-        putSuccessful <- tryPutMVar envOgmiosWorker ogmiosWorker
-        unless putSuccessful $ do
-            Async.cancel ogmiosWorker
-            logWarning "Another block fetcher was already running, cancelling worker thread"
-            throwJsonError err422 (JsonError "Another block fetcher was already running, cancelling worker thread")
-
-        pure $ StartBlockFetchingResponse "Started block fetcher"
-
-    cancelBlockFetching :: App CancelBlockFetchingResponse
-    cancelBlockFetching = do
-        Env{..} <- ask
-        ogmiosWorker <-
-            tryTakeMVar envOgmiosWorker
-                >>= maybe (throwJsonError err422 (JsonError "No block fetcher running")) pure
-        Async.cancel ogmiosWorker
-        pure $ CancelBlockFetchingResponse "Stopped block fetcher"
+    controlRoutes :: ControlApiAuthData -> ToServant ControlApi (AsServerT App)
+    controlRoutes ControlApiAuthData =
+      genericServerT
+        ControlApi {setStartingBlock, setDatumFilter}
 
     websocketRoutes :: ToServant WebSocketApi (AsServerT App)
-    websocketRoutes = genericServerT WebSocketApi{..}
+    websocketRoutes = genericServerT WebSocketApi {websocketApi}
 
-    websocketApi :: WS.Connection -> App ()
+    websocketApi :: WebSockets.Connection -> App ()
     websocketApi conn = do
-        logInfo "New WS connection established"
-        websocketServer conn
+      logInfoNS "websocketApi" "New WS connection established"
+      websocketServer conn
