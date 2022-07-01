@@ -1,0 +1,189 @@
+{
+  "type": "jsonwsp/response",
+  "version": "1.0",
+  "servicename": "ogmios",
+  "methodname": "RequestNext",
+  "result": {
+    "RollForward": {
+      "block": {
+        "babbage": {
+          "body": [
+            {
+              "id": "c248757d390181c517a5beadc9c3fe64bf821d3e889a963fc717003ec248757d",
+              "inputSource": "inputs",
+              "body": {
+                "inputs": [
+                  {
+                    "txId": "stringstringstringstringstringstringstringstringstringstringstri",
+                    "index": 4294967295
+                  }
+                ],
+                "references": [
+                  {
+                    "txId": "stringstringstringstringstringstringstringstringstringstringstri",
+                    "index": 4294967295
+                  }
+                ],
+                "collaterals": [
+                  {
+                    "txId": "stringstringstringstringstringstringstringstringstringstringstri",
+                    "index": 4294967295
+                  }
+                ],
+                "collateralReturn": {
+                  "address": "addr_test1qz66ue36465w2qq40005h2hadad6pnjht8mu6sgplsfj74qdjnshguewlx4ww0eet26y2pal4xpav5prcydf28cvxtjqx46x7f",
+                  "value": {
+                    "coins": 2,
+                    "assets": {
+                      "3542acb3a64d80c29302260d62c3b87a742ad14abf855ebc6733081e": 1,
+                      "b5ae663aaea8e500157bdf4baafd6f5ba0ce5759f7cd4101fc132f54": 2
+                    }
+                  },
+                  "datumHash": null,
+                  "datum": null,
+                  "script": null
+                },
+                "totalCollateral": 0,
+                "outputs": [
+                  {
+                    "address": "addr_test1qz66ue36465w2qq40005h2hadad6pnjht8mu6sgplsfj74qdjnshguewlx4ww0eet26y2pal4xpav5prcydf28cvxtjqx46x7f",
+                    "value": {
+                      "coins": 2,
+                      "assets": {
+                        "3542acb3a64d80c29302260d62c3b87a742ad14abf855ebc6733081e": 1,
+                        "b5ae663aaea8e500157bdf4baafd6f5ba0ce5759f7cd4101fc132f54": 2
+                      }
+                    },
+                    "datumHash": null,
+                    "datum": null,
+                    "script": null
+                  }
+                ],
+                "certificates": [
+                  {
+                    "stakeDelegation": {
+                      "delegator": "6d06fe0a5a8cb6d2bcc352581dea626bb5b2f66edf85678b2f2fa7b5",
+                      "delegatee": "pool1pshqcksxywy68lt04lw6uf35f4yssekh5dx2mxqmyrukke2z5y3"
+                    }
+                  }
+                ],
+                "withdrawals": {
+                  "property1": 0,
+                  "property2": 0
+                },
+                "fee": 0,
+                "validityInterval": {
+                  "invalidBefore": 18446744073709552000,
+                  "invalidHereafter": 18446744073709552000
+                },
+                "update": null,
+                "mint": {
+                  "coins": 0,
+                  "assets": {
+                    "property1": 0,
+                    "property2": 0
+                  }
+                },
+                "network": "mainnet",
+                "scriptIntegrityHash": "c248757d390181c517a5beadc9c3fe64bf821d3e889a963fc717003ec248757d",
+                "requiredExtraSignatures": [
+                  "90181c517a5beadc9c3fe64bf821d3e889a963fc717003ec248757d3"
+                ]
+              },
+              "witness": {
+                "signatures": {
+                  "property1": "string",
+                  "property2": "string"
+                },
+                "scripts": {
+                  "property1": {
+                    "native": "3c07030e36bfff7cd2f004356ef320f3fe3c07030e7cd2f004356437"
+                  },
+                  "property2": {
+                    "native": "3c07030e36bfff7cd2f004356ef320f3fe3c07030e7cd2f004356437"
+                  }
+                },
+                "bootstrap": [
+                  {
+                    "signature": "ZGdic3hnZ3RvZ2hkanB0ZXR2dGtjb2N2eWZpZHFxZ2d1cmpocmhxYWlpc3BxcnVlbGh2eXBxeGVld3ByeWZ2dw==",
+                    "key": "deeb8f82f2af5836ebbc1b450b6dbf0b03c93afe5696f10d49e8a8304ebfac01",
+                    "addressAttributes": "cA==",
+                    "chainCode": "b6dbf0b03c93afe5696f10d49e8a8304ebfac01deeb8f82f2af5836ebbc1b450"
+                  }
+                ],
+                "datums": {
+                  "property1": "string",
+                  "property2": "string"
+                },
+                "redeemers": {
+                  "property1": {
+                    "executionUnits": {
+                      "memory": 2,
+                      "steps": 2
+                    },
+                    "redeemer": "ggRCqSQ="
+                  },
+                  "property2": {
+                    "executionUnits": {
+                      "memory": 2,
+                      "steps": 2
+                    },
+                    "redeemer": "ggRCqSQ="
+                  }
+                }
+              },
+              "metadata": {
+                "hash": "c248757d390181c517a5beadc9c3fe64bf821d3e889a963fc717003ec248757d",
+                "body": {
+                  "blob": {
+                    "42": {
+                      "int": 14
+                    }
+                  },
+                  "scripts": [
+                    {
+                      "native": "3c07030e36bfff7cd2f004356ef320f3fe3c07030e7cd2f004356437"
+                    }
+                  ]
+                }
+              },
+              "raw": "string"
+            }
+          ],
+          "headerHash": "c248757d390181c517a5beadc9c3fe64bf821d3e889a963fc717003ec248757d",
+          "header": {
+            "blockHeight": 18446744073709552000,
+            "slot": 18446744073709552000,
+            "prevHash": "c248757d390181c517a5beadc9c3fe64bf821d3e889a963fc717003ec248757d",
+            "issuerVk": "stringstringstringstringstringstringstringstringstringstringstri",
+            "issuerVrf": "string",
+            "blockSize": 18446744073709552000,
+            "blockHash": "c248757d390181c517a5beadc9c3fe64bf821d3e889a963fc717003ec248757d",
+            "opCert": {
+              "count": 18446744073709552000,
+              "sigma": "string",
+              "kesPeriod": 18446744073709552000,
+              "hotVk": "string"
+            },
+            "protocolVersion": {
+              "major": 4294967295,
+              "minor": 4294967295,
+              "patch": 4294967295
+            },
+            "signature": "string",
+            "vrfInput": {
+              "proof": "string",
+              "output": "string"
+            }
+          }
+        }
+      },
+      "tip": {
+        "slot": 18446744073709552000,
+        "hash": "c248757d390181c517a5beadc9c3fe64bf821d3e889a963fc717003ec248757d",
+        "blockNo": 18446744073709552000
+      }
+    }
+  },
+  "reflection": null
+}

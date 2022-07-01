@@ -11,6 +11,7 @@ import App (
  )
 import Spec.Api.Handlers qualified
 import Spec.Api.WebSocket.Types qualified
+import Spec.Block.Babbage qualified
 import Spec.Parameters qualified
 
 main :: IO ()
@@ -25,3 +26,4 @@ main = do
     Spec.Api.Handlers.spec app
     Spec.Api.WebSocket.Types.spec
     Spec.Parameters.spec
+    Spec.Block.Babbage.spec
