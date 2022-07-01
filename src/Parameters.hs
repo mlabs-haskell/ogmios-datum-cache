@@ -9,6 +9,15 @@ module Parameters (
   configAsCLIOptions,
 ) where
 
+import Control.Monad.Logger (
+  LogLevel (
+    LevelDebug,
+    LevelError,
+    LevelInfo,
+    LevelOther,
+    LevelWarn
+  ),
+ )
 import Data.ByteString (ByteString)
 import Data.ByteString.Lazy qualified as LBS
 import Data.List (intersperse)
@@ -28,6 +37,7 @@ import Options.Applicative (
   helper,
   info,
   long,
+  maybeReader,
   metavar,
   option,
   optional,
@@ -56,6 +66,7 @@ data Config = Config
   , cfgOgmiosAddress :: String
   , cfgOgmiosPort :: Int
   , cfgFetcher :: BlockFetcherConfig
+  , cfgLogLevel :: LogLevel
   }
   deriving stock (Show, Eq)
 
@@ -174,6 +185,25 @@ parseDBConnectionString =
         <> help "\"host=localhost port=5432 user=<user> password=<pass>\""
     )
 
+parseLogLevel :: Parser LogLevel
+parseLogLevel =
+  option
+    (maybeReader validateLevel)
+    ( long "log-level"
+        <> metavar "LOG_LEVEL"
+        <> value LevelInfo
+        <> help
+          "One of [debug | info | warn | error], every level\
+          \ is more restrictive than the previous level. By default set to info"
+    )
+  where
+    validateLevel str
+      | str == "debug" = pure LevelDebug
+      | str == "info" = pure LevelInfo
+      | str == "warn" = pure LevelWarn
+      | str == "error" = pure LevelError
+      | otherwise = Nothing
+
 argParser :: Parser Config
 argParser =
   Config
@@ -203,6 +233,7 @@ argParser =
           <> help "Ogmios port"
       )
     <*> parseBlockFetcher
+    <*> parseLogLevel
 
 parserInfo :: ParserInfo Config
 parserInfo =
@@ -223,9 +254,18 @@ configAsCLIOptions Config {..} =
         Origin -> ["--from-origin"]
         Tip -> ["--from-tip"]
       useLatesString = ["--use-latest" | cfgFetcher.cfgFetcherUseLatest]
+      logLevel =
+        case cfgLogLevel of
+          LevelInfo -> ["--log-level=info"]
+          LevelDebug -> ["--log-level=debug"]
+          LevelWarn -> ["--log-level=warn"]
+          LevelError -> ["--log-level=error"]
+          LevelOther _ -> error "unreachable: unsupported logging level"
+
       mostParams =
         useLatesString
           <> blockOptions
+          <> logLevel
           <> [ command "queue-size" cfgFetcher.cfgFetcherQueueSize
              , stringCommand "db-connection" $
                 (Text.unpack . Text.Encoding.decodeUtf8) cfgDbConnectionString

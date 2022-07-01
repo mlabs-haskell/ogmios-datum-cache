@@ -28,6 +28,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 - Add `--from-tip` option to cache from current tip.
 - Add `--from-origin` option to cache datums of all blocks.
+- Add `--log-level` option to enable control of logging.
 - Add support for Vasil hardfork (require ogmios `>= 5.5.0`).
 - Add `GET /healthcheck` endpoint.
 - Add `GetHealthcheck` WebSocket method.
