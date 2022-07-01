@@ -14,6 +14,8 @@ module Block.Types (
   OgmiosResponse (..),
   BlockInfo (..),
   CursorPoint (..),
+  ResultTip (..),
+  tipToBlockInfo,
   StartingBlock (..),
   datumsInTransaction,
   transactionsInBlock,
@@ -39,11 +41,12 @@ import Block.Types.Alonzo qualified as Alonzo
 import Block.Types.Babbage qualified as Babbage
 import Block.Types.Byron qualified as Byron
 
-data StartingBlock = StartingBlock BlockInfo | Origin
+data StartingBlock = StartingBlock BlockInfo | Origin | Tip
   deriving stock (Show, Eq)
 
 instance ToJSON StartingBlock where
   toJSON Origin = "origin"
+  toJSON Tip = "tip"
   toJSON (StartingBlock (BlockInfo slot hash)) =
     Aeson.object
       [ "blockSlot" .= slot
@@ -128,6 +131,7 @@ mkFindIntersectRequest startingBlock =
       StartingBlock (BlockInfo firstBlockSlot firstBlockId) ->
         CursorPoints [CursorPoint (fromIntegral firstBlockSlot) firstBlockId]
       Origin -> CursorPoints [CursorOrigin]
+      Tip -> CursorPoints []
 
 mkRequestNextRequest :: Int -> OgmiosRequestNextRequest
 mkRequestNextRequest n =
@@ -161,12 +165,15 @@ type OgmiosFindIntersectResponse =
   OgmiosResponse FindIntersectResult OgmiosMirror
 
 data ResultTip = ResultTip
-  { slot :: Integer
+  { slot :: Int64
   , hash :: Text
   , blockNo :: Integer
   }
   deriving stock (Eq, Show, Generic)
   deriving anyclass (FromJSON)
+
+tipToBlockInfo :: ResultTip -> BlockInfo
+tipToBlockInfo tip = BlockInfo tip.slot tip.hash
 
 data FindIntersectResult
   = IntersectionFound CursorPoint ResultTip

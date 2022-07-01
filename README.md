@@ -978,8 +978,8 @@ Usage: ogmios-datum-cache (--db-port PORT --db-host HOST_NAME
                           --server-port PORT
                           --server-api SERVER_CONTROL_API_TOKEN
                           --ogmios-address ADDRESS --ogmios-port PORT 
-                          [--block-slot INT --block-hash HASH | --origin] 
-                          [--block-filter FILTER] [--use-latest] 
+                          [--block-slot INT --block-hash HASH | --from-origin | 
+                            --from-tip] [--block-filter FILTER] [--use-latest] 
                           [--queue-size NATURAL] [--log-level LOG_LEVEL]
 
 Available options:
@@ -1000,7 +1000,8 @@ Available options:
   --block-slot INT         Slot of first block to fetch by initial block
                            fetcher.
   --block-hash HASH        hash of block's HEADER not hash of a block itself
-  --origin                 Start block fetcher from origin
+  --from-origin            Start block fetcher from origin
+  --from-tip               Start block fetcher from chain tip
   --block-filter FILTER    Filter.
   --use-latest             defines if block fetcher, if started automatically,
                            should start from last block that was proccessed

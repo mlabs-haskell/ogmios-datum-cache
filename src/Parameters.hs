@@ -49,7 +49,7 @@ import Options.Applicative (
  )
 
 import App.Env (ControlApiToken (unControlApiToken))
-import Block.Types (BlockInfo (BlockInfo), StartingBlock (Origin, StartingBlock))
+import Block.Types (BlockInfo (BlockInfo), StartingBlock (Origin, StartingBlock, Tip))
 
 data BlockFetcherConfig = BlockFetcherConfig
   { cfgFetcherBlock :: StartingBlock
@@ -94,7 +94,10 @@ dbConnection2ByteString DBConnection {..} =
     toBytes = Text.Encoding.encodeUtf8 . Text.pack
 
 parseOrigin :: Parser StartingBlock
-parseOrigin = Origin <$ switch (long "origin" <> help "Start block fetcher from origin")
+parseOrigin = Origin <$ switch (long "from-origin" <> help "Start block fetcher from origin")
+
+parseTip :: Parser StartingBlock
+parseTip = Tip <$ switch (long "from-tip" <> help "Start block fetcher from chain tip")
 
 parseFirstBlock :: Parser StartingBlock
 parseFirstBlock =
@@ -117,7 +120,7 @@ parseFirstBlock =
 parseBlockFetcher :: Parser BlockFetcherConfig
 parseBlockFetcher =
   BlockFetcherConfig
-    <$> (parseFirstBlock <|> parseOrigin)
+    <$> (parseFirstBlock <|> parseOrigin <|> parseTip)
     <*> optional
       ( strOption
           ( long "block-filter"
@@ -248,7 +251,8 @@ configAsCLIOptions Config {..} =
           [ command "block-slot" slot
           , stringCommand "block-hash" $ Text.unpack hash
           ]
-        Origin -> ["--origin"]
+        Origin -> ["--from-origin"]
+        Tip -> ["--from-tip"]
       useLatesString = ["--use-latest" | cfgFetcher.cfgFetcherUseLatest]
       logLevel =
         case cfgLogLevel of
