@@ -97,7 +97,7 @@ parseOrigin :: Parser StartingBlock
 parseOrigin = Origin <$ switch (long "from-origin" <> help "Start block fetcher from origin")
 
 parseTip :: Parser StartingBlock
-parseTip = Tip <$ switch (long "from-tip" <> help "Start block fetcher from tip")
+parseTip = Tip <$ switch (long "from-tip" <> help "Start block fetcher from chain tip")
 
 parseFirstBlock :: Parser StartingBlock
 parseFirstBlock =

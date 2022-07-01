@@ -1001,7 +1001,7 @@ Available options:
                            fetcher.
   --block-hash HASH        hash of block's HEADER not hash of a block itself
   --from-origin            Start block fetcher from origin
-  --from-tip               Start block fetcher from tip
+  --from-tip               Start block fetcher from chain tip
   --block-filter FILTER    Filter.
   --use-latest             defines if block fetcher, if started automatically,
                            should start from last block that was proccessed
