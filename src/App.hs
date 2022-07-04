@@ -32,7 +32,7 @@ import Block.Fetch (
   OgmiosInfo (OgmiosInfo),
   startBlockFetcherAndProcessor,
  )
-import Block.Types (StartingBlock (Origin, StartingBlock))
+import Block.Types (StartingBlock (StartingBlock))
 import Database (getLastBlock, initLastBlock, initTables, updateLastBlock)
 import Parameters (Config)
 
@@ -82,10 +82,10 @@ bootstrapEnvFromConfig cfg = do
             then fromMaybe cfg.cfgFetcher.cfgFetcherBlock latestBlock'
             else cfg.cfgFetcher.cfgFetcherBlock
     case firstBlock of
-      Origin -> pure ()
       StartingBlock firstBlock' -> do
         initLastBlock firstBlock'
         updateLastBlock dbConn firstBlock'
+      _ -> pure ()
     let ogmiosInfo = OgmiosInfo cfg.cfgOgmiosPort cfg.cfgOgmiosAddress
     (blockFetcherEnv, blockProcessorEnv) <-
       startBlockFetcherAndProcessor
