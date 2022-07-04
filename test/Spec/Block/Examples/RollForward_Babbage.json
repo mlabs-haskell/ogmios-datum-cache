@@ -153,7 +153,8 @@
           "headerHash": "c248757d390181c517a5beadc9c3fe64bf821d3e889a963fc717003ec248757d",
           "header": {
             "blockHeight": 18446744073709552000,
-            "slot": 18446744073709552000,
+            "slot": 13,
+            "realExampleSlot": 18446744073709552000,
             "prevHash": "c248757d390181c517a5beadc9c3fe64bf821d3e889a963fc717003ec248757d",
             "issuerVk": "stringstringstringstringstringstringstringstringstringstringstri",
             "issuerVrf": "string",
@@ -179,11 +180,13 @@
         }
       },
       "tip": {
-        "slot": 18446744073709552000,
+        "slot": 12,
         "hash": "c248757d390181c517a5beadc9c3fe64bf821d3e889a963fc717003ec248757d",
+        "realExampleSlot" : 18446744073709552000,
         "blockNo": 18446744073709552000
       }
     }
   },
-  "reflection": null
+  "reflection": 0,
+  "realReflection": null
 }

@@ -151,8 +151,9 @@ test-suite ogmios-datum-cache-test
   other-modules:
     Spec.Api.Handlers
     Spec.Api.WebSocket.Types
-    Spec.Parameters
     Spec.Block.Babbage
+    Spec.Block.Parsers
+    Spec.Parameters
 
   ghc-options:
     -Wall -Wcompat -Wincomplete-uni-patterns
