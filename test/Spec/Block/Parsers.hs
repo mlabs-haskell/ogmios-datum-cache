@@ -6,6 +6,7 @@ import Data.Either (isRight)
 import Test.Hspec (Spec, describe, it, shouldBe, shouldSatisfy)
 
 import Block.Types (
+  CursorPoint (CursorOrigin, CursorPoint),
   OgmiosResponse (
     OgmiosResponse,
     _methodname,
@@ -15,7 +16,8 @@ import Block.Types (
     _type,
     _version
   ),
-  RequestNextResult (RollForward),
+  RequestNextResult (RollBackward, RollForward),
+  ResultTip (ResultTip, blockNo, hash, slot),
   SomeBlock (AlonzoBlock, BabbageBlock),
  )
 import Block.Types.Alonzo qualified as Types.Alonzo
@@ -31,19 +33,35 @@ spec = do
   describe "Ogmios JSON response parser" $ do
     it "RequestNext : Babbage rollforward" $ do
       testRequestNextResultWith
+        cutResponse
         Babbage.example
         "test/Spec/Block/Examples/RollForward_Babbage.json"
     it "RequestNext : Alonzo rollforward" $ do
       testRequestNextResultWith
+        cutResponse
         Alonzo.example
         "test/Spec/Block/Examples/RollForward_Alonzo.json"
+    it "RequestNext : RollBackward non origin" $ do
+      testRequestNextResultWith
+        id
+        forwardResultNonOrigin
+        "test/Spec/Block/Examples/RollBackward_NonOrigin.json"
+    it "RequestNext : RollBackward origin" $ do
+      testRequestNextResultWith
+        id
+        forwardResultOrigin
+        "test/Spec/Block/Examples/RollBackward_Origin.json"
 
-testRequestNextResultWith :: RequestNextResult -> String -> IO ()
-testRequestNextResultWith response path = do
+testRequestNextResultWith ::
+  (OgmiosRequestNextResponse -> OgmiosRequestNextResponse) ->
+  RequestNextResult ->
+  String ->
+  IO ()
+testRequestNextResultWith modify response path = do
   rawFile <- ByteString.Lazy.readFile path
   let newJSON = Aeson.eitherDecode @OgmiosRequestNextResponse rawFile
   newJSON `shouldSatisfy` isRight
-  second cutResponse newJSON `shouldBe` (Right $ mkResponse response)
+  second modify newJSON `shouldBe` (Right $ mkResponse response)
 
 mkResponse :: RequestNextResult -> OgmiosRequestNextResponse
 mkResponse result =
@@ -55,6 +73,31 @@ mkResponse result =
     , _result = result
     , _reflection = 0
     }
+
+forwardResultNonOrigin :: RequestNextResult
+forwardResultNonOrigin =
+  RollBackward
+    ( CursorPoint
+        61625527
+        "3afd8895c7b270f8250b744ec8d2b3c53ee2859c9d5711d906c47fe51b800988"
+    )
+    $ ResultTip
+      { slot = 62284316
+      , hash =
+          "30b253b54dbaf6fbacef0f3cb5c46dde178044406a7022672d8ee9c94034649a"
+      , blockNo = 3673647
+      }
+
+forwardResultOrigin :: RequestNextResult
+forwardResultOrigin =
+  RollBackward
+    CursorOrigin
+    $ ResultTip
+      { slot = 62276801
+      , hash =
+          "ceaa4558d36026b575c2a5860e73ee9bd5fccc535e71386b03380b48fa3b52f3"
+      , blockNo = 3673441
+      }
 
 cutResponse :: OgmiosRequestNextResponse -> OgmiosRequestNextResponse
 cutResponse
