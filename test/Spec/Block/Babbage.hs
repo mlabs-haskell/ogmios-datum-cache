@@ -1,13 +1,10 @@
-module Spec.Block.Babbage (example, setBabbageRawAsNull) where
+module Spec.Block.Babbage (example) where
 
 import Data.Aeson (Value (Null))
 import Data.Map qualified as Map
 import Data.Text qualified as Text
 
 import Block.Types (
-  OgmiosResponse (
-    OgmiosResponse
-  ),
   RequestNextResult (RollForward),
   ResultTip (ResultTip, blockNo, hash, slot),
   SomeBlock (BabbageBlock),
@@ -66,34 +63,3 @@ fixedRawTransactions =
       , rawTx = Null
       }
   ]
-
-setBabbageRawAsNull ::
-  OgmiosResponse RequestNextResult Int -> OgmiosResponse RequestNextResult Int
-setBabbageRawAsNull
-  ( OgmiosResponse
-      ty
-      ver
-      ser
-      met
-      ( RollForward
-          (BabbageBlock (Babbage.Block {..}))
-          resTip
-        )
-      ref
-    ) =
-    let newTransactions = map (\raw -> raw{rawTx = Null}) rawTransactions
-     in ( OgmiosResponse
-            ty
-            ver
-            ser
-            met
-            ( RollForward
-                ( BabbageBlock
-                    ( Babbage.Block body newTransactions header headerHash
-                    )
-                )
-                resTip
-            )
-            ref
-        )
-setBabbageRawAsNull a = a
