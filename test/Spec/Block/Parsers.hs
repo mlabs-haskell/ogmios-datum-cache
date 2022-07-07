@@ -61,7 +61,7 @@ testRequestNextResultWith modify response path = do
   rawFile <- ByteString.Lazy.readFile path
   let newJSON = Aeson.eitherDecode @OgmiosRequestNextResponse rawFile
   newJSON `shouldSatisfy` isRight
-  second modify newJSON `shouldBe` (Right $ mkResponse response)
+  second modify newJSON `shouldBe` Right (mkResponse response)
 
 mkResponse :: RequestNextResult -> OgmiosRequestNextResponse
 mkResponse result =
