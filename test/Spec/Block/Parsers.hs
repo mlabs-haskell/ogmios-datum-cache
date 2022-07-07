@@ -25,6 +25,7 @@ import Block.Types.Babbage qualified as Types.Babbage
 import Data.Bifunctor (second)
 import Spec.Block.Alonzo qualified as Alonzo
 import Spec.Block.Babbage qualified as Babbage
+import Spec.Block.Byron qualified as Byron
 
 type OgmiosRequestNextResponse = OgmiosResponse RequestNextResult Int
 
@@ -41,6 +42,11 @@ spec = do
         cutResponse
         Alonzo.example
         "test/Spec/Block/Examples/RollForward_Alonzo.json"
+    it "RequestNext : Byron rollforward" $ do
+      testRequestNextResultWith
+        cutResponse
+        Byron.example
+        "test/Spec/Block/Examples/RollForward_Byron.json"
     it "RequestNext : RollBackward non origin" $ do
       testRequestNextResultWith
         id
@@ -136,7 +142,7 @@ cutResponse
                       newTransactions
                       header
                       headerHash
-            _ -> newBlock
+            _ -> someBlock
      in OgmiosResponse
           ty
           ver

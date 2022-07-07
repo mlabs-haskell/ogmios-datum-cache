@@ -153,6 +153,7 @@ test-suite ogmios-datum-cache-test
     Spec.Api.WebSocket.Types
     Spec.Block.Alonzo
     Spec.Block.Babbage
+    Spec.Block.Byron
     Spec.Block.Parsers
     Spec.Parameters
 
