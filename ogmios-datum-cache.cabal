@@ -166,6 +166,7 @@ test-suite ogmios-datum-cache-test
     , aeson
     , base
     , bytestring
+    , containers
     , exceptions
     , hspec
     , hspec-wai
@@ -176,4 +177,5 @@ test-suite ogmios-datum-cache-test
     , record-hasfield
     , servant-server
     , string-interpolate
+    , text
     , utf8-string

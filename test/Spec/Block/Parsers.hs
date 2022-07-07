@@ -17,6 +17,7 @@ import Block.Types (
   ),
   RequestNextResult,
  )
+import Data.Bifunctor (second)
 import Spec.Block.Babbage qualified as Babbage
 
 type OgmiosRequestNextResponse = OgmiosResponse RequestNextResult Int
@@ -32,7 +33,7 @@ testRequestNextResultWith response path = do
   rawFile <- ByteString.Lazy.readFile path
   let newJSON = Aeson.eitherDecode @OgmiosRequestNextResponse rawFile
   newJSON `shouldSatisfy` isRight
-  newJSON `shouldBe` (Right $ mkResponse response)
+  second Babbage.setBabbageRawAsNull newJSON `shouldBe` (Right $ mkResponse response)
 
 mkResponse :: RequestNextResult -> OgmiosRequestNextResponse
 mkResponse result =
