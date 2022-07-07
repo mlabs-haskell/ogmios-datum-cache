@@ -1,0 +1,63 @@
+{
+  "type": "jsonwsp/response",
+  "version": "1.0",
+  "servicename": "ogmios",
+  "methodname": "RequestNext",
+  "result": {
+    "RollForward": {
+      "block": {
+        "byron": {
+          "body": {
+            "dlgPayload": [],
+            "txPayload": [],
+            "updatePayload": {
+              "votes": [],
+              "proposal": null
+            }
+          },
+          "hash": "085cb94fcf67deb81b0d044171df4eeb99c51635bcd24bdf70723bc2b4258e11",
+          "header": {
+            "proof": {
+              "utxo": {
+                "number": 0,
+                "root": "0e5751c026e543b2e8ab2eb06099daa1d1e5df47778f7787faab45cdf12fe3a8",
+                "witnessesHash": "afc0da64183bf2664f3d4eec7238d524ba607faeeab24fc100eb861dba69971b"
+              },
+              "delegation": "afc0da64183bf2664f3d4eec7238d524ba607faeeab24fc100eb861dba69971b",
+              "update": "4e66280cd94d591072349bec0a3090a53aa945562efb6d08d56e53654b0e4098"
+            },
+            "signature": {
+              "dlgCertificate": {
+                "epoch": 0,
+                "issuerVk": "6cef56d6af8845f317949bcdff92358f1394fe11b45c02b28e1d5854c0fa13f8e079644dfc5041afb0fcbd1f47ec7ce064f37b7ec5c070c784a5619ebae2aa60",
+                "delegateVk": "dfb615a61568d6867f45a85c32227f27025180d738a8a3d7fd3c929f624d723929801b343641f148087b117e87e9695f215dbcf830ff0d58a066682c7603f641",
+                "signature": "qcbkq/lXVQhKhmJamOGF3nXU0z1VcoTTqmfs/z3P2Od5lPyLP8TCdih5ygwVRYrek22wl3rhDdASkc8yQblTDg=="
+              },
+              "signature": "Py3lnc6pXnzD/RueQ+FBxySVJ/I+AGFf+5gnWwzYtqVhiriYWFYy2gkv4G+/H9OeQBxK+bnVFbUr7py5HzSEBg=="
+            },
+            "protocolMagicId": 1097911063,
+            "prevHash": "bc143007739fc8eacb85179d6a2b8719ce9af22f41780ff711b87651fcad4aef",
+            "slot": 341860,
+            "blockHeight": 340816,
+            "protocolVersion": {
+              "major": 0,
+              "minor": 0,
+              "patch": 0
+            },
+            "softwareVersion": {
+              "appName": "cardano-sl",
+              "number": 0
+            },
+            "genesisKey": "6cef56d6af8845f317949bcdff92358f1394fe11b45c02b28e1d5854c0fa13f8e079644dfc5041afb0fcbd1f47ec7ce064f37b7ec5c070c784a5619ebae2aa60"
+          }
+        }
+      },
+      "tip": {
+        "slot": 62501845,
+        "hash": "ae07ffcf32670911486f65cc625ebfb339db09a58bbe1d6eb961988bc97516fb",
+        "blockNo": 3680348
+      }
+    }
+  },
+  "reflection": 0
+}
