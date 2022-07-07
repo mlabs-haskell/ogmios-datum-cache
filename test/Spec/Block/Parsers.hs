@@ -1,12 +1,17 @@
+{-# LANGUAGE ScopedTypeVariables #-}
+
 module Spec.Block.Parsers (spec) where
 
 import Data.Aeson qualified as Aeson
 import Data.ByteString.Lazy qualified as ByteString.Lazy
 import Data.Either (isRight)
+import Data.Kind (Type)
+import Data.Text qualified as Text
 import Test.Hspec (Spec, describe, it, shouldBe, shouldSatisfy)
 
 import Block.Types (
   CursorPoint (CursorOrigin, CursorPoint),
+  FindIntersectResult (IntersectionFound),
   OgmiosResponse (
     OgmiosResponse,
     _methodname,
@@ -35,47 +40,57 @@ spec = do
     it "RequestNext : Babbage rollforward" $ do
       testRequestNextResultWith
         cutResponse
-        Babbage.example
+        (mkNextResponse Babbage.example)
         "test/Spec/Block/Examples/RollForward_Babbage.json"
     it "RequestNext : Alonzo rollforward" $ do
       testRequestNextResultWith
         cutResponse
-        Alonzo.example
+        (mkNextResponse Alonzo.example)
         "test/Spec/Block/Examples/RollForward_Alonzo.json"
     it "RequestNext : Byron rollforward" $ do
       testRequestNextResultWith
         cutResponse
-        Byron.example
+        (mkNextResponse Byron.example)
         "test/Spec/Block/Examples/RollForward_Byron.json"
     it "RequestNext : RollBackward non origin" $ do
       testRequestNextResultWith
         id
-        forwardResultNonOrigin
+        (mkNextResponse forwardResultNonOrigin)
         "test/Spec/Block/Examples/RollBackward_NonOrigin.json"
     it "RequestNext : RollBackward origin" $ do
       testRequestNextResultWith
         id
-        forwardResultOrigin
+        (mkNextResponse forwardResultOrigin)
         "test/Spec/Block/Examples/RollBackward_Origin.json"
+    it "FindIntersect : non origin" $ do
+      testRequestNextResultWith
+        id
+        (mkResponse "FindIntersect" intersectionFound)
+        "test/Spec/Block/Examples/IntersectionFound.json"
+  where
+    mkNextResponse = mkResponse "RequestNext"
 
 testRequestNextResultWith ::
-  (OgmiosRequestNextResponse -> OgmiosRequestNextResponse) ->
-  RequestNextResult ->
+  forall (a :: Type).
+  (Show a, Eq a, Aeson.FromJSON a) =>
+  (OgmiosResponse a Int -> OgmiosResponse a Int) ->
+  OgmiosResponse a Int ->
   String ->
   IO ()
-testRequestNextResultWith modify response path = do
+testRequestNextResultWith modify testResponse path = do
   rawFile <- ByteString.Lazy.readFile path
-  let newJSON = Aeson.eitherDecode @OgmiosRequestNextResponse rawFile
+  let newJSON :: Either String (OgmiosResponse a Int)
+      newJSON = Aeson.eitherDecode rawFile
   newJSON `shouldSatisfy` isRight
-  second modify newJSON `shouldBe` Right (mkResponse response)
+  second modify newJSON `shouldBe` Right testResponse
 
-mkResponse :: RequestNextResult -> OgmiosRequestNextResponse
-mkResponse result =
+mkResponse :: forall (a :: Type). Text.Text -> a -> OgmiosResponse a Int
+mkResponse name result =
   OgmiosResponse
     { _type = "jsonwsp/response"
     , _version = "1.0"
     , _servicename = "ogmios"
-    , _methodname = "RequestNext"
+    , _methodname = name
     , _result = result
     , _reflection = 0
     }
@@ -103,6 +118,19 @@ forwardResultOrigin =
       , hash =
           "ceaa4558d36026b575c2a5860e73ee9bd5fccc535e71386b03380b48fa3b52f3"
       , blockNo = 3673441
+      }
+
+intersectionFound :: FindIntersectResult
+intersectionFound =
+  IntersectionFound
+    ( CursorPoint
+        61625527
+        "3afd8895c7b270f8250b744ec8d2b3c53ee2859c9d5711d906c47fe51b800988"
+    )
+    $ ResultTip
+      { slot = 62284316
+      , hash = "30b253b54dbaf6fbacef0f3cb5c46dde178044406a7022672d8ee9c94034649a"
+      , blockNo = 3673647
       }
 
 cutResponse :: OgmiosRequestNextResponse -> OgmiosRequestNextResponse
