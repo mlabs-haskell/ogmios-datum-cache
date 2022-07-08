@@ -60,10 +60,12 @@ getDatumByHash ::
 getDatumByHash hash = do
   res <- Database.getDatumByHash hash
   pure $ case res of
-    Left (DatabaseErrorDecodeError faulty) ->
+    Left (DatabaseErrorDecodeError faulty err) ->
       Left $
         mkGetDatumByHashFault $
-          "Error deserializing plutus Data in: " <> Text.pack (show faulty)
+          "Error deserializing datum plutus Data in: " <> Text.pack (show faulty)
+            <> " error: "
+            <> Text.pack (show err)
     Left DatabaseErrorNotFound ->
       Right $ mkGetDatumByHashResponse Nothing
     Right datum ->
@@ -75,10 +77,12 @@ getDatumsByHashes ::
 getDatumsByHashes hashes = do
   res <- Database.getDatumsByHashes hashes
   pure $ case res of
-    Left (DatabaseErrorDecodeError faulty) -> do
+    Left (DatabaseErrorDecodeError faulty err) -> do
       let resp =
             mkGetDatumsByHashesFault $
-              "Error deserializing plutus Data in: " <> Text.pack (show faulty)
+              "Error deserializing datums plutus Data in: " <> Text.pack (show faulty)
+                <> " error: "
+                <> Text.pack (show err)
       Left resp
     Left DatabaseErrorNotFound ->
       Right $ mkGetDatumsByHashesResponse Nothing
@@ -94,10 +98,12 @@ getTxByHash ::
 getTxByHash txId = do
   res <- Database.getTxByHash txId
   pure $ case res of
-    Left (DatabaseErrorDecodeError faulty) ->
+    Left (DatabaseErrorDecodeError faulty err) ->
       Left $
         mkGetTxByHashResponseFault $
-          "Error deserializing data from db: " <> Text.pack (show faulty)
+          "Error deserializing tx data from db: " <> Text.pack (show faulty)
+            <> " error: "
+            <> Text.pack (show err)
     Left DatabaseErrorNotFound ->
       Right $ mkGetTxByHashResponse Nothing
     Right datum ->
