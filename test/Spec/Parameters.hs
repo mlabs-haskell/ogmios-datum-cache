@@ -22,6 +22,7 @@ import Parameters (
     cfgLogLevel,
     cfgOgmiosAddress,
     cfgOgmiosPort,
+    cfgOldOgmios,
     cfgServerControlApiToken,
     cfgServerPort
   ),
@@ -100,6 +101,7 @@ example =
           , cfgFetcherQueueSize = 64
           }
     , cfgLogLevel = LevelWarn
+    , cfgOldOgmios = False
     }
 
 parseParams :: [String] -> Either String Config

@@ -67,6 +67,8 @@ data Config = Config
   , cfgOgmiosPort :: Int
   , cfgFetcher :: BlockFetcherConfig
   , cfgLogLevel :: LogLevel
+  , -- | Should be true if ogmios < 5.5.0 (force to use Base64 encoding for datums)
+    cfgOldOgmios :: Bool
   }
   deriving stock (Show, Eq)
 
@@ -234,6 +236,10 @@ argParser =
       )
     <*> parseBlockFetcher
     <*> parseLogLevel
+    <*> switch
+      ( long "old-ogmios"
+          <> help "required if ogmios < 5.5.0"
+      )
 
 parserInfo :: ParserInfo Config
 parserInfo =
@@ -254,6 +260,7 @@ configAsCLIOptions Config {..} =
         Origin -> ["--from-origin"]
         Tip -> ["--from-tip"]
       useLatesString = ["--use-latest" | cfgFetcher.cfgFetcherUseLatest]
+      oldOgmiosString = ["--old-ogmios" | cfgOldOgmios]
       logLevel =
         case cfgLogLevel of
           LevelInfo -> ["--log-level=info"]
@@ -264,6 +271,7 @@ configAsCLIOptions Config {..} =
 
       mostParams =
         useLatesString
+          <> oldOgmiosString
           <> blockOptions
           <> logLevel
           <> [ command "queue-size" cfgFetcher.cfgFetcherQueueSize

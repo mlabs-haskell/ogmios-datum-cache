@@ -1012,6 +1012,7 @@ Available options:
   --log-level LOG_LEVEL    One of [debug | info | warn | error], every level is
                            more restrictive than the previous level. By default
                            set to info
+  --old-ogmios             required if ogmios < 5.5.0
   -h,--help                Show this help text
 ```
 
