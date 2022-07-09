@@ -11,7 +11,7 @@ import Test.Hspec (Spec, describe, it, shouldBe, shouldSatisfy)
 
 import Block.Types (
   CursorPoint (CursorOrigin, CursorPoint),
-  FindIntersectResult (IntersectionFound),
+  FindIntersectResult (IntersectionFound, IntersectionNotFound),
   OgmiosResponse (
     OgmiosResponse,
     _methodname,
@@ -62,11 +62,16 @@ spec = do
         id
         (mkNextResponse forwardResultOrigin)
         "test/Spec/Block/Examples/RollBackward_Origin.json"
-    it "FindIntersect : non origin" $ do
+    it "FindIntersect : Intersection found" $ do
       testRequestNextResultWith
         id
         (mkResponse "FindIntersect" intersectionFound)
         "test/Spec/Block/Examples/IntersectionFound.json"
+    it "FindIntersect : Intersection not found" $ do
+      testRequestNextResultWith
+        id
+        (mkResponse "FindIntersect" intersectionNotFound)
+        "test/Spec/Block/Examples/IntersectionNotFound.json"
   where
     mkNextResponse = mkResponse "RequestNext"
 
@@ -131,6 +136,14 @@ intersectionFound =
       { slot = 62284316
       , hash = "30b253b54dbaf6fbacef0f3cb5c46dde178044406a7022672d8ee9c94034649a"
       , blockNo = 3673647
+      }
+intersectionNotFound :: FindIntersectResult
+intersectionNotFound =
+  IntersectionNotFound $
+    ResultTip
+      { slot = 63040785
+      , hash = "2d972be6ff4f3d1a8442e122dafd4baa5073127c6883fe17562d7fb07d453efc"
+      , blockNo = 3696087
       }
 
 cutResponse :: OgmiosRequestNextResponse -> OgmiosRequestNextResponse

@@ -1,0 +1,16 @@
+{
+  "type": "jsonwsp/response",
+  "version": "1.0",
+  "servicename": "ogmios",
+  "methodname": "FindIntersect",
+  "result": {
+    "IntersectionNotFound": {
+      "tip": {
+        "slot": 63040785,
+        "hash": "2d972be6ff4f3d1a8442e122dafd4baa5073127c6883fe17562d7fb07d453efc",
+        "blockNo": 3696087
+      }
+    }
+  },
+  "reflection": 0
+}
