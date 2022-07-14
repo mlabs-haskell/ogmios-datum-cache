@@ -22,7 +22,7 @@
 
   outputs = { self, nixpkgs, unstable_nixpkgs, ... }:
     let
-      supportedSystems = [ "x86_64-linux" ];
+      supportedSystems = [ "x86_64-linux" "x86_64-darwin" ];
       perSystem = nixpkgs.lib.genAttrs supportedSystems;
       nixpkgsFor = system: import nixpkgs { inherit system; };
       unstableNixpkgsFor = system: import unstable_nixpkgs { inherit system; };
