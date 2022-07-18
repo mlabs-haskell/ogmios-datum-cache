@@ -159,7 +159,10 @@ instance
   FromJSON (OgmiosResponse result reflection)
   where
   parseJSON =
-    Aeson.genericParseJSON Aeson.defaultOptions {Aeson.fieldLabelModifier = drop 1}
+    Aeson.genericParseJSON
+      Aeson.defaultOptions
+        { Aeson.fieldLabelModifier = drop 1
+        }
 
 type OgmiosFindIntersectResponse =
   OgmiosResponse FindIntersectResult OgmiosMirror
