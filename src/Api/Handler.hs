@@ -75,9 +75,12 @@ datumServiceHandlers =
 
     catchDatabaseError r = do
       case r of
-        Left (DatabaseErrorDecodeError e) ->
+        Left (DatabaseErrorDecodeError value err) ->
           throwJsonError err500 $
-            JsonError $ Text.pack $ "Decoding error: " <> show e
+            JsonError $
+              "Decoding error: " <> Text.pack (show value)
+                <> " error: "
+                <> Text.pack (show err)
         Left DatabaseErrorNotFound ->
           throwM err404
         Right x -> pure x
