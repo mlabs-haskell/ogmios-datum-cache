@@ -39,13 +39,13 @@ import Control.Monad.Reader.Has (Has)
 import Control.Monad.Reader.Has qualified as Has
 import Control.Monad.Trans (liftIO)
 import Data.Aeson qualified as Aeson
-import Data.ByteString.Base16 qualified as Base16
-import Data.ByteString.Base64 qualified as Base64
-import Data.ByteString.Lazy (ByteString)
+import Data.ByteString qualified as ByteString
+import Data.ByteString.Lazy qualified as ByteStringLazy
 import Data.Map qualified as Map
 import Data.Maybe (isJust)
 import Data.String (fromString)
 import Data.String.ToString (toString)
+import Data.Text (Text)
 import Data.Text qualified as Text
 import GHC.Natural (Natural)
 import Hasql.Connection qualified as Hasql
@@ -96,6 +96,8 @@ data BlockProcessorEnv = BlockProcessorEnv
     datumFilterMVar :: MVar DatumFilter
   , -- | Connection to postgres database.
     dbConn :: Hasql.Connection
+  , -- | ogmios < 5.5 use base64, ogmios >= 5.5 use base16
+    datumDecoder :: ByteString.ByteString -> Either Text ByteString.ByteString
   }
 
 -- | Create new env for block processor.
@@ -104,11 +106,12 @@ mkBlockProcessorEnv ::
   DatumFilter ->
   Hasql.Connection ->
   Natural ->
+  (ByteString.ByteString -> Either Text ByteString.ByteString) ->
   m BlockProcessorEnv
-mkBlockProcessorEnv f c queueSize = do
+mkBlockProcessorEnv f c queueSize decoder = do
   q <- liftIO $ newTBQueueIO queueSize
   datumFilterMVar <- liftIO $ newMVar f
-  pure $ BlockProcessorEnv q datumFilterMVar c
+  pure $ BlockProcessorEnv q datumFilterMVar c decoder
 
 -- | Create env for block fetcher connected to block processor's queue
 mkBlockFetcherEnv ::
@@ -158,6 +161,7 @@ startBlockFetcherAndProcessor ::
   StartingBlock ->
   DatumFilter ->
   Natural ->
+  (ByteString.ByteString -> Either Text ByteString.ByteString) ->
   (LogLevel -> Bool) ->
   m (MVar BlockFetcherEnv, BlockProcessorEnv)
 startBlockFetcherAndProcessor
@@ -166,8 +170,9 @@ startBlockFetcherAndProcessor
   blockInfo
   datumFilter
   queueSize
+  decoder
   logFilter = do
-    processorEnv <- mkBlockProcessorEnv datumFilter dbConn queueSize
+    processorEnv <- mkBlockProcessorEnv datumFilter dbConn queueSize decoder
     liftIO
       . void
       . forkIO
@@ -230,8 +235,8 @@ fetchLoop blockInfo = forever $ do
 -- | Function to interact with ogmios WS. Use *only* this function to use websocket.
 sendAndReceive ::
   (MonadIO m, MonadReader BlockFetcherEnv m) =>
-  ByteString ->
-  m ByteString
+  ByteStringLazy.ByteString ->
+  m ByteStringLazy.ByteString
 sendAndReceive toSend = do
   env <- ask
   liftIO $
@@ -361,10 +366,7 @@ saveDatumsFromBlock block = do
         Map.fromList
           . concatMap getFilteredDatums
           $ txs
-      decodeDatumValue dt =
-        let bs = fromString $ toString dt
-         in -- Base64 can be removed when ogmios >= 5.5.0
-            Base64.decodeBase64 bs <> Base16.decodeBase16 bs
+      decodeDatumValue dt = env.datumDecoder $ fromString $ toString dt
       (failedDecodings, requestedDatumsWithDecodedValues) =
         Map.mapEither decodeDatumValue requestedDatums
   unless (null failedDecodings) $ do

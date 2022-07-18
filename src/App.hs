@@ -6,6 +6,8 @@ import Control.Monad.Except (ExceptT (ExceptT), MonadIO)
 import Control.Monad.Logger (LogLevel, LoggingT, filterLogger, runStdoutLoggingT)
 import Control.Monad.Reader (runReaderT)
 import Data.Aeson (eitherDecode)
+import Data.ByteString.Base16 qualified as Base16
+import Data.ByteString.Base64 qualified as Base64
 import Data.Default (def)
 import Data.Maybe (fromMaybe)
 import Hasql.Connection qualified as Hasql
@@ -94,6 +96,7 @@ bootstrapEnvFromConfig cfg = do
         firstBlock
         datumFilter
         cfg.cfgFetcher.cfgFetcherQueueSize
+        (if cfg.cfgOldOgmios then Base64.decodeBase64 else Base16.decodeBase16)
         logFilter
     pure $
       Env

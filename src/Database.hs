@@ -12,7 +12,7 @@ module Database (
   getTxByHash,
 ) where
 
-import Codec.Serialise (deserialiseOrFail)
+import Codec.Serialise (DeserialiseFailure, deserialiseOrFail)
 import Control.Monad (void)
 import Control.Monad.IO.Class (MonadIO, liftIO)
 import Control.Monad.Logger (MonadLogger, logErrorNS, logInfoNS)
@@ -240,14 +240,14 @@ getLastBlock dbConnection = do
       pure Nothing
 
 data DatabaseError
-  = DatabaseErrorDecodeError [ByteString]
+  = DatabaseErrorDecodeError [ByteString] DeserialiseFailure
   | DatabaseErrorNotFound
 
 toPlutusData :: Datum -> Either DatabaseError PlutusData.Data
 toPlutusData datum =
   let res = deserialiseOrFail @PlutusData.Data (BSL.fromStrict $ value datum)
    in case res of
-        Left _ -> Left $ DatabaseErrorDecodeError [value datum]
+        Left err -> Left $ DatabaseErrorDecodeError [value datum] err
         Right x -> pure x
 
 toPlutusDataMany ::
@@ -265,10 +265,12 @@ toPlutusDataMany datums =
       correct = Vector.mapMaybe (\(datum, data') -> (hash datum,) <$> rightToMaybe data') res
       faulty =
         Vector.toList $
-          Vector.mapMaybe (fmap fst . (\(datum, data') -> (value datum,) <$> leftToMaybe data')) res
-   in if null faulty
-        then pure correct
-        else Left $ DatabaseErrorDecodeError faulty
+          Vector.mapMaybe ((\(datum, data') -> (\err -> DatabaseErrorDecodeError [value datum] err) <$> leftToMaybe data')) res
+   in case faulty of
+        [] -> pure correct
+        -- FIXME Don't discard errors
+        -- See: https://github.com/mlabs-haskell/ogmios-datum-cache/issues/112
+        (e : _) -> Left e
 
 getDatumByHash ::
   (MonadIO m, MonadReader r m, Has Connection r) =>
@@ -281,6 +283,8 @@ getDatumByHash hash = runExceptT $ do
     Left _ -> throwE DatabaseErrorNotFound
     Right datum -> except $ toPlutusData datum
 
+-- FIXME Don't exit upon a single error and change return type
+-- See: https://github.com/mlabs-haskell/ogmios-datum-cache/issues/112
 getDatumsByHashes ::
   (MonadIO m, MonadReader r m, Has Connection r) =>
   [Text] ->
