@@ -146,6 +146,12 @@ intersectionNotFound =
       , blockNo = 3696087
       }
 
+{- | This function modifies the transaction inside the fixed responses.
+ We do this as the transactions are parsed using the Aeson instances
+ of Map, this means that testing those transactions becomes testing
+ the Aeson instance of Map it's self. We just need to make sure
+ that the instance is capable of parsing them without error.
+-}
 cutResponse :: OgmiosRequestNextResponse -> OgmiosRequestNextResponse
 cutResponse
   ( OgmiosResponse
