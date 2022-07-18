@@ -268,7 +268,8 @@ toPlutusDataMany datums =
           Vector.mapMaybe ((\(datum, data') -> (\err -> DatabaseErrorDecodeError [value datum] err) <$> leftToMaybe data')) res
    in case faulty of
         [] -> pure correct
-        -- TODO: return list of all errors
+        -- FIXME Don't discard errors
+        -- See: https://github.com/mlabs-haskell/ogmios-datum-cache/issues/112
         (e : _) -> Left e
 
 getDatumByHash ::
@@ -282,6 +283,8 @@ getDatumByHash hash = runExceptT $ do
     Left _ -> throwE DatabaseErrorNotFound
     Right datum -> except $ toPlutusData datum
 
+-- FIXME Don't exit upon a single error and change return type
+-- See: https://github.com/mlabs-haskell/ogmios-datum-cache/issues/112
 getDatumsByHashes ::
   (MonadIO m, MonadReader r m, Has Connection r) =>
   [Text] ->
