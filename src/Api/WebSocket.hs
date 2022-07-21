@@ -10,7 +10,6 @@ import Data.Text qualified as Text
 import Data.Vector qualified as Vector
 import Network.WebSockets qualified as WebSockets
 
-import Api.Types (DataHash)
 import Api.WebSocket.Json (
   JsonWspFault (JsonWspFault),
   JsonWspResponse,
@@ -45,6 +44,7 @@ import App.Types (App)
 import Block.Fetch (changeDatumFilter, changeStartingBlock)
 import Block.Filter (DatumFilter)
 import Block.Types (StartingBlock)
+import DataHash (DataHash)
 import Database (
   DatabaseError (DatabaseErrorDecodeError, DatabaseErrorNotFound),
  )

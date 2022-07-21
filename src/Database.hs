@@ -35,7 +35,6 @@ import Hasql.Session (Session)
 import Hasql.Session qualified as Session
 import Hasql.Statement (Statement (Statement))
 
-import Api.Types (DataHash (DataHash, dataHash))
 import Block.Types (
   BlockInfo (BlockInfo),
   SomeRawTransaction (AlonzoRawTransaction, BabbageRawTransaction),
@@ -45,6 +44,7 @@ import Block.Types (
 import Block.Types.Alonzo qualified as Alonzo
 import Block.Types.Babbage qualified as Babbage
 import Data.Bifunctor (bimap)
+import DataHash (DataHash (DataHash, dataHash))
 import PlutusData qualified
 
 data Datum = Datum

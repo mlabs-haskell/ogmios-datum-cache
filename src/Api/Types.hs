@@ -6,23 +6,16 @@ module Api.Types (
   SetStartingBlockRequest (..),
   SetDatumFilterRequest (..),
   ControlApiAuthData (..),
-  DataHash (..),
 ) where
 
 import Data.Aeson (FromJSON, ToJSON)
-import Data.Text (Text)
 import Data.Vector (Vector)
 import Servant.API.Generic (Generic)
 
 import Block.Filter (DatumFilter)
 import Block.Types (StartingBlock)
+import DataHash (DataHash)
 import PlutusData qualified
-
-newtype DataHash = DataHash {dataHash :: Text}
-  deriving stock (Generic, Show, Eq)
-  deriving newtype (Ord)
-  deriving anyclass (ToJSON)
-  deriving anyclass (FromJSON)
 
 newtype GetDatumByHashResponse = GetDatumByHashResponse PlutusData.Data
   deriving stock (Generic)

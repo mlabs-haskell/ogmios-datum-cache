@@ -9,10 +9,10 @@ import Data.Aeson qualified as Aeson
 import Data.Text (Text)
 import GHC.Generics (Generic)
 
-import Api.Types (DataHash (DataHash))
 import App.Env (ControlApiToken (ControlApiToken))
 import Block.Filter (DatumFilter)
 import Block.Types (StartingBlock)
+import DataHash (DataHash (DataHash))
 import PlutusData qualified
 
 data JsonWspRequest = JsonWspRequest
