@@ -10,6 +10,7 @@ import Data.Text qualified as Text
 import Data.Vector qualified as Vector
 import Network.WebSockets qualified as WebSockets
 
+import Api.Types (DataHash)
 import Api.WebSocket.Json (
   JsonWspFault (JsonWspFault),
   JsonWspResponse,
@@ -55,7 +56,7 @@ type WSResponse =
     (Maybe Aeson.Value -> JsonWspResponse)
 
 getDatumByHash ::
-  Text ->
+  DataHash ->
   App WSResponse
 getDatumByHash hash = do
   res <- Database.getDatumByHash hash
@@ -72,7 +73,7 @@ getDatumByHash hash = do
       Right $ mkGetDatumByHashResponse $ Just datum
 
 getDatumsByHashes ::
-  [Text] ->
+  [DataHash] ->
   App WSResponse
 getDatumsByHashes hashes = do
   res <- Database.getDatumsByHashes hashes

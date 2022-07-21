@@ -9,6 +9,7 @@ import Data.Aeson qualified as Aeson
 import Data.Text (Text)
 import GHC.Generics (Generic)
 
+import Api.Types (DataHash (DataHash))
 import App.Env (ControlApiToken (ControlApiToken))
 import Block.Filter (DatumFilter)
 import Block.Types (StartingBlock)
@@ -30,11 +31,11 @@ instance FromJSON JsonWspRequest where
           "GetDatumByHash" -> do
             args <- o .: "args"
             hash <- args .: "hash"
-            pure $ GetDatumByHash hash
+            pure $ GetDatumByHash (DataHash hash)
           "GetDatumsByHashes" -> do
             args <- o .: "args"
             hashes <- args .: "hashes"
-            pure $ GetDatumsByHashes hashes
+            pure $ GetDatumsByHashes (DataHash <$> hashes)
           "GetTxByHash" -> do
             args <- o .: "args"
             hash <- args .: "hash"
@@ -55,8 +56,8 @@ instance FromJSON JsonWspRequest where
           _ -> fail "Unexpected method"
 
 data Method
-  = GetDatumByHash Text
-  | GetDatumsByHashes [Text]
+  = GetDatumByHash DataHash
+  | GetDatumsByHashes [DataHash]
   | GetTxByHash Text
   | GetBlock
   | GetHealthcheck

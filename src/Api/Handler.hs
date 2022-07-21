@@ -8,6 +8,7 @@ module Api.Handler (
 import Control.Monad.Catch (throwM)
 import Control.Monad.Logger (logInfoNS)
 import Data.Aeson qualified as Aeson
+import Data.Bifunctor (first)
 import Data.String.ToString (toString)
 import Data.Text (Text)
 import Data.Text qualified as Text
@@ -28,15 +29,7 @@ import Api (
   WebSocketApi (WebSocketApi, websocketApi),
  )
 import Api.Error (JsonError (JsonError), throwJsonError)
-import Api.Types (
-  ControlApiAuthData (ControlApiAuthData),
-  GetDatumByHashResponse (GetDatumByHashResponse),
-  GetDatumsByHashesDatum (GetDatumsByHashesDatum),
-  GetDatumsByHashesRequest (GetDatumsByHashesRequest),
-  GetDatumsByHashesResponse (GetDatumsByHashesResponse),
-  SetDatumFilterRequest (SetDatumFilterRequest),
-  SetStartingBlockRequest (SetStartingBlockRequest),
- )
+import Api.Types (ControlApiAuthData (ControlApiAuthData), DataHash (DataHash), GetDatumByHashResponse (GetDatumByHashResponse), GetDatumsByHashesDatum (GetDatumsByHashesDatum), GetDatumsByHashesRequest (GetDatumsByHashesRequest), GetDatumsByHashesResponse (GetDatumsByHashesResponse), SetDatumFilterRequest (SetDatumFilterRequest), SetStartingBlockRequest (SetStartingBlockRequest))
 import Api.WebSocket (websocketServer)
 import App.Env (ControlApiToken (ControlApiToken), Env (Env, envControlApiToken))
 import App.Types (App)
@@ -87,7 +80,7 @@ datumServiceHandlers =
 
     getDatumByHash :: Text -> App GetDatumByHashResponse
     getDatumByHash hash = do
-      datum <- Database.getDatumByHash hash >>= catchDatabaseError
+      datum <- Database.getDatumByHash (DataHash hash) >>= catchDatabaseError
       pure $ GetDatumByHashResponse datum
 
     getDatumsByHashes ::
@@ -97,7 +90,7 @@ datumServiceHandlers =
       datums <- Database.getDatumsByHashes hashes >>= catchDatabaseError
       pure $
         GetDatumsByHashesResponse $
-          fmap (uncurry GetDatumsByHashesDatum) datums
+          fmap (uncurry GetDatumsByHashesDatum) (first DataHash <$> datums)
 
     getTx :: Text -> App Aeson.Value
     getTx txId = do

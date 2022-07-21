@@ -33,6 +33,7 @@ import Hasql.Session (Session)
 import Hasql.Session qualified as Session
 import Hasql.Statement (Statement (Statement))
 
+import Api.Types (DataHash (DataHash, dataHash))
 import Block.Types (
   BlockInfo (BlockInfo),
   SomeRawTransaction (AlonzoRawTransaction, BabbageRawTransaction),
@@ -49,8 +50,8 @@ data Datum = Datum
   }
   deriving stock (Eq, Show)
 
-getDatumSession :: Text -> Session Datum
-getDatumSession datumHash =
+getDatumSession :: DataHash -> Session Datum
+getDatumSession (DataHash datumHash) =
   Session.statement datumHash getDatumStatement
 
 getDatumStatement :: Statement Text Datum
@@ -66,9 +67,9 @@ getDatumStatement = Statement sql enc dec True
           <$> Decoders.column (Decoders.nonNullable Decoders.text)
           <*> Decoders.column (Decoders.nonNullable Decoders.bytea)
 
-getDatumsSession :: [Text] -> Session (Vector Datum)
+getDatumsSession :: [DataHash] -> Session (Vector Datum)
 getDatumsSession datumHashes =
-  Session.statement datumHashes getDatumsStatement
+  Session.statement (dataHash <$> datumHashes) getDatumsStatement
 
 getDatumsStatement :: Statement [Text] (Vector Datum)
 getDatumsStatement = Statement sql enc dec True
@@ -274,7 +275,7 @@ toPlutusDataMany datums =
 
 getDatumByHash ::
   (MonadIO m, MonadReader r m, Has Connection r) =>
-  Text ->
+  DataHash ->
   m (Either DatabaseError PlutusData.Data)
 getDatumByHash hash = runExceptT $ do
   conn <- ask
@@ -287,7 +288,7 @@ getDatumByHash hash = runExceptT $ do
 -- See: https://github.com/mlabs-haskell/ogmios-datum-cache/issues/112
 getDatumsByHashes ::
   (MonadIO m, MonadReader r m, Has Connection r) =>
-  [Text] ->
+  [DataHash] ->
   m (Either DatabaseError (Vector (Text, PlutusData.Data)))
 getDatumsByHashes hashes = runExceptT $ do
   conn <- ask
