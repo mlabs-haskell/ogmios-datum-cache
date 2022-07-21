@@ -20,6 +20,7 @@ import PlutusData qualified
 
 newtype DataHash = DataHash {dataHash :: Text}
   deriving stock (Generic, Show, Eq)
+  deriving newtype (Ord)
   deriving anyclass (ToJSON)
   deriving anyclass (FromJSON)
 

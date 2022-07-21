@@ -22,6 +22,8 @@ import Data.ByteString (ByteString)
 import Data.ByteString.Lazy qualified as BSL
 import Data.Functor.Contravariant ((>$<))
 import Data.List (foldl')
+import Data.Map (Map)
+import Data.Map qualified as Map
 import Data.Text (Text)
 import Data.Text qualified as Text
 import Data.Vector (Vector)
@@ -42,6 +44,7 @@ import Block.Types (
  )
 import Block.Types.Alonzo qualified as Alonzo
 import Block.Types.Babbage qualified as Babbage
+import Data.Bifunctor (bimap)
 import PlutusData qualified
 
 data Datum = Datum
@@ -253,25 +256,20 @@ toPlutusData datum =
 
 toPlutusDataMany ::
   Vector Datum ->
-  Either DatabaseError (Vector (Text, PlutusData.Data))
+  Map DataHash (Either DatabaseError PlutusData.Data)
 toPlutusDataMany datums =
-  let res =
-        fmap
-          (\d -> (d,) . deserialiseOrFail @PlutusData.Data . BSL.fromStrict . value $ d)
-          datums
-      rightToMaybe (Right x) = Just x
-      rightToMaybe _ = Nothing
-      leftToMaybe (Left x) = Just x
-      leftToMaybe _ = Nothing
-      correct = Vector.mapMaybe (\(datum, data') -> (hash datum,) <$> rightToMaybe data') res
-      faulty =
-        Vector.toList $
-          Vector.mapMaybe ((\(datum, data') -> (\err -> DatabaseErrorDecodeError [value datum] err) <$> leftToMaybe data')) res
-   in case faulty of
-        [] -> pure correct
-        -- FIXME Don't discard errors
-        -- See: https://github.com/mlabs-haskell/ogmios-datum-cache/issues/112
-        (e : _) -> Left e
+  (Map.fromList . Vector.toList . (deserialiseDatum <$>)) datums
+  where
+    deserialiseDatum ::
+      Datum ->
+      (DataHash, Either DatabaseError PlutusData.Data)
+    deserialiseDatum d =
+      ( DataHash $ hash d
+      , bimap
+          (\err -> DatabaseErrorDecodeError [value d] err)
+          id
+          $ (deserialiseOrFail @PlutusData.Data . BSL.fromStrict . value) d
+      )
 
 getDatumByHash ::
   (MonadIO m, MonadReader r m, Has Connection r) =>
@@ -289,13 +287,13 @@ getDatumByHash hash = runExceptT $ do
 getDatumsByHashes ::
   (MonadIO m, MonadReader r m, Has Connection r) =>
   [DataHash] ->
-  m (Either DatabaseError (Vector (Text, PlutusData.Data)))
+  m (Either DatabaseError (Map DataHash (Either DatabaseError PlutusData.Data)))
 getDatumsByHashes hashes = runExceptT $ do
   conn <- ask
   res' <- liftIO (Session.run (getDatumsSession hashes) conn)
   case res' of
     Left _ -> throwE DatabaseErrorNotFound
-    Right datums -> except $ toPlutusDataMany datums
+    Right datums -> except $ pure $ toPlutusDataMany datums
 
 saveDatums ::
   ( MonadIO m
