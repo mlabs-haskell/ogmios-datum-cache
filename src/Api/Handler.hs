@@ -8,10 +8,11 @@ module Api.Handler (
 import Control.Monad.Catch (throwM)
 import Control.Monad.Logger (logInfoNS)
 import Data.Aeson qualified as Aeson
-import Data.Bifunctor (first)
+import Data.Map qualified as Map
 import Data.String.ToString (toString)
 import Data.Text (Text)
 import Data.Text qualified as Text
+import Data.Vector qualified as Vector
 import Network.WebSockets qualified as WebSockets
 import Servant (err404, err500)
 import Servant.API.BasicAuth (BasicAuthData (BasicAuthData))
@@ -29,13 +30,14 @@ import Api (
   WebSocketApi (WebSocketApi, websocketApi),
  )
 import Api.Error (JsonError (JsonError), throwJsonError)
-import Api.Types (ControlApiAuthData (ControlApiAuthData), DataHash (DataHash), GetDatumByHashResponse (GetDatumByHashResponse), GetDatumsByHashesDatum (GetDatumsByHashesDatum), GetDatumsByHashesRequest (GetDatumsByHashesRequest), GetDatumsByHashesResponse (GetDatumsByHashesResponse), SetDatumFilterRequest (SetDatumFilterRequest), SetStartingBlockRequest (SetStartingBlockRequest))
+import Api.Types (ControlApiAuthData (ControlApiAuthData), GetDatumByHashResponse (GetDatumByHashResponse), GetDatumsByHashesDatum (GetDatumsByHashesDatum), GetDatumsByHashesRequest (GetDatumsByHashesRequest), GetDatumsByHashesResponse (GetDatumsByHashesResponse), SetDatumFilterRequest (SetDatumFilterRequest), SetStartingBlockRequest (SetStartingBlockRequest))
 import Api.WebSocket (websocketServer)
 import App.Env (ControlApiToken (ControlApiToken), Env (Env, envControlApiToken))
 import App.Types (App)
 import Block.Fetch (changeDatumFilter, changeStartingBlock)
 import Block.Types (BlockInfo, CursorPoint, getRawTx)
 import Control.Monad.Reader.Has (ask)
+import DataHash (DataHash (DataHash))
 import Database (
   DatabaseError (DatabaseErrorDecodeError, DatabaseErrorNotFound),
  )
@@ -88,9 +90,10 @@ datumServiceHandlers =
       App GetDatumsByHashesResponse
     getDatumsByHashes (GetDatumsByHashesRequest hashes) = do
       datums <- Database.getDatumsByHashes hashes >>= catchDatabaseError
+      let (_, rightDatums) = Map.mapEither id datums
       pure $
         GetDatumsByHashesResponse $
-          fmap (uncurry GetDatumsByHashesDatum) (first DataHash <$> datums)
+          ((uncurry GetDatumsByHashesDatum) <$> (Vector.fromList . Map.toList) rightDatums)
 
     getTx :: Text -> App Aeson.Value
     getTx txId = do

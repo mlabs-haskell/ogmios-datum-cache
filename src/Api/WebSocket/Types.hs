@@ -66,7 +66,7 @@ data Method
   deriving stock (Show, Eq)
 
 data GetDatumsByHashesDatum = GetDatumsByHashesDatum
-  { hash :: Text
+  { hash :: DataHash
   , value :: PlutusData.Data
   }
   deriving stock (Generic)

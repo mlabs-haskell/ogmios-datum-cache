@@ -48,33 +48,34 @@ import DataHash (DataHash (DataHash, dataHash))
 import PlutusData qualified
 
 data Datum = Datum
-  { hash :: Text
+  { hash :: DataHash
   , value :: ByteString
   }
   deriving stock (Eq, Show)
 
 getDatumSession :: DataHash -> Session Datum
-getDatumSession (DataHash datumHash) =
+getDatumSession datumHash =
   Session.statement datumHash getDatumStatement
 
-getDatumStatement :: Statement Text Datum
+getDatumStatement :: Statement DataHash Datum
 getDatumStatement = Statement sql enc dec True
   where
     sql =
       "SELECT hash, value FROM datums WHERE hash = $1"
     enc =
-      Encoders.param (Encoders.nonNullable Encoders.text)
+      Encoders.param (Encoders.nonNullable (dataHash >$< Encoders.text))
     dec =
       Decoders.singleRow $
         Datum
-          <$> Decoders.column (Decoders.nonNullable Decoders.text)
+          <$> Decoders.column
+            (Decoders.nonNullable (DataHash <$> Decoders.text))
           <*> Decoders.column (Decoders.nonNullable Decoders.bytea)
 
 getDatumsSession :: [DataHash] -> Session (Vector Datum)
-getDatumsSession datumHashes =
-  Session.statement (dataHash <$> datumHashes) getDatumsStatement
+getDatumsSession datumsHashes =
+  Session.statement datumsHashes getDatumsStatement
 
-getDatumsStatement :: Statement [Text] (Vector Datum)
+getDatumsStatement :: Statement [DataHash] (Vector Datum)
 getDatumsStatement = Statement sql enc dec True
   where
     sql =
@@ -84,11 +85,12 @@ getDatumsStatement = Statement sql enc dec True
         Encoders.nonNullable $
           Encoders.array $
             Encoders.dimension foldl' $
-              Encoders.element $ Encoders.nonNullable Encoders.text
+              Encoders.element (Encoders.nonNullable (dataHash >$< Encoders.text))
     dec =
       Decoders.rowVector $
         Datum
-          <$> Decoders.column (Decoders.nonNullable Decoders.text)
+          <$> Decoders.column
+            (Decoders.nonNullable (DataHash <$> Decoders.text))
           <*> Decoders.column (Decoders.nonNullable Decoders.bytea)
 
 insertDatumsSession :: [Text] -> [ByteString] -> Session ()
@@ -264,7 +266,7 @@ toPlutusDataMany datums =
       Datum ->
       (DataHash, Either DatabaseError PlutusData.Data)
     deserialiseDatum d =
-      ( DataHash $ hash d
+      ( hash d
       , bimap
           (\err -> DatabaseErrorDecodeError [value d] err)
           id
