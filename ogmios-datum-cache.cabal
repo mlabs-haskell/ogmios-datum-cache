@@ -70,6 +70,7 @@ library
     Block.Types.Babbage
     Block.Types.Byron
     Database
+    DataHash
     Parameters
 
   other-modules:
