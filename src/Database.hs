@@ -293,7 +293,6 @@ getDatumsByHashes ::
 getDatumsByHashes hashes = runExceptT $ do
   conn <- ask
   res' <- liftIO (Session.run (getDatumsSession hashes) conn)
-  --  logErrorNS "datums are" $ Text.pack $ show res'
   case res' of
     Left _ -> throwE DatabaseErrorNotFound
     Right datums ->
