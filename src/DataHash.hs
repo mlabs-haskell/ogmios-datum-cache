@@ -10,5 +10,4 @@ newtype DataHash = DataHash {dataHash :: Text.Text}
   deriving anyclass (FromJSON)
 
 instance ToJSON DataHash where
-  --toJSON = toJSON . (\x -> Text.pack ("hi " <> Text.unpack (dataHash x)))
   toJSON = toJSON . dataHash
