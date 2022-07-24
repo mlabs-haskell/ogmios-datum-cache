@@ -91,15 +91,11 @@ getDatumsByHashes hashes = do
       Right $ mkGetDatumsByHashesResponse Nothing
     Right datumsOrErrors ->
       let rightDatums :: [(DataHash, PlutusData.Data)]
-          (faultDatums, rightDatums) =
+          (_, rightDatums) =
             bimap Map.toList Map.toList $ Map.mapEither id datumsOrErrors
           datums' =
             Aeson.toJSON <$> (uncurry GetDatumsByHashesDatum <$> rightDatums)
-       in case faultDatums of
-            -- TODO : should we return both of them or at least log the
-            -- wrong datums?
-            [] -> Right $ mkGetDatumsByHashesResponse (Just datums')
-            _ -> Right $ mkGetDatumsByHashesResponse (Just datums')
+       in Right $ mkGetDatumsByHashesResponse (Just datums')
 
 getTxByHash ::
   Text ->

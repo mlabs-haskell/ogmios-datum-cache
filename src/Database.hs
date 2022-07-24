@@ -287,7 +287,7 @@ getDatumByHash hash = runExceptT $ do
 -- FIXME Don't exit upon a single error and change return type
 -- See: https://github.com/mlabs-haskell/ogmios-datum-cache/issues/112
 getDatumsByHashes ::
-  (MonadIO m, MonadReader r m, Has Connection r, MonadLogger m) =>
+  (MonadIO m, MonadReader r m, Has Connection r) =>
   [DataHash] ->
   m (Either DatabaseError (Map DataHash (Either DatabaseError PlutusData.Data)))
 getDatumsByHashes hashes = runExceptT $ do
