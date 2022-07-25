@@ -92,8 +92,8 @@ datumServiceHandlers =
       datums <- Database.getDatumsByHashes hashes >>= catchDatabaseError
       let (_, rightDatums) = Map.mapEither id datums
       pure $
-        GetDatumsByHashesResponse $
-          ((uncurry GetDatumsByHashesDatum) <$> (Vector.fromList . Map.toList) rightDatums)
+        GetDatumsByHashesResponse
+          (uncurry GetDatumsByHashesDatum <$> (Vector.fromList . Map.toList) rightDatums)
 
     getTx :: Text -> App Aeson.Value
     getTx txId = do

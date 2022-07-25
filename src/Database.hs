@@ -18,6 +18,7 @@ import Control.Monad.IO.Class (MonadIO, liftIO)
 import Control.Monad.Logger (MonadLogger, logErrorNS, logInfoNS)
 import Control.Monad.Reader.Has (Has, MonadReader, ask)
 import Control.Monad.Trans.Except (except, runExceptT, throwE)
+import Data.Bifunctor (first, second)
 import Data.ByteString (ByteString)
 import Data.ByteString.Lazy qualified as BSL
 import Data.Functor.Contravariant ((>$<))
@@ -43,7 +44,6 @@ import Block.Types (
  )
 import Block.Types.Alonzo qualified as Alonzo
 import Block.Types.Babbage qualified as Babbage
-import Data.Bifunctor (bimap)
 import DataHash (DataHash (DataHash, dataHash))
 import PlutusData qualified
 
@@ -259,17 +259,15 @@ toPlutusData datum =
 toPlutusDataMany ::
   Vector Datum ->
   Map DataHash (Either DatabaseError PlutusData.Data)
-toPlutusDataMany datums =
-  (Map.fromList . Vector.toList . (deserialiseDatum <$>)) datums
+toPlutusDataMany = Map.fromList . Vector.toList . (deserialiseDatum <$>)
   where
     deserialiseDatum ::
       Datum ->
       (DataHash, Either DatabaseError PlutusData.Data)
     deserialiseDatum d =
       ( hash d
-      , bimap
-          (\err -> DatabaseErrorDecodeError [value d] err)
-          id
+      , first
+          (DatabaseErrorDecodeError [value d])
           $ (deserialiseOrFail @PlutusData.Data . BSL.fromStrict . value) d
       )
 
@@ -295,7 +293,7 @@ getDatumsByHashes hashes = runExceptT $ do
     Left _ -> throwE DatabaseErrorNotFound
     Right datums ->
       let datumsMap = toPlutusDataMany datums
-          (_, sucess) = bimap id Map.toList $ Map.mapEither id datumsMap
+          (_, sucess) = second Map.toList $ Map.mapEither id datumsMap
        in case sucess of
             [] -> throwE DatabaseErrorNotFound
             _ -> except $ pure datumsMap
