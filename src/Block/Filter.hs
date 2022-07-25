@@ -7,6 +7,7 @@ import Data.Text (Text)
 import GHC.Exts (toList)
 
 import Block.Types (SomeTransaction (AlonzoTransaction, BabbageTransaction))
+import DataHash (DataHash (dataHash))
 
 data DatumFilter
   = ConstFilter Bool
@@ -47,13 +48,13 @@ runDatumFilter (DatumHashFilter expectedHash) _ (actualHash, _) =
   expectedHash == actualHash
 runDatumFilter (AddressFilter expectedAddress) (AlonzoTransaction tx') (actualHash, _) =
   let hashes =
-        mapMaybe (.datumHash)
+        mapMaybe (\x -> dataHash <$> x.datumHash)
           . filter (\tx -> tx.address == expectedAddress)
           $ tx'.outputs
    in actualHash `elem` hashes
 runDatumFilter (AddressFilter expectedAddress) (BabbageTransaction tx') (actualHash, _) =
   let hashes =
-        mapMaybe (.datumHash)
+        mapMaybe (\x -> dataHash <$> x.datumHash)
           . filter (\tx -> tx.address == expectedAddress)
           $ tx'.outputs
    in actualHash `elem` hashes

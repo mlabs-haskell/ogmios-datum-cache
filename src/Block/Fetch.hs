@@ -39,6 +39,7 @@ import Control.Monad.Reader.Has (Has)
 import Control.Monad.Reader.Has qualified as Has
 import Control.Monad.Trans (liftIO)
 import Data.Aeson qualified as Aeson
+import Data.Bifunctor (first)
 import Data.ByteString qualified as ByteString
 import Data.ByteString.Lazy qualified as ByteStringLazy
 import Data.Map qualified as Map
@@ -72,6 +73,7 @@ import Block.Types (
   tipToBlockInfo,
   transactionsInBlock,
  )
+import DataHash (DataHash (dataHash))
 import Database (getLastBlock, saveDatums, saveTxs, updateLastBlock)
 
 data OgmiosInfo = OgmiosInfo
@@ -361,7 +363,7 @@ saveDatumsFromBlock block = do
   datumFilter <- liftIO $ readMVar env.datumFilterMVar
   let txs = transactionsInBlock block
       getFilteredDatums tx =
-        filter (runDatumFilter datumFilter tx) . Map.toList . datumsInTransaction $ tx
+        filter (runDatumFilter datumFilter tx) . (first dataHash <$>) . Map.toList . datumsInTransaction $ tx
       requestedDatums =
         Map.fromList
           . concatMap getFilteredDatums
