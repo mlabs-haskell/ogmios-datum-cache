@@ -18,7 +18,7 @@ import Control.Monad.IO.Class (MonadIO, liftIO)
 import Control.Monad.Logger (MonadLogger, logErrorNS, logInfoNS)
 import Control.Monad.Reader.Has (Has, MonadReader, ask)
 import Control.Monad.Trans.Except (except, runExceptT, throwE)
-import Data.Bifunctor (first, second)
+import Data.Bifunctor (bimap, first)
 import Data.ByteString (ByteString)
 import Data.ByteString.Lazy qualified as BSL
 import Data.Functor.Contravariant ((>$<))
@@ -293,9 +293,11 @@ getDatumsByHashes hashes = runExceptT $ do
     Left _ -> throwE DatabaseErrorNotFound
     Right datums ->
       let datumsMap = toPlutusDataMany datums
-          (_, sucess) = second Map.toList $ Map.mapEither id datumsMap
+          (faults, sucess) = bimap Map.toList Map.toList $ Map.mapEither id datumsMap
        in case sucess of
-            [] -> throwE DatabaseErrorNotFound
+            [] -> case faults of
+              [] -> throwE DatabaseErrorNotFound
+              (_, firstFault) : _ -> except $ Left firstFault
             _ -> except $ pure datumsMap
 
 saveDatums ::
