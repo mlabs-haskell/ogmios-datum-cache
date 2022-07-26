@@ -93,11 +93,11 @@ getDatumsStatement = Statement sql enc dec True
             (Decoders.nonNullable (DataHash <$> Decoders.text))
           <*> Decoders.column (Decoders.nonNullable Decoders.bytea)
 
-insertDatumsSession :: [Text] -> [ByteString] -> Session ()
+insertDatumsSession :: [DataHash] -> [ByteString] -> Session ()
 insertDatumsSession datumHashes datumValues = do
   Session.statement (datumHashes, datumValues) insertDatumsStatement
 
-insertDatumsStatement :: Statement ([Text], [ByteString]) ()
+insertDatumsStatement :: Statement ([DataHash], [ByteString]) ()
 insertDatumsStatement = Statement sql enc dec True
   where
     sql =
@@ -111,7 +111,7 @@ insertDatumsStatement = Statement sql enc dec True
               Encoders.element $
                 Encoders.nonNullable elemEncoder
     enc =
-      (fst >$< encArray Encoders.text)
+      (fst >$< encArray (dataHash >$< Encoders.text))
         <> (snd >$< encArray Encoders.bytea)
 
     dec = Decoders.noResult
@@ -303,12 +303,12 @@ saveDatums ::
   , MonadLogger m
   ) =>
   Connection ->
-  [(Text, ByteString)] ->
+  [(DataHash, ByteString)] ->
   m ()
 saveDatums dbConnection datums = do
   let (datumHashes, datumValues) = unzip datums
   logInfoNS "saveDatums" $
-    "Inserting datums: " <> Text.intercalate ", " datumHashes
+    "Inserting datums: " <> Text.intercalate ", " (dataHash <$> datumHashes)
   res <-
     liftIO $
       Session.run (insertDatumsSession datumHashes datumValues) dbConnection
