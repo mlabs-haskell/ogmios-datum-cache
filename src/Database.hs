@@ -44,7 +44,7 @@ import Block.Types (
  )
 import Block.Types.Alonzo qualified as Alonzo
 import Block.Types.Babbage qualified as Babbage
-import DataHash (DataHash (DataHash, dataHash))
+import DataHash (DataHash (DataHash, unDataHash))
 import PlutusData qualified
 
 data Datum = Datum
@@ -63,7 +63,7 @@ getDatumStatement = Statement sql enc dec True
     sql =
       "SELECT hash, value FROM datums WHERE hash = $1"
     enc =
-      Encoders.param (Encoders.nonNullable (dataHash >$< Encoders.text))
+      Encoders.param (Encoders.nonNullable (unDataHash >$< Encoders.text))
     dec =
       Decoders.singleRow $
         Datum
@@ -85,7 +85,7 @@ getDatumsStatement = Statement sql enc dec True
         Encoders.nonNullable $
           Encoders.array $
             Encoders.dimension foldl' $
-              Encoders.element (Encoders.nonNullable (dataHash >$< Encoders.text))
+              Encoders.element (Encoders.nonNullable (unDataHash >$< Encoders.text))
     dec =
       Decoders.rowVector $
         Datum
@@ -111,7 +111,7 @@ insertDatumsStatement = Statement sql enc dec True
               Encoders.element $
                 Encoders.nonNullable elemEncoder
     enc =
-      (fst >$< encArray (dataHash >$< Encoders.text))
+      (fst >$< encArray (unDataHash >$< Encoders.text))
         <> (snd >$< encArray Encoders.bytea)
 
     dec = Decoders.noResult
@@ -310,7 +310,7 @@ saveDatums ::
 saveDatums dbConnection datums = do
   let (datumHashes, datumValues) = unzip datums
   logInfoNS "saveDatums" $
-    "Inserting datums: " <> Text.intercalate ", " (dataHash <$> datumHashes)
+    "Inserting datums: " <> Text.intercalate ", " (unDataHash <$> datumHashes)
   res <-
     liftIO $
       Session.run (insertDatumsSession datumHashes datumValues) dbConnection
