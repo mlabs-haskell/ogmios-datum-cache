@@ -72,6 +72,7 @@ import Block.Types (
   tipToBlockInfo,
   transactionsInBlock,
  )
+import DataHash (DataHash (unDataHash))
 import Database (getLastBlock, saveDatums, saveTxs, updateLastBlock)
 
 data OgmiosInfo = OgmiosInfo
@@ -372,7 +373,7 @@ saveDatumsFromBlock block = do
   unless (null failedDecodings) $ do
     logErrorNS "saveDatumsFromBlock" $
       "Error decoding values for datums (Base64 or Base16): "
-        <> Text.intercalate ", " (Map.keys failedDecodings)
+        <> Text.intercalate ", " (unDataHash <$> Map.keys failedDecodings)
     pure ()
   let datums_ = Map.toList requestedDatumsWithDecodedValues
   unless (null datums_) $ saveDatums env.dbConn datums_

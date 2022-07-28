@@ -40,6 +40,7 @@ import GHC.Generics (Generic)
 import Block.Types.Alonzo qualified as Alonzo
 import Block.Types.Babbage qualified as Babbage
 import Block.Types.Byron qualified as Byron
+import DataHash (DataHash)
 
 data StartingBlock = StartingBlock BlockInfo | Origin | Tip
   deriving stock (Show, Eq)
@@ -261,7 +262,7 @@ instance FromJSON RequestNextResult where
           rollObj
       _ -> fail "Unexpected object key"
 
-datumsInTransaction :: SomeTransaction -> Map Text Text
+datumsInTransaction :: SomeTransaction -> Map DataHash Text
 datumsInTransaction (AlonzoTransaction tx) = Alonzo.datumsInTransaction tx
 datumsInTransaction (BabbageTransaction tx) = Babbage.datumsInTransaction tx
 

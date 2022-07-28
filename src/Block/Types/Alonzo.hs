@@ -14,9 +14,11 @@ import Data.Int (Int64)
 import Data.Map (Map)
 import Data.Text (Text)
 
+import DataHash (DataHash)
+
 data TxOut = TxOut
   { address :: Text
-  , datumHash :: Maybe Text
+  , datumHash :: Maybe DataHash
   }
   deriving stock (Eq, Show)
 
@@ -27,7 +29,7 @@ instance FromJSON TxOut where
     pure $ TxOut {..}
 
 data Transaction = Transaction
-  { datums :: Map Text Text
+  { datums :: Map DataHash Text
   , outputs :: [TxOut]
   }
   deriving stock (Eq, Show)
@@ -80,5 +82,5 @@ instance FromJSON Block where
       <*> v .: "header"
       <*> v .: "headerHash"
 
-datumsInTransaction :: Transaction -> Map Text Text
+datumsInTransaction :: Transaction -> Map DataHash Text
 datumsInTransaction tx = tx.datums

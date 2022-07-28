@@ -5,9 +5,10 @@ import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Logger (logErrorNS)
 import Control.Monad.Reader.Has (ask)
 import Data.Aeson qualified as Aeson
+import Data.Bifunctor (bimap)
+import Data.Map qualified as Map
 import Data.Text (Text)
 import Data.Text qualified as Text
-import Data.Vector qualified as Vector
 import Network.WebSockets qualified as WebSockets
 
 import Api.WebSocket.Json (
@@ -44,10 +45,12 @@ import App.Types (App)
 import Block.Fetch (changeDatumFilter, changeStartingBlock)
 import Block.Filter (DatumFilter)
 import Block.Types (StartingBlock)
+import DataHash (DataHash)
 import Database (
   DatabaseError (DatabaseErrorDecodeError, DatabaseErrorNotFound),
  )
 import Database qualified
+import PlutusData qualified
 
 type WSResponse =
   Either
@@ -55,7 +58,7 @@ type WSResponse =
     (Maybe Aeson.Value -> JsonWspResponse)
 
 getDatumByHash ::
-  Text ->
+  DataHash ->
   App WSResponse
 getDatumByHash hash = do
   res <- Database.getDatumByHash hash
@@ -72,7 +75,7 @@ getDatumByHash hash = do
       Right $ mkGetDatumByHashResponse $ Just datum
 
 getDatumsByHashes ::
-  [Text] ->
+  [DataHash] ->
   App WSResponse
 getDatumsByHashes hashes = do
   res <- Database.getDatumsByHashes hashes
@@ -86,11 +89,13 @@ getDatumsByHashes hashes = do
       Left resp
     Left DatabaseErrorNotFound ->
       Right $ mkGetDatumsByHashesResponse Nothing
-    Right datums -> do
-      let datums' =
-            Vector.toList $
-              Vector.map (Aeson.toJSON . uncurry GetDatumsByHashesDatum) datums
-      Right $ mkGetDatumsByHashesResponse (Just datums')
+    Right datumsOrErrors ->
+      let rightDatums :: [(DataHash, PlutusData.Data)]
+          (_, rightDatums) =
+            bimap Map.toList Map.toList $ Map.mapEither id datumsOrErrors
+          datums' =
+            Aeson.toJSON <$> (uncurry GetDatumsByHashesDatum <$> rightDatums)
+       in Right $ mkGetDatumsByHashesResponse (Just datums')
 
 getTxByHash ::
   Text ->

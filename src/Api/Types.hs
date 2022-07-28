@@ -9,12 +9,12 @@ module Api.Types (
 ) where
 
 import Data.Aeson (FromJSON, ToJSON)
-import Data.Text (Text)
 import Data.Vector (Vector)
 import Servant.API.Generic (Generic)
 
 import Block.Filter (DatumFilter)
 import Block.Types (StartingBlock)
+import DataHash (DataHash)
 import PlutusData qualified
 
 newtype GetDatumByHashResponse = GetDatumByHashResponse PlutusData.Data
@@ -22,13 +22,13 @@ newtype GetDatumByHashResponse = GetDatumByHashResponse PlutusData.Data
   deriving anyclass (ToJSON)
 
 newtype GetDatumsByHashesRequest = GetDatumsByHashesRequest
-  { hashes :: [Text]
+  { hashes :: [DataHash]
   }
   deriving stock (Generic)
   deriving anyclass (FromJSON)
 
 data GetDatumsByHashesDatum = GetDatumsByHashesDatum
-  { hash :: Text
+  { hash :: DataHash
   , value :: PlutusData.Data
   }
   deriving stock (Generic)
@@ -39,7 +39,6 @@ newtype GetDatumsByHashesResponse = GetDatumsByHashesResponse
   }
   deriving stock (Generic)
   deriving anyclass (ToJSON)
-
 newtype SetStartingBlockRequest = SetStartingBlockRequest
   { startingBlock :: StartingBlock
   }
