@@ -14,9 +14,11 @@ import Data.Map (Map)
 import Data.Map qualified as Map
 import Data.Text (Text)
 
+import DataHash (DataHash (DataHash))
+
 data TxOut = TxOut
   { address :: Text
-  , datumHash :: Maybe Text
+  , datumHash :: Maybe DataHash
   , datum :: Maybe Text
   }
   deriving stock (Eq, Show)
@@ -25,11 +27,11 @@ instance FromJSON TxOut where
   parseJSON = withObject "TxOut" $ \o -> do
     TxOut
       <$> o .: "address"
-      <*> o .:? "datumHash"
+      <*> ((DataHash <$>) <$> o .:? "datumHash")
       <*> o .:? "datum"
 
 data Transaction = Transaction
-  { datums :: Map Text Text
+  { datums :: Map DataHash Text
   , outputs :: [TxOut]
   }
   deriving stock (Eq, Show)
@@ -82,12 +84,12 @@ instance FromJSON Block where
       <*> v .: "header"
       <*> v .: "headerHash"
 
-datumsInTxOut :: TxOut -> Map Text Text
+datumsInTxOut :: TxOut -> Map DataHash Text
 datumsInTxOut txOut
   | Just dh <- txOut.datumHash
     , Just d <- txOut.datum =
     Map.singleton dh d
   | otherwise = mempty
 
-datumsInTransaction :: Transaction -> Map Text Text
+datumsInTransaction :: Transaction -> Map DataHash Text
 datumsInTransaction tx = tx.datums <> foldMap datumsInTxOut tx.outputs

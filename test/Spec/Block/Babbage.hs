@@ -10,6 +10,7 @@ import Block.Types (
   SomeBlock (BabbageBlock),
  )
 import Block.Types.Babbage qualified as Babbage
+import DataHash (DataHash (DataHash))
 
 example :: RequestNextResult
 example =
@@ -52,8 +53,8 @@ fixedOutputs =
       Nothing
   ]
 
-fixedDatums :: Map.Map Text.Text Text.Text
-fixedDatums = Map.fromList [("property1", "string"), ("property2", "string")]
+fixedDatums :: Map.Map DataHash Text.Text
+fixedDatums = Map.fromList [(DataHash "property1", "string"), (DataHash "property2", "string")]
 
 fixedRawTransactions :: [Babbage.RawTransaction]
 fixedRawTransactions =

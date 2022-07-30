@@ -12,6 +12,7 @@ import GHC.Generics (Generic)
 import App.Env (ControlApiToken (ControlApiToken))
 import Block.Filter (DatumFilter)
 import Block.Types (StartingBlock)
+import DataHash (DataHash (DataHash))
 import PlutusData qualified
 
 data JsonWspRequest = JsonWspRequest
@@ -30,11 +31,11 @@ instance FromJSON JsonWspRequest where
           "GetDatumByHash" -> do
             args <- o .: "args"
             hash <- args .: "hash"
-            pure $ GetDatumByHash hash
+            pure $ GetDatumByHash (DataHash hash)
           "GetDatumsByHashes" -> do
             args <- o .: "args"
             hashes <- args .: "hashes"
-            pure $ GetDatumsByHashes hashes
+            pure $ GetDatumsByHashes (DataHash <$> hashes)
           "GetTxByHash" -> do
             args <- o .: "args"
             hash <- args .: "hash"
@@ -55,8 +56,8 @@ instance FromJSON JsonWspRequest where
           _ -> fail "Unexpected method"
 
 data Method
-  = GetDatumByHash Text
-  | GetDatumsByHashes [Text]
+  = GetDatumByHash DataHash
+  | GetDatumsByHashes [DataHash]
   | GetTxByHash Text
   | GetBlock
   | GetHealthcheck
@@ -65,7 +66,7 @@ data Method
   deriving stock (Show, Eq)
 
 data GetDatumsByHashesDatum = GetDatumsByHashesDatum
-  { hash :: Text
+  { hash :: DataHash
   , value :: PlutusData.Data
   }
   deriving stock (Generic)

@@ -21,6 +21,8 @@ usage:
 	@echo "  format_check_all    -- Check haskell files, nix files and cabal files"
 	@echo "  lint                -- Check the sources with hlint"
 	@echo "  refactor            -- Automatically apply hlint refactors, with prompt"
+	@echo "  watch               -- Track files and run 'make build' on change"
+
 
 ## Project
 
@@ -88,6 +90,9 @@ refactor: requires_nix_shell
 	for src in $(PROJECT_SOURCES) ; do \
 		hlint $(HLINT_EXTS) --refactor --refactor-options='-i -s' $$src ;\
 	done
+
+watch: requires_nix_shell ogmios-datum-cache.cabal
+	while sleep 1; do find ogmios-datum-cache.cabal src test | entr -cd make build; done
 
 # Target to use as dependency to fail if not inside nix-shell
 requires_nix_shell:

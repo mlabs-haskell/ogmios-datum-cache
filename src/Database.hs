@@ -18,10 +18,13 @@ import Control.Monad.IO.Class (MonadIO, liftIO)
 import Control.Monad.Logger (MonadLogger, logErrorNS, logInfoNS)
 import Control.Monad.Reader.Has (Has, MonadReader, ask)
 import Control.Monad.Trans.Except (except, runExceptT, throwE)
+import Data.Bifunctor (bimap, first)
 import Data.ByteString (ByteString)
 import Data.ByteString.Lazy qualified as BSL
 import Data.Functor.Contravariant ((>$<))
 import Data.List (foldl')
+import Data.Map (Map)
+import Data.Map qualified as Map
 import Data.Text (Text)
 import Data.Text qualified as Text
 import Data.Vector (Vector)
@@ -41,36 +44,38 @@ import Block.Types (
  )
 import Block.Types.Alonzo qualified as Alonzo
 import Block.Types.Babbage qualified as Babbage
+import DataHash (DataHash (DataHash, unDataHash))
 import PlutusData qualified
 
 data Datum = Datum
-  { hash :: Text
+  { hash :: DataHash
   , value :: ByteString
   }
   deriving stock (Eq, Show)
 
-getDatumSession :: Text -> Session Datum
+getDatumSession :: DataHash -> Session Datum
 getDatumSession datumHash =
   Session.statement datumHash getDatumStatement
 
-getDatumStatement :: Statement Text Datum
+getDatumStatement :: Statement DataHash Datum
 getDatumStatement = Statement sql enc dec True
   where
     sql =
       "SELECT hash, value FROM datums WHERE hash = $1"
     enc =
-      Encoders.param (Encoders.nonNullable Encoders.text)
+      Encoders.param (Encoders.nonNullable (unDataHash >$< Encoders.text))
     dec =
       Decoders.singleRow $
         Datum
-          <$> Decoders.column (Decoders.nonNullable Decoders.text)
+          <$> Decoders.column
+            (Decoders.nonNullable (DataHash <$> Decoders.text))
           <*> Decoders.column (Decoders.nonNullable Decoders.bytea)
 
-getDatumsSession :: [Text] -> Session (Vector Datum)
-getDatumsSession datumHashes =
-  Session.statement datumHashes getDatumsStatement
+getDatumsSession :: [DataHash] -> Session (Vector Datum)
+getDatumsSession datumsHashes =
+  Session.statement datumsHashes getDatumsStatement
 
-getDatumsStatement :: Statement [Text] (Vector Datum)
+getDatumsStatement :: Statement [DataHash] (Vector Datum)
 getDatumsStatement = Statement sql enc dec True
   where
     sql =
@@ -80,18 +85,19 @@ getDatumsStatement = Statement sql enc dec True
         Encoders.nonNullable $
           Encoders.array $
             Encoders.dimension foldl' $
-              Encoders.element $ Encoders.nonNullable Encoders.text
+              Encoders.element (Encoders.nonNullable (unDataHash >$< Encoders.text))
     dec =
       Decoders.rowVector $
         Datum
-          <$> Decoders.column (Decoders.nonNullable Decoders.text)
+          <$> Decoders.column
+            (Decoders.nonNullable (DataHash <$> Decoders.text))
           <*> Decoders.column (Decoders.nonNullable Decoders.bytea)
 
-insertDatumsSession :: [Text] -> [ByteString] -> Session ()
+insertDatumsSession :: [DataHash] -> [ByteString] -> Session ()
 insertDatumsSession datumHashes datumValues = do
   Session.statement (datumHashes, datumValues) insertDatumsStatement
 
-insertDatumsStatement :: Statement ([Text], [ByteString]) ()
+insertDatumsStatement :: Statement ([DataHash], [ByteString]) ()
 insertDatumsStatement = Statement sql enc dec True
   where
     sql =
@@ -105,7 +111,7 @@ insertDatumsStatement = Statement sql enc dec True
               Encoders.element $
                 Encoders.nonNullable elemEncoder
     enc =
-      (fst >$< encArray Encoders.text)
+      (fst >$< encArray (unDataHash >$< Encoders.text))
         <> (snd >$< encArray Encoders.bytea)
 
     dec = Decoders.noResult
@@ -252,29 +258,22 @@ toPlutusData datum =
 
 toPlutusDataMany ::
   Vector Datum ->
-  Either DatabaseError (Vector (Text, PlutusData.Data))
-toPlutusDataMany datums =
-  let res =
-        fmap
-          (\d -> (d,) . deserialiseOrFail @PlutusData.Data . BSL.fromStrict . value $ d)
-          datums
-      rightToMaybe (Right x) = Just x
-      rightToMaybe _ = Nothing
-      leftToMaybe (Left x) = Just x
-      leftToMaybe _ = Nothing
-      correct = Vector.mapMaybe (\(datum, data') -> (hash datum,) <$> rightToMaybe data') res
-      faulty =
-        Vector.toList $
-          Vector.mapMaybe ((\(datum, data') -> (\err -> DatabaseErrorDecodeError [value datum] err) <$> leftToMaybe data')) res
-   in case faulty of
-        [] -> pure correct
-        -- FIXME Don't discard errors
-        -- See: https://github.com/mlabs-haskell/ogmios-datum-cache/issues/112
-        (e : _) -> Left e
+  Map DataHash (Either DatabaseError PlutusData.Data)
+toPlutusDataMany = Map.fromList . Vector.toList . (deserialiseDatum <$>)
+  where
+    deserialiseDatum ::
+      Datum ->
+      (DataHash, Either DatabaseError PlutusData.Data)
+    deserialiseDatum d =
+      ( hash d
+      , first
+          (DatabaseErrorDecodeError [value d])
+          $ (deserialiseOrFail @PlutusData.Data . BSL.fromStrict . value) d
+      )
 
 getDatumByHash ::
   (MonadIO m, MonadReader r m, Has Connection r) =>
-  Text ->
+  DataHash ->
   m (Either DatabaseError PlutusData.Data)
 getDatumByHash hash = runExceptT $ do
   conn <- ask
@@ -283,30 +282,35 @@ getDatumByHash hash = runExceptT $ do
     Left _ -> throwE DatabaseErrorNotFound
     Right datum -> except $ toPlutusData datum
 
--- FIXME Don't exit upon a single error and change return type
--- See: https://github.com/mlabs-haskell/ogmios-datum-cache/issues/112
 getDatumsByHashes ::
   (MonadIO m, MonadReader r m, Has Connection r) =>
-  [Text] ->
-  m (Either DatabaseError (Vector (Text, PlutusData.Data)))
+  [DataHash] ->
+  m (Either DatabaseError (Map DataHash (Either DatabaseError PlutusData.Data)))
 getDatumsByHashes hashes = runExceptT $ do
   conn <- ask
   res' <- liftIO (Session.run (getDatumsSession hashes) conn)
   case res' of
     Left _ -> throwE DatabaseErrorNotFound
-    Right datums -> except $ toPlutusDataMany datums
+    Right datums ->
+      let datumsMap = toPlutusDataMany datums
+          (faults, sucess) = bimap Map.toList Map.toList $ Map.mapEither id datumsMap
+       in case sucess of
+            [] -> case faults of
+              [] -> throwE DatabaseErrorNotFound
+              (_, firstFault) : _ -> except $ Left firstFault
+            _ -> except $ pure datumsMap
 
 saveDatums ::
   ( MonadIO m
   , MonadLogger m
   ) =>
   Connection ->
-  [(Text, ByteString)] ->
+  [(DataHash, ByteString)] ->
   m ()
 saveDatums dbConnection datums = do
   let (datumHashes, datumValues) = unzip datums
   logInfoNS "saveDatums" $
-    "Inserting datums: " <> Text.intercalate ", " datumHashes
+    "Inserting datums: " <> Text.intercalate ", " (unDataHash <$> datumHashes)
   res <-
     liftIO $
       Session.run (insertDatumsSession datumHashes datumValues) dbConnection

@@ -8,9 +8,11 @@ module Api.Handler (
 import Control.Monad.Catch (throwM)
 import Control.Monad.Logger (logInfoNS)
 import Data.Aeson qualified as Aeson
+import Data.Map qualified as Map
 import Data.String.ToString (toString)
 import Data.Text (Text)
 import Data.Text qualified as Text
+import Data.Vector qualified as Vector
 import Network.WebSockets qualified as WebSockets
 import Servant (err404, err500)
 import Servant.API.BasicAuth (BasicAuthData (BasicAuthData))
@@ -43,6 +45,7 @@ import App.Types (App)
 import Block.Fetch (changeDatumFilter, changeStartingBlock)
 import Block.Types (BlockInfo, CursorPoint, getRawTx)
 import Control.Monad.Reader.Has (ask)
+import DataHash (DataHash (DataHash))
 import Database (
   DatabaseError (DatabaseErrorDecodeError, DatabaseErrorNotFound),
  )
@@ -87,7 +90,7 @@ datumServiceHandlers =
 
     getDatumByHash :: Text -> App GetDatumByHashResponse
     getDatumByHash hash = do
-      datum <- Database.getDatumByHash hash >>= catchDatabaseError
+      datum <- Database.getDatumByHash (DataHash hash) >>= catchDatabaseError
       pure $ GetDatumByHashResponse datum
 
     getDatumsByHashes ::
@@ -95,9 +98,10 @@ datumServiceHandlers =
       App GetDatumsByHashesResponse
     getDatumsByHashes (GetDatumsByHashesRequest hashes) = do
       datums <- Database.getDatumsByHashes hashes >>= catchDatabaseError
+      let (_, rightDatums) = Map.mapEither id datums
       pure $
-        GetDatumsByHashesResponse $
-          fmap (uncurry GetDatumsByHashesDatum) datums
+        GetDatumsByHashesResponse
+          (uncurry GetDatumsByHashesDatum <$> (Vector.fromList . Map.toList) rightDatums)
 
     getTx :: Text -> App Aeson.Value
     getTx txId = do
