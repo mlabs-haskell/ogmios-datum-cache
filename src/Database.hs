@@ -10,6 +10,7 @@ module Database (
   getLastBlock,
   saveTxs,
   getTxByHash,
+  databaseErrorToJsonError,
 ) where
 
 import Codec.Serialise (DeserialiseFailure, deserialiseOrFail)
@@ -36,6 +37,7 @@ import Hasql.Session (Session)
 import Hasql.Session qualified as Session
 import Hasql.Statement (Statement (Statement))
 
+import Api.Error (JsonError (JsonError))
 import Block.Types (
   BlockInfo (BlockInfo),
   SomeRawTransaction (AlonzoRawTransaction, BabbageRawTransaction),
@@ -246,14 +248,23 @@ getLastBlock dbConnection = do
       pure Nothing
 
 data DatabaseError
-  = DatabaseErrorDecodeError [ByteString] DeserialiseFailure
+  = DatabaseErrorDecodeError ByteString DeserialiseFailure
   | DatabaseErrorNotFound
+
+databaseErrorToJsonError :: DatabaseError -> JsonError
+databaseErrorToJsonError (DatabaseErrorDecodeError value err) =
+  JsonError $
+    "DecodingError: " <> Text.pack (show value)
+      <> " error: "
+      <> Text.pack (show err)
+databaseErrorToJsonError DatabaseErrorNotFound =
+  JsonError "NotFoundError"
 
 toPlutusData :: Datum -> Either DatabaseError PlutusData.Data
 toPlutusData datum =
   let res = deserialiseOrFail @PlutusData.Data (BSL.fromStrict $ value datum)
    in case res of
-        Left err -> Left $ DatabaseErrorDecodeError [value datum] err
+        Left err -> Left $ DatabaseErrorDecodeError (value datum) err
         Right x -> pure x
 
 toPlutusDataMany ::
@@ -267,7 +278,7 @@ toPlutusDataMany = Map.fromList . Vector.toList . (deserialiseDatum <$>)
     deserialiseDatum d =
       ( hash d
       , first
-          (DatabaseErrorDecodeError [value d])
+          (DatabaseErrorDecodeError (value d))
           $ (deserialiseOrFail @PlutusData.Data . BSL.fromStrict . value) d
       )
 

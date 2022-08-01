@@ -1,7 +1,6 @@
 module Api.Types (
   GetDatumByHashResponse (..),
   GetDatumsByHashesRequest (..),
-  GetDatumsByHashesDatum (..),
   GetDatumsByHashesResponse (..),
   SetStartingBlockRequest (..),
   SetDatumFilterRequest (..),
@@ -9,9 +8,10 @@ module Api.Types (
 ) where
 
 import Data.Aeson (FromJSON, ToJSON)
-import Data.Vector (Vector)
+import Data.Map (Map)
 import Servant.API.Generic (Generic)
 
+import Api.Error (JsonError)
 import Block.Filter (DatumFilter)
 import Block.Types (StartingBlock)
 import DataHash (DataHash)
@@ -27,18 +27,12 @@ newtype GetDatumsByHashesRequest = GetDatumsByHashesRequest
   deriving stock (Generic)
   deriving anyclass (FromJSON)
 
-data GetDatumsByHashesDatum = GetDatumsByHashesDatum
-  { hash :: DataHash
-  , value :: PlutusData.Data
+newtype GetDatumsByHashesResponse = GetDatumsByHashesResponse
+  { datums :: Map DataHash (Either JsonError PlutusData.Data)
   }
   deriving stock (Generic)
   deriving anyclass (ToJSON)
 
-newtype GetDatumsByHashesResponse = GetDatumsByHashesResponse
-  { datums :: Vector GetDatumsByHashesDatum
-  }
-  deriving stock (Generic)
-  deriving anyclass (ToJSON)
 newtype SetStartingBlockRequest = SetStartingBlockRequest
   { startingBlock :: StartingBlock
   }
