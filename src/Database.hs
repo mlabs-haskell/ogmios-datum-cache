@@ -170,7 +170,15 @@ initTables = do
         Session.sql
           "CREATE TABLE IF NOT EXISTS last_block \
           \ (onerow_id bool PRIMARY KEY DEFAULT TRUE, slot integer, hash text, CONSTRAINT onerow CHECK (onerow_id))"
-        Session.sql "CREATE TABLE IF NOT EXISTS transactions (txId text, txType text, rawTx json);"
+        Session.sql "CREATE TABLE IF NOT EXISTS transactions (txId text PRIMARY KEY, txType text, rawTx json);"
+        Session.sql
+          "DELETE FROM transactions a USING ( \
+          \  SELECT MIN(ctid) as ctid, txId FROM transactions \
+          \    GROUP BY txId HAVING COUNT(*) > 1 ) b \
+          \  WHERE a.txId = b.txId AND a.ctid != b.ctid;"
+        Session.sql
+          "ALTER TABLE transactions \
+          \  ADD CONSTRAINT transactions_pkey PRIMARY KEY (txId);"
         Session.sql "CREATE UNIQUE INDEX CONCURRENTLY IF NOT EXISTS transactions ON datums (txId);"
   conn <- ask
   liftIO $ void $ Session.run sql conn
