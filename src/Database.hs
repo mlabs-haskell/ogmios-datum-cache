@@ -264,8 +264,8 @@ data DatabaseError
 instance ToJSON DatabaseError where
   toJSON (DatabaseErrorDecodeError value err) =
     Aeson.object
-      [ ("DecodingError : " .= Text.pack (show value))
-      , ("error" .= Text.pack (show err))
+      [ "DecodingError : " .= Text.pack (show value)
+      , "error" .= Text.pack (show err)
       ]
   toJSON DatabaseErrorNotFound = Aeson.object [("error", "NotFoundError")]
 
