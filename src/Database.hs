@@ -259,18 +259,13 @@ getLastBlock dbConnection = do
 data DatabaseError
   = DatabaseErrorDecodeError ByteString DeserialiseFailure
   | DatabaseErrorNotFound
-  deriving stock (Generic)
+  deriving stock (Generic, Show)
 
 instance ToJSON DatabaseError where
   toJSON (DatabaseErrorDecodeError value err) =
     Aeson.object
-      [
-        ( "error"
-        , Aeson.object
-            [ ("DecodingError : " .= Text.pack (show value))
-            , ("error" .= Text.pack (show err))
-            ]
-        )
+      [ ("DecodingError : " .= Text.pack (show value))
+      , ("error" .= Text.pack (show err))
       ]
   toJSON DatabaseErrorNotFound = Aeson.object [("error", "NotFoundError")]
 

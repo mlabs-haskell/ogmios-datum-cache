@@ -80,22 +80,10 @@ getDatumsByHashes ::
 getDatumsByHashes hashes = do
   res <- Database.getDatumsByHashes hashes
   pure $ case res of
-    Left (DatabaseErrorDecodeError faulty err) -> do
-      let resp =
-            mkGetDatumsByHashesFault $
-              "Error deserializing datums plutus Data in: " <> Text.pack (show faulty)
-                <> " error: "
-                <> Text.pack (show err)
-      Left resp
-    Left DatabaseErrorNotFound ->
-      Right $ mkGetDatumsByHashesResponse Nothing
-    Right datumsOrErrors ->
-      let rightDatums :: [(DataHash, PlutusData.Data)]
-          (_, rightDatums) =
-            bimap Map.toList Map.toList $ Map.mapEither id datumsOrErrors
-          datums' =
-            Aeson.toJSON <$> (uncurry GetDatumsByHashesDatum <$> rightDatums)
-       in Right $ mkGetDatumsByHashesResponse (Just datums')
+    Left err ->
+      Left $ mkGetDatumsByHashesFault $ Text.pack $ show err
+    Right datums ->
+      Right $ mkGetDatumsByHashesResponse (Just $ Aeson.toJSON <$> [datums])
 
 getTxByHash ::
   Text ->

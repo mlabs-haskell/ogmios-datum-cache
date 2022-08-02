@@ -30,7 +30,7 @@ newtype GetDatumsByHashesRequest = GetDatumsByHashesRequest
 newtype GetDatumsByHashesResponse = GetDatumsByHashesResponse
   { datums :: Map DataHash (Either DatabaseError PlutusData.Data)
   }
-  deriving stock (Generic)
+  deriving stock (Generic,Show)
   deriving anyclass (ToJSON)
 
 newtype SetStartingBlockRequest = SetStartingBlockRequest
