@@ -10,7 +10,6 @@ module Database (
   getLastBlock,
   saveTxs,
   getTxByHash,
-  databaseErrorToJsonError,
 ) where
 
 import Codec.Serialise (DeserialiseFailure, deserialiseOrFail)
@@ -19,7 +18,9 @@ import Control.Monad.IO.Class (MonadIO, liftIO)
 import Control.Monad.Logger (MonadLogger, logErrorNS, logInfoNS)
 import Control.Monad.Reader.Has (Has, MonadReader, ask)
 import Control.Monad.Trans.Except (except, runExceptT, throwE)
-import Data.Bifunctor (bimap, first)
+import Data.Aeson (ToJSON (toJSON), (.=))
+import Data.Aeson qualified as Aeson
+import Data.Bifunctor (first)
 import Data.ByteString (ByteString)
 import Data.ByteString.Lazy qualified as BSL
 import Data.Functor.Contravariant ((>$<))
@@ -30,6 +31,7 @@ import Data.Text (Text)
 import Data.Text qualified as Text
 import Data.Vector (Vector)
 import Data.Vector qualified as Vector
+import GHC.Generics (Generic)
 import Hasql.Connection (Connection)
 import Hasql.Decoders qualified as Decoders
 import Hasql.Encoders qualified as Encoders
@@ -37,7 +39,6 @@ import Hasql.Session (Session)
 import Hasql.Session qualified as Session
 import Hasql.Statement (Statement (Statement))
 
-import Api.Error (JsonError (JsonError))
 import Block.Types (
   BlockInfo (BlockInfo),
   SomeRawTransaction (AlonzoRawTransaction, BabbageRawTransaction),
@@ -258,15 +259,20 @@ getLastBlock dbConnection = do
 data DatabaseError
   = DatabaseErrorDecodeError ByteString DeserialiseFailure
   | DatabaseErrorNotFound
+  deriving stock (Generic)
 
-databaseErrorToJsonError :: DatabaseError -> JsonError
-databaseErrorToJsonError (DatabaseErrorDecodeError value err) =
-  JsonError $
-    "DecodingError: " <> Text.pack (show value)
-      <> " error: "
-      <> Text.pack (show err)
-databaseErrorToJsonError DatabaseErrorNotFound =
-  JsonError "NotFoundError"
+instance ToJSON DatabaseError where
+  toJSON (DatabaseErrorDecodeError value err) =
+    Aeson.object
+      [
+        ( "error"
+        , Aeson.object
+            [ ("DecodingError : " .= Text.pack (show value))
+            , ("error" .= Text.pack (show err))
+            ]
+        )
+      ]
+  toJSON DatabaseErrorNotFound = Aeson.object [("error", "NotFoundError")]
 
 toPlutusData :: Datum -> Either DatabaseError PlutusData.Data
 toPlutusData datum =
@@ -305,19 +311,13 @@ getDatumsByHashes ::
   (MonadIO m, MonadReader r m, Has Connection r) =>
   [DataHash] ->
   m (Either DatabaseError (Map DataHash (Either DatabaseError PlutusData.Data)))
+getDatumsByHashes [] = (pure . pure) mempty
 getDatumsByHashes hashes = runExceptT $ do
   conn <- ask
   res' <- liftIO (Session.run (getDatumsSession hashes) conn)
   case res' of
     Left _ -> throwE DatabaseErrorNotFound
-    Right datums ->
-      let datumsMap = toPlutusDataMany datums
-          (faults, sucess) = bimap Map.toList Map.toList $ Map.mapEither id datumsMap
-       in case sucess of
-            [] -> case faults of
-              [] -> throwE DatabaseErrorNotFound
-              (_, firstFault) : _ -> except $ Left firstFault
-            _ -> except $ pure datumsMap
+    Right datums -> (except . pure . toPlutusDataMany) datums
 
 saveDatums ::
   ( MonadIO m

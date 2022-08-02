@@ -11,10 +11,10 @@ import Data.Aeson (FromJSON, ToJSON)
 import Data.Map (Map)
 import Servant.API.Generic (Generic)
 
-import Api.Error (JsonError)
 import Block.Filter (DatumFilter)
 import Block.Types (StartingBlock)
 import DataHash (DataHash)
+import Database (DatabaseError)
 import PlutusData qualified
 
 newtype GetDatumByHashResponse = GetDatumByHashResponse PlutusData.Data
@@ -28,7 +28,7 @@ newtype GetDatumsByHashesRequest = GetDatumsByHashesRequest
   deriving anyclass (FromJSON)
 
 newtype GetDatumsByHashesResponse = GetDatumsByHashesResponse
-  { datums :: Map DataHash (Either JsonError PlutusData.Data)
+  { datums :: Map DataHash (Either DatabaseError PlutusData.Data)
   }
   deriving stock (Generic)
   deriving anyclass (ToJSON)

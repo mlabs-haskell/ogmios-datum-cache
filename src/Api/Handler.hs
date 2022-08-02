@@ -8,7 +8,6 @@ module Api.Handler (
 import Control.Monad.Catch (throwM)
 import Control.Monad.Logger (logInfoNS)
 import Data.Aeson qualified as Aeson
-import Data.Bifunctor (first)
 import Data.String.ToString (toString)
 import Data.Text (Text)
 import Data.Text qualified as Text
@@ -46,7 +45,6 @@ import Control.Monad.Reader.Has (ask)
 import DataHash (DataHash (DataHash))
 import Database (
   DatabaseError (DatabaseErrorDecodeError, DatabaseErrorNotFound),
-  databaseErrorToJsonError,
  )
 import Database qualified
 
@@ -98,7 +96,7 @@ datumServiceHandlers =
     getDatumsByHashes (GetDatumsByHashesRequest hashes) = do
       datums <- Database.getDatumsByHashes hashes >>= catchDatabaseError
       pure $
-        GetDatumsByHashesResponse (first databaseErrorToJsonError <$> datums)
+        GetDatumsByHashesResponse datums
 
     getTx :: Text -> App Aeson.Value
     getTx txId = do
