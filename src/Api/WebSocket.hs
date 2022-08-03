@@ -5,8 +5,6 @@ import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Logger (logErrorNS)
 import Control.Monad.Reader.Has (ask)
 import Data.Aeson qualified as Aeson
-import Data.Bifunctor (bimap)
-import Data.Map qualified as Map
 import Data.Text (Text)
 import Data.Text qualified as Text
 import Network.WebSockets qualified as WebSockets
@@ -28,7 +26,6 @@ import Api.WebSocket.Json (
   mkSetStartingBlockResponse,
  )
 import Api.WebSocket.Types (
-  GetDatumsByHashesDatum (GetDatumsByHashesDatum),
   JsonWspRequest (JsonWspRequest),
   Method (
     GetBlock,
@@ -50,7 +47,6 @@ import Database (
   DatabaseError (DatabaseErrorDecodeError, DatabaseErrorNotFound),
  )
 import Database qualified
-import PlutusData qualified
 
 type WSResponse =
   Either
