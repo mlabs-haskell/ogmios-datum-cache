@@ -141,7 +141,7 @@ mkRequestNextRequest n =
     , _version = "1.0"
     , _servicename = "ogmios"
     , _methodname = "RequestNext"
-    , _args = Map.empty
+    , _args = Map.singleton "fields" "all"
     , _mirror = n
     }
 
@@ -266,7 +266,7 @@ datumsInTransaction :: SomeTransaction -> Map DataHash Text
 datumsInTransaction (AlonzoTransaction tx) = Alonzo.datumsInTransaction tx
 datumsInTransaction (BabbageTransaction tx) = Babbage.datumsInTransaction tx
 
-getRawTx :: SomeRawTransaction -> Aeson.Value
+getRawTx :: SomeRawTransaction -> Text
 getRawTx (AlonzoRawTransaction tx) = tx.rawTx
 getRawTx (BabbageRawTransaction tx) = tx.rawTx
 
