@@ -7,7 +7,6 @@ module Api.Handler (
 
 import Control.Monad.Catch (throwM)
 import Control.Monad.Logger (logInfoNS)
-import Data.Aeson qualified as Aeson
 import Data.Map qualified as Map
 import Data.String.ToString (toString)
 import Data.Text (Text)
@@ -103,7 +102,7 @@ datumServiceHandlers =
         GetDatumsByHashesResponse
           (uncurry GetDatumsByHashesDatum <$> (Vector.fromList . Map.toList) rightDatums)
 
-    getTx :: Text -> App Aeson.Value
+    getTx :: Text -> App Text
     getTx txId = do
       tx <- Database.getTxByHash txId >>= catchDatabaseError
       pure $ getRawTx tx

@@ -310,6 +310,7 @@ fetchNextBlock = do
       readTVar env.intersectionTVar >>= guard . isJust
 
   jsonMsg <- sendAndReceive $ Aeson.encode $ mkRequestNextRequest 0
+  liftIO $ print jsonMsg
   let msg = Aeson.eitherDecode @OgmiosRequestNextResponse jsonMsg
   case _result <$> msg of
     Left e ->
