@@ -133,9 +133,9 @@ parseBlockFetcher =
     <*> switch
       ( long "use-latest"
           <> help
-            "defines if block fetcher, if started automatically, should \
-            \start from last block that was proccessed rather than from \
-            \block defined with --block-slot and --block-hash."
+            "defines if block fetcher, if started automatically, should start \
+            \from the last block that was proccessed if later than the block \
+            \defined with --block-slot/--from-origin/--from-tip"
       )
     <*> option
       auto

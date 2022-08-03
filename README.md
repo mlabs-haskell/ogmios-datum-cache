@@ -1004,9 +1004,9 @@ Available options:
   --from-tip               Start block fetcher from chain tip
   --block-filter FILTER    Filter.
   --use-latest             defines if block fetcher, if started automatically,
-                           should start from last block that was proccessed
-                           rather than from block defined with --block-slot and
-                           --block-hash.
+                           should start from the last block that was proccessed
+                           if later than the block defined with
+                           --block-slot/--from-origin/--from-tip
   --queue-size NATURAL     Defines size of queue of prefetched blocks ready to
                            be processed, default=64.
   --log-level LOG_LEVEL    One of [debug | info | warn | error], every level is

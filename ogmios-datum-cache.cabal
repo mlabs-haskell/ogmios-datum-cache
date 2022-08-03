@@ -99,6 +99,7 @@ library
     , QuickCheck
     , record-dot-preprocessor
     , record-hasfield
+    , safe
     , serialise
     , servant
     , servant-server
