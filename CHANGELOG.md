@@ -23,6 +23,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Control API requires an authentification token (`--server-api`):
   - for endpoints by Basic Authorisation
   - for WebSocket by `token` args.
+- The response type of `getDatumsByHashes` is now `Either JsonWspFault (Map DataHash (Either DatabaseError PlutusData.Data))`
 
 ### Added
 
