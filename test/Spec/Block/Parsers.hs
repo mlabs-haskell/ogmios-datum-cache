@@ -169,7 +169,7 @@ cutResponse
           case someBlock of
             (BabbageBlock (Types.Babbage.Block {..})) ->
               let newTransactions =
-                    map (\raw -> raw{rawTx = Aeson.Null}) rawTransactions
+                    map (\raw -> raw{rawTx = "test"}) rawTransactions
                in BabbageBlock $
                     Types.Babbage.Block
                       body
@@ -180,7 +180,7 @@ cutResponse
               let newTransactions =
                     take 3 $
                       map
-                        (\raw -> raw{rawTx = Aeson.Null})
+                        (\raw -> raw{rawTx = "test"})
                         rawTransactions
                   newBody = take 3 body
                in AlonzoBlock $

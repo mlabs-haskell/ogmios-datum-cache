@@ -1,7 +1,5 @@
 module Spec.Block.Alonzo (example) where
 
-import Data.Aeson (Value (Null))
-
 import Block.Types (
   RequestNextResult (RollForward),
   ResultTip (ResultTip, blockNo, hash, slot),
@@ -80,16 +78,16 @@ fixedRawTransactions =
   [ Alonzo.RawTransaction
       { txId =
           "63d086e9d793350e5a7c1370928b640a2648fdff363b2a72eb1a028e4c97142c"
-      , rawTx = Null
+      , rawTx = "test"
       }
   , Alonzo.RawTransaction
       { txId =
           "b988256050c838c18a73b9792a64e3e7ae80da6b0078c47cedd1d20e241896d6"
-      , rawTx = Null
+      , rawTx = "test"
       }
   , Alonzo.RawTransaction
       { txId =
           "da32cad61863bcb38ceda40db55fc4fc47c49d6ca777314c4ba48c9b7cce2451"
-      , rawTx = Null
+      , rawTx = "test"
       }
   ]

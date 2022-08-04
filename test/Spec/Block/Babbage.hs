@@ -1,6 +1,5 @@
 module Spec.Block.Babbage (example) where
 
-import Data.Aeson (Value (Null))
 import Data.Map qualified as Map
 import Data.Text qualified as Text
 
@@ -61,6 +60,6 @@ fixedRawTransactions =
   [ Babbage.RawTransaction
       { txId =
           "c248757d390181c517a5beadc9c3fe64bf821d3e889a963fc717003ec248757d"
-      , rawTx = Null
+      , rawTx = "test"
       }
   ]
