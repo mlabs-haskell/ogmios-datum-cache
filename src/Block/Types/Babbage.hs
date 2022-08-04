@@ -9,10 +9,12 @@ module Block.Types.Babbage (
 ) where
 
 import Data.Aeson (FromJSON (parseJSON), withObject, (.:), (.:?))
+import Data.ByteString (ByteString)
 import Data.Int (Int64)
 import Data.Map (Map)
 import Data.Map qualified as Map
 import Data.Text (Text)
+import Data.Text.Encoding (encodeUtf8)
 
 import DataHash (DataHash (DataHash))
 
@@ -46,7 +48,7 @@ instance FromJSON Transaction where
 
 data RawTransaction = RawTransaction
   { txId :: Text
-  , rawTx :: Text
+  , rawTx :: ByteString
   }
   deriving stock (Eq, Show)
 
@@ -54,7 +56,7 @@ instance FromJSON RawTransaction where
   parseJSON = withObject "RawTransaction" $ \v -> do
     RawTransaction
       <$> v .: "id"
-      <*> v .: "raw"
+      <*> (encodeUtf8 <$> v .: "raw")
 
 data BlockHeader = BlockHeader
   { slot :: Int64

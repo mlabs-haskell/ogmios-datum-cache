@@ -135,7 +135,7 @@ insertRawTransactionsStatement = Statement sql enc dec True
     enc :: Encoders.Params [SomeRawTransaction] =
       (fmap encId >$< encArray Encoders.text)
         <> (fmap encType >$< encArray Encoders.text)
-        <> (fmap getRawTx >$< encArray Encoders.text)
+        <> (fmap getRawTx >$< encArray Encoders.bytea)
     encType (AlonzoRawTransaction _) = "alonzo"
     encType (BabbageRawTransaction _) = "babbage"
     encId (AlonzoRawTransaction tx) = tx.txId
@@ -154,7 +154,7 @@ getRawTxStatement = Statement sql enc dec True
       Decoders.singleRow $ do
         txId <- Decoders.column $ Decoders.nonNullable Decoders.text
         ty <- Decoders.column $ Decoders.nonNullable Decoders.text
-        raw <- Decoders.column (Decoders.nonNullable Decoders.text)
+        raw <- Decoders.column (Decoders.nonNullable Decoders.bytea)
         case ty of
           "alonzo" ->
             pure $ AlonzoRawTransaction $ Alonzo.RawTransaction txId raw

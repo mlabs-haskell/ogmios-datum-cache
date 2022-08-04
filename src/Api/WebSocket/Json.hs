@@ -23,6 +23,7 @@ import Data.Aeson (
  )
 import Data.Aeson qualified as Aeson
 import Data.Text (Text)
+import Data.Text.Encoding (decodeUtf8)
 import GHC.Generics (Generic)
 
 import Block.Types (BlockInfo, CursorPoint, SomeRawTransaction, getRawTx)
@@ -109,7 +110,7 @@ mkGetTxByHashResponse = \case
   Just tx ->
     JsonWspResponse "GetTxByHash" (object ["TxFound" .= value])
     where
-      value = object ["value" .= getRawTx tx]
+      value = object ["value" .= (decodeUtf8 . getRawTx) tx]
   Nothing ->
     JsonWspResponse "GetTxByHash" (object ["TxNotFound" .= Null])
 

@@ -29,6 +29,7 @@ module Block.Types (
 import Data.Aeson (FromJSON, ToJSON, withObject, (.:), (.=))
 import Data.Aeson qualified as Aeson
 import Data.Aeson.Types (prependFailure, unexpected)
+import Data.ByteString (ByteString)
 import Data.HashMap.Strict qualified as HashMap
 import Data.Int (Int64)
 import Data.Map (Map)
@@ -266,7 +267,7 @@ datumsInTransaction :: SomeTransaction -> Map DataHash Text
 datumsInTransaction (AlonzoTransaction tx) = Alonzo.datumsInTransaction tx
 datumsInTransaction (BabbageTransaction tx) = Babbage.datumsInTransaction tx
 
-getRawTx :: SomeRawTransaction -> Text
+getRawTx :: SomeRawTransaction -> ByteString
 getRawTx (AlonzoRawTransaction tx) = tx.rawTx
 getRawTx (BabbageRawTransaction tx) = tx.rawTx
 
