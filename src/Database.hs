@@ -123,7 +123,7 @@ insertRawTransactionsStatement :: Statement [SomeRawTransaction] ()
 insertRawTransactionsStatement = Statement sql enc dec True
   where
     sql =
-      "INSERT INTO transactions (txId, txType, rawTx) (SELECT h::text, t::text, v::json FROM unnest($1, $2, $3) AS x(h, t, v)) ON CONFLICT DO NOTHING"
+      "INSERT INTO transactions (txId, txType, rawTx) (SELECT h::text, t::text, v::bytea FROM unnest($1, $2, $3) AS x(h, t, v)) ON CONFLICT DO NOTHING"
 
     encArray elemEncoder =
       Encoders.param $
