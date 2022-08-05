@@ -23,10 +23,9 @@ import Block.Types (
   ),
   RequestNextResult (RollBackward, RollForward),
   ResultTip (ResultTip, blockNo, hash, slot),
-  SomeBlock (AlonzoBlock, BabbageBlock),
+  SomeBlock (AlonzoBlock),
  )
 import Block.Types.Alonzo qualified as Types.Alonzo
-import Block.Types.Babbage qualified as Types.Babbage
 import Data.Bifunctor (second)
 import Spec.Block.Alonzo qualified as Alonzo
 import Spec.Block.Babbage qualified as Babbage
@@ -166,7 +165,7 @@ cutResponse
           case someBlock of
             (AlonzoBlock (Types.Alonzo.Block {..})) ->
               let newTransactions =
-                    take 3 $ rawTransactions
+                    take 3 rawTransactions
                   newBody = take 3 body
                in AlonzoBlock $
                     Types.Alonzo.Block
