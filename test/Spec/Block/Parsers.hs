@@ -146,11 +146,8 @@ intersectionNotFound =
       , blockNo = 3696087
       }
 
-{- | This function modifies the transaction inside the fixed responses.
- We do this as the transactions are parsed using the Aeson instances
- of Map, this means that testing those transactions becomes testing
- the Aeson instance of Map it's self. We just need to make sure
- that the instance is capable of parsing them without error.
+{- | This function allow us to cut the response size, keeping just
+ the three initial TX.
 -}
 cutResponse :: OgmiosRequestNextResponse -> OgmiosRequestNextResponse
 cutResponse
@@ -167,21 +164,9 @@ cutResponse
     ) =
     let newBlock =
           case someBlock of
-            (BabbageBlock (Types.Babbage.Block {..})) ->
-              let newTransactions =
-                    map (\raw -> raw{rawTx = "test"}) rawTransactions
-               in BabbageBlock $
-                    Types.Babbage.Block
-                      body
-                      newTransactions
-                      header
-                      headerHash
             (AlonzoBlock (Types.Alonzo.Block {..})) ->
               let newTransactions =
-                    take 3 $
-                      map
-                        (\raw -> raw{rawTx = "test"})
-                        rawTransactions
+                    take 3 $ rawTransactions
                   newBody = take 3 body
                in AlonzoBlock $
                     Types.Alonzo.Block

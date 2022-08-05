@@ -6,8 +6,7 @@ import Servant.API.Generic (Generic)
 
 newtype DataHash = DataHash {unDataHash :: Text.Text}
   deriving stock (Generic, Show, Eq)
-  deriving newtype (Ord, FromJSONKey, ToJSONKey)
-  deriving anyclass (FromJSON)
+  deriving newtype (Ord, FromJSONKey, ToJSONKey, FromJSON)
 
 instance ToJSON DataHash where
   toJSON = toJSON . unDataHash
