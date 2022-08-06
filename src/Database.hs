@@ -123,7 +123,7 @@ insertRawTransactionsStatement :: Statement [SomeRawTransaction] ()
 insertRawTransactionsStatement = Statement sql enc dec True
   where
     sql =
-      "INSERT INTO transactions (txId, txType, rawTx) (SELECT h::text, t::text, v::bytea FROM unnest($1, $2, $3) AS x(h, t, v)) ON CONFLICT DO NOTHING"
+      "INSERT INTO transactions (txId, txType, rawTx) (SELECT h::text, t::text, v::bytea FROM unnest($1, $2, $3::bytea[]) AS x(h, t, v)) ON CONFLICT DO NOTHING"
 
     encArray elemEncoder =
       Encoders.param $
@@ -173,7 +173,7 @@ initTables = do
         Session.sql
           "CREATE TABLE IF NOT EXISTS last_block \
           \ (onerow_id bool PRIMARY KEY DEFAULT TRUE, slot integer, hash text, CONSTRAINT onerow CHECK (onerow_id))"
-        Session.sql "CREATE TABLE IF NOT EXISTS transactions (txId text PRIMARY KEY, txType text, rawTx json);"
+        Session.sql "CREATE TABLE IF NOT EXISTS transactions (txId text PRIMARY KEY, txType text, rawTx bytea);"
         Session.sql
           "DELETE FROM transactions a USING ( \
           \  SELECT MIN(ctid) as ctid, txId FROM transactions \
