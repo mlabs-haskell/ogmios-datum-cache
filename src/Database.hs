@@ -104,7 +104,7 @@ insertDatumsStatement :: Statement ([DataHash], [ByteString]) ()
 insertDatumsStatement = Statement sql enc dec True
   where
     sql =
-      "INSERT INTO datums (hash, value) (SELECT h::text, v::bytea FROM unnest($1, $2) AS x(h, v)) ON CONFLICT DO NOTHING"
+      "INSERT INTO datums (hash, value) (SELECT h::text, v::bytea FROM unnest($1, $2) AS x(h, v)) ON CONFLICT(hash) DO UPDATE SET value=EXCLUDED.value"
 
     encArray elemEncoder =
       Encoders.param $
