@@ -4,8 +4,8 @@
 {
   imports = [ "${modulesPath}/virtualisation/qemu-vm.nix" ];
   virtualisation = {
-    memorySize = 4096;
-    diskSize = 10000;
+    memorySize = 8192;
+    diskSize = 100000;
     forwardPorts = [
       { from = "host"; host.port = 2222; guest.port = 22; }
       { from = "host"; host.port = 1337; guest.port = 1337; }
