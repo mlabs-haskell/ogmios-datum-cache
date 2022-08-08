@@ -18,9 +18,10 @@
       owner = "NixOS";
       repo = "nixpkgs";
     };
+    cardano-node-repo.url = "github:input-output-hk/cardano-node/1.35.0";
   };
 
-  outputs = { self, nixpkgs, unstable_nixpkgs, ... }:
+  outputs = { self, nixpkgs, unstable_nixpkgs, ... }@inputs:
     let
       supportedSystems =
         [ "x86_64-linux" "x86_64-darwin" "aarch64-linux" "aarch64-darwin" ];
@@ -40,7 +41,7 @@
             "${hsPackageName}" = prev.callCabal2nix hsPackageName self { };
           };
         };
-
+      cardanoPkgsFor = system: inputs.cardano-node-repo.packages.${system};
     in {
       defaultPackage =
         perSystem (system: self.packages.${system}."${hsPackageName}");
@@ -53,6 +54,7 @@
           hpkgs = hpkgsFor system;
           upkgs = unstableNixpkgsFor system;
           uhpkgs = unstableHpkgsFor system;
+          cardanoPkgs = cardanoPkgsFor system;
         in hpkgs.shellFor {
           packages = ps: [ ps."${hsPackageName}" ];
           buildInputs = (with upkgs; [ nixfmt fd httpie ])
@@ -62,7 +64,7 @@
               fourmolu
               haskell-language-server
               hlint
-            ]);
+            ])++ [ cardanoPkgs.cardano-node cardanoPkgs.cardano-cli ];
         });
       # TODO
       # There is no test suite currently, after tests are implemented we can run
