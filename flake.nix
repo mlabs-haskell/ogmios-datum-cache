@@ -18,9 +18,14 @@
       owner = "NixOS";
       repo = "nixpkgs";
     };
+
+    cardano-node.url = "github:input-output-hk/cardano-node";
+
+    # TODO: switch to main branch when merged
+    ogmios.url = "github:mlabs-haskell/ogmios/marton/nixos-module";
   };
 
-  outputs = { self, nixpkgs, unstable_nixpkgs, ... }:
+  outputs = inputs@{ self, nixpkgs, unstable_nixpkgs, ... }:
     let
       supportedSystems = [ "x86_64-linux" ];
       perSystem = nixpkgs.lib.genAttrs supportedSystems;
@@ -92,5 +97,37 @@
             touch $out
           '';
         });
+
+      apps = perSystem (system: rec {
+        default = ogmios-datum-cache;
+        ogmios-datum-cache = {
+          type = "app";
+          program = "${
+              self.packages.${system}.${hsPackageName}
+            }/bin/ogmios-datum-cache";
+        };
+        vm = {
+          type = "app";
+          program =
+            "${self.nixosConfigurations.test.config.system.build.vm}/bin/run-nixos-vm";
+        };
+      });
+
+      nixosModules.ogmios-datum-cache = { pkgs, lib, ... }: {
+        imports = [ ./nix/ogmios-datum-cache-nixos-module.nix ];
+        services.ogmios-datum-cache.package =
+          lib.mkDefault self.packages.${pkgs.system}.${hsPackageName};
+      };
+
+      nixosConfigurations.test = nixpkgs.lib.nixosSystem {
+        system = "x86_64-linux";
+        modules = [
+          inputs.cardano-node.nixosModules.cardano-node
+          inputs.ogmios.nixosModules.ogmios
+          inputs.self.nixosModules.ogmios-datum-cache
+          ./nix/test-nixos-configuration.nix
+        ];
+      };
+      hydraJobs.x86_64-linux = self.checks.x86_64-linux;
     };
 }

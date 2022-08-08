@@ -2,3 +2,4 @@
 result*
 .direnv
 .envrc
+nixos.qcow2
