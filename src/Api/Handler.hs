@@ -7,10 +7,10 @@ module Api.Handler (
 
 import Control.Monad.Catch (throwM)
 import Control.Monad.Logger (logInfoNS)
-import Data.Aeson qualified as Aeson
 import Data.String.ToString (toString)
 import Data.Text (Text)
 import Data.Text qualified as Text
+import Data.Text.Encoding (decodeUtf8)
 import Network.WebSockets qualified as WebSockets
 import Servant (err404, err500)
 import Servant.API.BasicAuth (BasicAuthData (BasicAuthData))
@@ -98,10 +98,10 @@ datumServiceHandlers =
       pure $
         GetDatumsByHashesResponse datums
 
-    getTx :: Text -> App Aeson.Value
+    getTx :: Text -> App Text
     getTx txId = do
       tx <- Database.getTxByHash txId >>= catchDatabaseError
-      pure $ getRawTx tx
+      (pure . decodeUtf8 . getRawTx) tx
 
     getLastBlock :: App BlockInfo
     getLastBlock = do

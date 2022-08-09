@@ -7,7 +7,6 @@ module Api (
   WebSocketApi (..),
 ) where
 
-import Data.Aeson qualified as Aeson
 import Data.Text (Text)
 import Servant (Capture, Get, JSON, Post, Proxy (Proxy), ReqBody, Summary, (:>))
 import Servant.API.BasicAuth (BasicAuth)
@@ -44,7 +43,7 @@ data DatumApi route = DatumApi
         :- "tx"
         :> Summary "Get transaction by txId"
         :> Capture "txId" Text
-        :> Get '[JSON] Aeson.Value
+        :> Get '[JSON] Text
   , getLastBlock ::
       route
         :- "block"
