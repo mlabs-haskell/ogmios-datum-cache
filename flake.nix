@@ -66,6 +66,12 @@
               hlint
             ])++ [ cardanoPkgs.cardano-node cardanoPkgs.cardano-cli ];
         });
+      testsNet = perSystem (system:
+        let
+          pkgs = nixpkgsFor system;
+        in self.packages.${system} // {
+          testnet = pkgs.runCommand "setPrivateNetwork" ''./setPrivateNetwork.sh'';
+        });
       # TODO
       # There is no test suite currently, after tests are implemented we can run
       # them in the `checks` directly (or just run them when the package is
