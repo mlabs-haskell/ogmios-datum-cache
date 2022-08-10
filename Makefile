@@ -91,8 +91,15 @@ refactor: requires_nix_shell
 		hlint $(HLINT_EXTS) --refactor --refactor-options='-i -s' $$src ;\
 	done
 
+# Compile at source changes
 watch: requires_nix_shell ogmios-datum-cache.cabal
 	while sleep 1; do find ogmios-datum-cache.cabal src test | entr -cd make build; done
+
+run-testnet : requires_nix_shell 
+	./setPrivateNetwork.sh
+
+clean-testnet : requires_nix_shell
+	rm -Rf test-env/ogmios-datum-cache-private-network/*
 
 # Target to use as dependency to fail if not inside nix-shell
 requires_nix_shell:

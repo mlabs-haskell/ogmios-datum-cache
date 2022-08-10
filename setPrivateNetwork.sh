@@ -1,22 +1,21 @@
 #!/bin/sh
 
-locationAtStart=$(pwd)
+REPOSRC="git@github.com:woofpool/cardano-private-testnet-setup.git"
+PRIVATE_NETWORK_PATH="test-env/ogmios-datum-cache-private-network"
+LOCALREPO="$PRIVATE_NETWORK_PATH/cardano-private-testnet-setup"
 
-REPOSRC="https://github.com/woofpool/cardano-private-testnet-setup"
-LOCALREPO="test-env/ogmios-datum-cache-private-network/cardano-private-testnet-setup"
+
+WAIT_TIME=5
 
 mkdir -p $LOCALREPO
 
-# We do it this way so that we can abstract if from just git later on
-LOCALREPO_VC_DIR=$LOCALREPO/.git
-
-if [ ! -d $LOCALREPO_VC_DIR ]
+if [ ! -d "$LOCALREPO/.git" ]
 then
     git clone $REPOSRC $LOCALREPO
 fi
 
-sleep 1
-
 cd $LOCALREPO
-./scripts/automate.sh
 
+./$PRIVATE_NETWORK_PATH/postgres/startDB.sh "$PRIVATE_NETWORK_PATH/postgres" 5555 odcUser
+
+./scripts/automate.sh $1  && (sleep WAIT_TIME; tail -f /logs/mainnet.log)

@@ -19,6 +19,13 @@
       repo = "nixpkgs";
     };
     cardano-node-repo.url = "github:input-output-hk/cardano-node/1.35.0";
+    cardano-db-sync.url = "github:input-output-hk/cardano-db-sync/13.0.0";
+    #cardano-private-testnet-setup = {
+    #     type = "github";
+    #     owner = "woofpool";
+    #     repo = "cardano-private-testnet-setup";
+    #     rev = "a198f028b45672b0520cd00fa447156e4ee32b5e";
+    #};
   };
 
   outputs = { self, nixpkgs, unstable_nixpkgs, ... }@inputs:
@@ -64,14 +71,85 @@
               fourmolu
               haskell-language-server
               hlint
-            ])++ [ cardanoPkgs.cardano-node cardanoPkgs.cardano-cli ];
+            ])++ [ cardanoPkgs.cardano-node cardanoPkgs.cardano-cli ] ++ [pkgs.postgresql];
         });
-      testsNet = perSystem (system:
+      testnet = perSystem (system:
+        let pkgs =nixpkgsFor system;
+        in
+          pkgs.runCommand "setPrivateNetwork" {buildInputs=(with pkgs; [git]);} (builtins.readFile ./setPrivateNetwork.sh)
+        );
+      runTestnet = self.testnet.x86_64-linux.testnet;
+
+      testnet2 = perSystem (system: 
         let
           pkgs = nixpkgsFor system;
-        in self.packages.${system} // {
-          testnet = pkgs.runCommand "setPrivateNetwork" ''./setPrivateNetwork.sh'';
-        });
+          cardanoPkgs = cardanoPkgsFor system;
+          privateNetwork.url = "https://github.com/woofpool/cardano-private-testnet-setup";
+          localPath = "test-env/ogmios-datum-cache-private-network/cardano-private-testnet-setup";
+        in 
+          pkgs.writeShellScript "runTestnet" ''
+          echo "testnet2 begin"          
+          mkdir -p ${localPath}
+          
+          LOCALREPO_VC_DIR=$LOCALREPO/.git
+          
+          if [ ! -d ${localPath}/.git ]
+          then
+              ${pkgs.git} clone ${privateNetwork.url} ${localPath}
+          fi
+          
+          sleep 1
+          
+          cd ${localPath}
+          ./scripts/automate.sh
+          echo "end"
+          ''
+      );
+
+      run-testnet = perSystem (system:
+        let pkgs =nixpkgsFor system;
+        in
+          pkgs.writeShellScript "run-testnet"  ''make run-testnet''
+        );
+
+      "test-env/ogmios-datum-cache-private-network/cardano-private-testnet-setup"= perSystem (system: 
+        let
+          pkgs = nixpkgsFor system;
+          cardanoPkgs = cardanoPkgsFor system;
+          privateNetwork.url = "https://github.com/woofpool/cardano-private-testnet-setup";
+          localPath = "test-env/ogmios-datum-cache-private-network/cardano-private-testnet-setup";
+        in 
+        pkgs.fetchFromGitHub {
+         owner = "woofpool";
+         repo = "cardano-private-testnet-setup";
+         rev = "a198f028b45672b0520cd00fa447156e4ee32b5e";
+         sha256 = "Ow58DluF89u5Y35XuM3orpSxD1ph2bxMK6jEJPFMHBk=";
+        }
+      );
+
+      PGDATA = "${toString ./.}/.pg";
+
+      run-postgres = perSystem ( system : 
+        let pkgs =nixpkgsFor system;
+            postgresql.config = {
+              path = "test-env/ogmios-datum-cache-private-network/postgres";
+              user = "odcUser";
+              port = "5555";
+          };
+        in
+          pkgs.writeShellScript "run-postgres" ''
+            echo "starting db"
+            # Setup: other env variables
+            export PGHOST="$PGDATA"
+            # Setup: DB
+            [ ! -d $PGDATA ] && pg_ctl initdb -o "-U ${postgresql.config.port}" && cat "${postgresql.config.path}" >> $PGDATA/postgresql.conf
+            pg_ctl -o "-p ${postgresql.config.port} -k $PGDATA" start
+            alias fin="pg_ctl stop && exit"
+            alias pg="psql -p 5555 -U odcUser"
+          ''
+        );
+
+
       # TODO
       # There is no test suite currently, after tests are implemented we can run
       # them in the `checks` directly (or just run them when the package is
