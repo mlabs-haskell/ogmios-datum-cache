@@ -2,3 +2,6 @@
 result*
 .direnv
 .envrc
+/test-env/ogmios-datum-cache-private-network/postgres/DB/
+/test-env/ogmios-datum-cache-private-network/log.txt
+/test-env/ogmios-datum-cache-private-network/cardano-private-testnet-setup/

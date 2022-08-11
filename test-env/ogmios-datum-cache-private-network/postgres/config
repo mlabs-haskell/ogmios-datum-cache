@@ -11,3 +11,4 @@ log_directory = 'pg_log'
 log_filename = 'postgresql-%Y-%m-%d_%H%M%S.log'
 logging_collector = on
 log_min_error_statement = error
+unix_socket_directories = '/temp/odc-postgres'

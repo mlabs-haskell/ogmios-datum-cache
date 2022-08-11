@@ -99,7 +99,7 @@ run-testnet : requires_nix_shell
 	./setPrivateNetwork.sh
 
 clean-testnet : requires_nix_shell
-	rm -Rf test-env/ogmios-datum-cache-private-network/*
+	rm -Rf test-env/ogmios-datum-cache-private-network/cardano-private-testnet-setup 
 
 # Target to use as dependency to fail if not inside nix-shell
 requires_nix_shell:
