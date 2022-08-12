@@ -63,6 +63,9 @@
             db = "odcIntegalTest";
         };
         ogmios.port = "1337";
+        testNet = {
+          port = "5433";
+        };
       };
        
       integralTest.buildServices = system:
@@ -83,6 +86,26 @@
                   };
                 };
               };
+              #testNet = {
+              #  #service = {
+              #  #  image = "archlinux";
+              #  #  ports = ["${integralTest.testNet.port}:${integralTest.testNet.port}"]; 
+              #  #  environment = {
+              #  #    POSTGRES_USER = "${integralTest.postgres.user}";
+              #  #    POSTGRES_PASSWORD = "${integralTest.postgres.password}";
+              #  #    POSTGRES_DB = "${integralTest.postgres.db}";
+              #  #  };
+              #  #};
+              #  service = { 
+              #    useHostStore = true;
+              #    #volumes = [ "${inputs.cardano-private-testnet-setup}:${inputs.cardano-private-testnet-setup}"];
+              #    #command = [''cp -r ${inputs.cardano-private-testnet-setup} . ''];
+              #    command = ["{$pkgs.sh}" "-c" "echo 'hi' "];
+              #    ports = [
+              #    "8000:8000" # host:container
+              #    ];
+              #  };
+              #};
               #ogmios = {
               #  service = {
               #    useHostStore = true;
@@ -123,6 +146,25 @@
               ${pkgs.arion}/bin/arion --prebuilt-file ${integralTest.arion.prebuild system} up
             '';
           };
+      integralTest.private-testnet-path = "test-env/ogmios-datum-cache-private-network";
+      integralTest.testScript = system : 
+        let 
+          pkgs = nixpkgsFor system; 
+        in 
+          pkgs.writeShellApplication {
+          name = "myScript";
+          runtimeInputs = [ ];
+          text =
+            ''
+            privatePath="./${integralTest.private-testnet-path}/cardano-private-testnet-setup" 
+            if [ ! -d $privatePath ]
+            then 
+              cp -r ${inputs.cardano-private-testnet-setup} "$privatePath"
+            fi
+            cd "$privatePath"
+            ./scripts/automate.sh
+            '';
+          };
     in {
       defaultPackage =
         perSystem (system: self.packages.${system}."${hsPackageName}");
@@ -155,8 +197,14 @@
           odc-runtime =  {
             type = "app";
             program = "${integralTest.arion.makeScript system}/bin/${integralTest.arion.scriptName}";
+            #program = "${integralTest.testScript system}/bin/myScript";
           };
-          default = self.apps.${system}.odc-runtime;
+          #default = self.apps.${system}.odc-runtime;
+          sp = { 
+            type = "app";
+            #program = "${integralTest.arion.makeScript system}/bin/${integralTest.arion.scriptName}";
+            program = "${integralTest.testScript system}/bin/myScript";
+          };
         }
       );
 
