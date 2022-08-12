@@ -11,7 +11,7 @@
       owner = "NixOS";
       repo = "nixpkgs";
       # This is the revision that the project was using pre-flakes
-      rev = "2cf9db0e3d45b9d00f16f2836cb1297bcadc475e";
+      rev = "a7ecde854aee5c4c7cd6177f54a99d2c1ff28a31";
     };
     unstable_nixpkgs = {
       type = "github";
@@ -24,14 +24,20 @@
         url = github:woofpool/cardano-private-testnet-setup;
         flake = false;
       };
+    ogmios = {
+       url = "github:mlabs-haskell/ogmios/e406801eaeb32b28cd84357596ca1512bff27741";
+       inputs = {
+         nixpkgs.follows = "nixpkgs";
+       };
+     };
   };
 
-  outputs = { self, nixpkgs, unstable_nixpkgs,  ... }@inputs:
+  outputs = { self, nixpkgs, unstable_nixpkgs, ... }@inputs:
     let
       supportedSystems =
         [ "x86_64-linux" "x86_64-darwin" "aarch64-linux" "aarch64-darwin" ];
       perSystem = nixpkgs.lib.genAttrs supportedSystems;
-      nixpkgsFor = system: import nixpkgs { inherit system; };
+      nixpkgsFor = system: import nixpkgs { overlays=[(_: _: { ogmios-fixtures = inputs.ogmios; })]; inherit system; };
       unstableNixpkgsFor = system: import unstable_nixpkgs { inherit system; };
       hsPackageName = "ogmios-datum-cache";
       hpkgsFor = system:
@@ -48,28 +54,75 @@
         };
       projectRoot = builtins.toString ./.;
       cardanoPkgsFor = system: inputs.cardano-node-repo.packages.${system};
-      postgres = {
-          user = "odcUser";
-          password = "odcUser";
-          port = "5555";
-          db = "odcDB";
+
+      integralTest = {
+        postgres = {
+            user = "ctxlib";
+            password = "ctxlib";
+            port = "5432";
+            db = "odcIntegalTest";
+        };
+        ogmios.port = "1337";
       };
-      odcServices =
-        {
-          services = {
-            postgres = {
-              service = {
-                image = "postgres:13";
-                ports = "${postgres.port}:${postgres.port}"; 
-                environment = {
-                  POSTGRES_USER = "${postgres.user}";
-                  POSTGRES_PASSWORD = "${postgres.password}";
-                  POSTGRES_DB = "${postgres.db}";
+       
+      integralTest.buildServices = system:
+        let 
+          pkgs = nixpkgsFor system ;
+        in 
+          {services =
+            {
+              postgres = {
+                service = {
+                  image = "postgres:13";
+                  ports = ["${integralTest.postgres.port}:${integralTest.postgres.port}"]; 
+                  volumes = [ "${toString ./.}/postgres-data:/var/lib/postgresql/data"];
+                  environment = {
+                    POSTGRES_USER = "${integralTest.postgres.user}";
+                    POSTGRES_PASSWORD = "${integralTest.postgres.password}";
+                    POSTGRES_DB = "${integralTest.postgres.db}";
+                  };
                 };
               };
+              #ogmios = {
+              #  service = {
+              #    useHostStore = true;
+              #    ports = [ (integralTest.ogmios.port) ];
+              #    command = [
+              #      "${pkgs.bash}/bin/sh"
+              #      "-c"
+              #      ''
+              #        ${inputs.ogmios}/bin/ogmios \
+              #          --host ogmios \
+              #          --port ${integralTest.ogmios.port} \
+              #          --node-socket /ipc/node.socket \
+              #      ''
+              #    ];
+              #  };
+              #};
             };
           };
+      integralTest.arion.prebuild = system : 
+        let 
+          pkgs = nixpkgsFor system;
+        in
+
+        pkgs.arion.build {
+          modules = [ (integralTest.buildServices system) ];
+          pkgs = pkgs;
         };
+      integralTest.arion.scriptName = "arionScript";
+      integralTest.arion.makeScript = system : 
+        let 
+          pkgs = nixpkgsFor system; 
+        in 
+          pkgs.writeShellApplication {
+          name = integralTest.arion.scriptName;
+          runtimeInputs = [ pkgs.arion pkgs.docker ];
+          text =
+            ''
+              ${pkgs.arion}/bin/arion --prebuilt-file ${integralTest.arion.prebuild system} up
+            '';
+          };
     in {
       defaultPackage =
         perSystem (system: self.packages.${system}."${hsPackageName}");
@@ -97,15 +150,16 @@
         });
 
 
-      odc-runtime = perSystem (system : 
-        let 
-          pkgs = nixpkgsFor system;
-        in
-        pkgs.arion.build {
-          modules = [ odcServices ];
-          pkgs = pkgs;
+      apps = perSystem ( system : 
+        {
+          odc-runtime =  {
+            type = "app";
+            program = "${integralTest.arion.makeScript system}/bin/${integralTest.arion.scriptName}";
+          };
+          default = self.apps.${system}.odc-runtime;
         }
       );
+
 
       # TODO
       # There is no test suite currently, after tests are implemented we can run
