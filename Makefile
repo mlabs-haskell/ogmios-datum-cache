@@ -96,7 +96,7 @@ watch: requires_nix_shell ogmios-datum-cache.cabal
 	while sleep 1; do find ogmios-datum-cache.cabal src test | entr -cd make build; done
 
 run-testnet : requires_nix_shell 
-	nix run .#odc-runtime & nix run .#sp
+	nix run .#odc-runtime & nix run .#private-testnet
 
 clean-testnet : requires_nix_shell
 	rm -Rf test-env/ogmios-datum-cache-private-network/cardano-private-testnet-setup 

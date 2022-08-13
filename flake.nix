@@ -37,7 +37,7 @@
       supportedSystems =
         [ "x86_64-linux" "x86_64-darwin" "aarch64-linux" "aarch64-darwin" ];
       perSystem = nixpkgs.lib.genAttrs supportedSystems;
-      nixpkgsFor = system: import nixpkgs { overlays=[(_: _: { ogmios-fixtures = inputs.ogmios; })]; inherit system; };
+      nixpkgsFor = system: import nixpkgs { overlays=[(_: _: { ogmios-fixtures = inputs.ogmios; })  (_: _: { cardano-cli = inputs.cardano-cli; })]; inherit system; };
       unstableNixpkgsFor = system: import unstable_nixpkgs { inherit system; };
       hsPackageName = "ogmios-datum-cache";
       hpkgsFor = system:
@@ -67,7 +67,6 @@
           port = "5433";
         };
       };
-       
       integralTest.buildServices = system:
         let 
           pkgs = nixpkgsFor system ;
@@ -86,42 +85,23 @@
                   };
                 };
               };
-              #testNet = {
-              #  #service = {
-              #  #  image = "archlinux";
-              #  #  ports = ["${integralTest.testNet.port}:${integralTest.testNet.port}"]; 
-              #  #  environment = {
-              #  #    POSTGRES_USER = "${integralTest.postgres.user}";
-              #  #    POSTGRES_PASSWORD = "${integralTest.postgres.password}";
-              #  #    POSTGRES_DB = "${integralTest.postgres.db}";
-              #  #  };
-              #  #};
-              #  service = { 
-              #    useHostStore = true;
-              #    #volumes = [ "${inputs.cardano-private-testnet-setup}:${inputs.cardano-private-testnet-setup}"];
-              #    #command = [''cp -r ${inputs.cardano-private-testnet-setup} . ''];
-              #    command = ["{$pkgs.sh}" "-c" "echo 'hi' "];
-              #    ports = [
-              #    "8000:8000" # host:container
-              #    ];
-              #  };
-              #};
-              #ogmios = {
-              #  service = {
-              #    useHostStore = true;
-              #    ports = [ (integralTest.ogmios.port) ];
-              #    command = [
-              #      "${pkgs.bash}/bin/sh"
-              #      "-c"
-              #      ''
-              #        ${inputs.ogmios}/bin/ogmios \
-              #          --host ogmios \
-              #          --port ${integralTest.ogmios.port} \
-              #          --node-socket /ipc/node.socket \
-              #      ''
-              #    ];
-              #  };
-              #};
+              ogmios = {
+                service = {
+                  useHostStore = true;
+                  ports = [ ("${integralTest.ogmios.port}:${integralTest.ogmios.port}") ];
+                  volumes = [ "${inputs.ogmios}:/local" ];
+                  command = [
+                    "${pkgs.bash}/bin/sh"
+                    "-c"
+                    ''
+                      ./local/bin/ogmios \
+                        --host ogmios \
+                        --port ${integralTest.ogmios.port} \
+                        --node-socket /ipc/node.socket \
+                    ''
+                  ];
+                };
+              };
             };
           };
       integralTest.arion.prebuild = system : 
@@ -146,25 +126,27 @@
               ${pkgs.arion}/bin/arion --prebuilt-file ${integralTest.arion.prebuild system} up
             '';
           };
-      integralTest.private-testnet-path = "test-env/ogmios-datum-cache-private-network";
-      integralTest.testScript = system : 
-        let 
-          pkgs = nixpkgsFor system; 
-        in 
-          pkgs.writeShellApplication {
-          name = "myScript";
-          runtimeInputs = [ ];
-          text =
-            ''
-            privatePath="./${integralTest.private-testnet-path}/cardano-private-testnet-setup" 
-            if [ ! -d $privatePath ]
-            then 
-              cp -r ${inputs.cardano-private-testnet-setup} "$privatePath"
-            fi
-            cd "$privatePath"
-            ./scripts/automate.sh
-            '';
-          };
+      integralTest.privateNetwork = {
+        rootPath = "test-env/ogmios-datum-cache-private-network";
+        setupScriptName = "setupPrivateNetwork";
+        environment.root = "private-testnet";
+        environment.initialAda = "1006000000";
+        makeSetupScript =  system :
+          let 
+            pkgs = nixpkgsFor system; 
+          in 
+            pkgs.writeShellApplication {
+            name = integralTest.privateNetwork.setupScriptName;
+            runtimeInputs = [ ];
+            text =
+              ''
+              cd test-env/ogmios-datum-cache-private-network/
+              rootPath="${integralTest.privateNetwork.environment.root}"
+              initAdaAmount="${integralTest.privateNetwork.environment.initialAda}"
+              ./setPrivateNetwork.sh ${inputs.cardano-private-testnet-setup} $rootPath $initAdaAmount
+              '';
+            };
+      };
     in {
       defaultPackage =
         perSystem (system: self.packages.${system}."${hsPackageName}");
@@ -190,20 +172,18 @@
             ])++ [ cardanoPkgs.cardano-node cardanoPkgs.cardano-cli ] 
               ++ [pkgs.postgresql];
         });
-
+ 
 
       apps = perSystem ( system : 
         {
           odc-runtime =  {
             type = "app";
             program = "${integralTest.arion.makeScript system}/bin/${integralTest.arion.scriptName}";
-            #program = "${integralTest.testScript system}/bin/myScript";
           };
           #default = self.apps.${system}.odc-runtime;
-          sp = { 
+          private-testnet = { 
             type = "app";
-            #program = "${integralTest.arion.makeScript system}/bin/${integralTest.arion.scriptName}";
-            program = "${integralTest.testScript system}/bin/myScript";
+            program = "${integralTest.privateNetwork.makeSetupScript system}/bin/${integralTest.privateNetwork.setupScriptName}";
           };
         }
       );
