@@ -101,6 +101,9 @@ run-testnet : requires_nix_shell
 clean-testnet : requires_nix_shell
 	rm -Rf test-env/ogmios-datum-cache-private-network/cardano-private-testnet-setup 
 
+fast-run : requires_nix_shell
+	cabal run ogmios-datum-cache -- --db-port=5432 --db-user="ctxlib" --db-host="localhost" --db-name="ctxlib" --db-password="ctxlib" --server-port 9999 --server-api 'usr:pwd' --ogmios-address '127.0.0.1' --ogmios-port 1337 --from-origin --log-level=info
+
 # Target to use as dependency to fail if not inside nix-shell
 requires_nix_shell:
 	@ [ -v IN_NIX_SHELL ] || echo "The $(MAKECMDGOALS) target must be run from inside nix-shell"

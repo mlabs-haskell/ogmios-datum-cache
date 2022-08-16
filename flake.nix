@@ -26,9 +26,6 @@
       };
     ogmios = {
        url = "github:mlabs-haskell/ogmios/e406801eaeb32b28cd84357596ca1512bff27741";
-       inputs = {
-         nixpkgs.follows = "nixpkgs";
-       };
      };
   };
 
@@ -62,10 +59,6 @@
             port = "5432";
             db = "odcIntegalTest";
         };
-        ogmios.port = "1337";
-        testNet = {
-          port = "5433";
-        };
       };
       integralTest.buildServices = system:
         let 
@@ -77,29 +70,11 @@
                 service = {
                   image = "postgres:13";
                   ports = ["${integralTest.postgres.port}:${integralTest.postgres.port}"]; 
-                  volumes = [ "${toString ./.}/postgres-data:/var/lib/postgresql/data"];
                   environment = {
                     POSTGRES_USER = "${integralTest.postgres.user}";
                     POSTGRES_PASSWORD = "${integralTest.postgres.password}";
                     POSTGRES_DB = "${integralTest.postgres.db}";
                   };
-                };
-              };
-              ogmios = {
-                service = {
-                  useHostStore = true;
-                  ports = [ ("${integralTest.ogmios.port}:${integralTest.ogmios.port}") ];
-                  volumes = [ "${inputs.ogmios}:/local" ];
-                  command = [
-                    "${pkgs.bash}/bin/sh"
-                    "-c"
-                    ''
-                      ./local/bin/ogmios \
-                        --host ogmios \
-                        --port ${integralTest.ogmios.port} \
-                        --node-socket /ipc/node.socket \
-                    ''
-                  ];
                 };
               };
             };
@@ -170,7 +145,7 @@
               haskell-language-server
               hlint
             ])++ [ cardanoPkgs.cardano-node cardanoPkgs.cardano-cli ] 
-              ++ [pkgs.postgresql];
+              ++ [ pkgs.postgresql inputs.ogmios.packages.${system}."ogmios:exe:ogmios"];
         });
  
 

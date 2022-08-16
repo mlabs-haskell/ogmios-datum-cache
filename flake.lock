@@ -8086,11 +8086,12 @@
     },
     "nixpkgs_19": {
       "locked": {
-        "lastModified": 1647122627,
-        "narHash": "sha256-w4hGsXYyMgJAQRSBxh7O6AAsawJSbudCxfQXhDRhwPQ=",
-        "path": "/nix/store/s6wigis38dnikj5y92jrrj7ywc38b78g-source",
-        "rev": "0f85665118d850aae5164d385d24783d0b16cf1b",
-        "type": "path"
+        "lastModified": 1660584043,
+        "narHash": "sha256-uLrx3H/1C9JtQbaz72kYWhurfCFrMQLvygfmYwUMELs=",
+        "owner": "NixOS",
+        "repo": "nixpkgs",
+        "rev": "03d52eed55151e330de5f0cc4fde434a7227ff43",
+        "type": "github"
       },
       "original": {
         "id": "nixpkgs",
@@ -8424,7 +8425,9 @@
         "iohk-monitoring-framework": "iohk-monitoring-framework",
         "iohk-nix": "iohk-nix",
         "nixpkgs": [
-          "nixpkgs"
+          "ogmios",
+          "haskell-nix",
+          "nixpkgs-unstable"
         ],
         "optparse-applicative": "optparse-applicative",
         "ouroboros-network": "ouroboros-network_11",
