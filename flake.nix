@@ -21,7 +21,7 @@
     cardano-node-repo.url = "github:input-output-hk/cardano-node/1.35.0";
     cardano-db-sync.url = "github:input-output-hk/cardano-db-sync/13.0.0";
     cardano-private-testnet-setup = {
-        url = github:woofpool/cardano-private-testnet-setup;
+        url = "github:woofpool/cardano-private-testnet-setup/a198f028b45672b0520cd00fa447156e4ee32b5e";
         flake = false;
       };
     ogmios = {
@@ -34,7 +34,7 @@
       supportedSystems =
         [ "x86_64-linux" "x86_64-darwin" "aarch64-linux" "aarch64-darwin" ];
       perSystem = nixpkgs.lib.genAttrs supportedSystems;
-      nixpkgsFor = system: import nixpkgs { overlays=[(_: _: { ogmios-fixtures = inputs.ogmios; })  (_: _: { cardano-cli = inputs.cardano-cli; })]; inherit system; };
+      nixpkgsFor = system: import nixpkgs { inherit system; };
       unstableNixpkgsFor = system: import unstable_nixpkgs { inherit system; };
       hsPackageName = "ogmios-datum-cache";
       hpkgsFor = system:
@@ -57,7 +57,7 @@
             user = "ctxlib";
             password = "ctxlib";
             port = "5432";
-            db = "odcIntegalTest";
+            db = "odctest";
         };
       };
       integralTest.buildServices = system:
@@ -69,16 +69,18 @@
               postgres = {
                 service = {
                   image = "postgres:13";
-                  ports = ["${integralTest.postgres.port}:${integralTest.postgres.port}"]; 
+                  ports = [
+                    "${integralTest.postgres.port}:${integralTest.postgres.port}"
+                  ]; 
                   environment = {
                     POSTGRES_USER = "${integralTest.postgres.user}";
                     POSTGRES_PASSWORD = "${integralTest.postgres.password}";
                     POSTGRES_DB = "${integralTest.postgres.db}";
                   };
-                };
               };
             };
           };
+        };
       integralTest.arion.prebuild = system : 
         let 
           pkgs = nixpkgsFor system;
@@ -98,7 +100,8 @@
           runtimeInputs = [ pkgs.arion pkgs.docker ];
           text =
             ''
-              ${pkgs.arion}/bin/arion --prebuilt-file ${integralTest.arion.prebuild system} up
+              ${pkgs.arion}/bin/arion \
+                --prebuilt-file ${integralTest.arion.prebuild system} up
             '';
           };
       integralTest.privateNetwork = {
@@ -118,7 +121,9 @@
               cd test-env/ogmios-datum-cache-private-network/
               rootPath="${integralTest.privateNetwork.environment.root}"
               initAdaAmount="${integralTest.privateNetwork.environment.initialAda}"
-              ./setPrivateNetwork.sh ${inputs.cardano-private-testnet-setup} $rootPath $initAdaAmount
+              dbName="${integralTest.postgres.db}"
+              ./setPrivateNetwork.sh ${inputs.cardano-private-testnet-setup} \
+                $rootPath $initAdaAmount $dbName
               '';
             };
       };
@@ -148,21 +153,19 @@
               ++ [ pkgs.postgresql inputs.ogmios.packages.${system}."ogmios:exe:ogmios"];
         });
  
-
       apps = perSystem ( system : 
         {
-          odc-runtime =  {
+          postgres =  {
             type = "app";
             program = "${integralTest.arion.makeScript system}/bin/${integralTest.arion.scriptName}";
           };
-          #default = self.apps.${system}.odc-runtime;
-          private-testnet = { 
+          run-testnet = { 
             type = "app";
             program = "${integralTest.privateNetwork.makeSetupScript system}/bin/${integralTest.privateNetwork.setupScriptName}";
           };
+          #default = self.apps.${system}.postgres;
         }
       );
-
 
       # TODO
       # There is no test suite currently, after tests are implemented we can run

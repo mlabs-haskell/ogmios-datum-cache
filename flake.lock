@@ -2025,6 +2025,7 @@
       "original": {
         "owner": "woofpool",
         "repo": "cardano-private-testnet-setup",
+        "rev": "a198f028b45672b0520cd00fa447156e4ee32b5e",
         "type": "github"
       }
     },

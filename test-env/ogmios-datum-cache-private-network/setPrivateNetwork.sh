@@ -2,6 +2,7 @@
 REPO_PATH=$1
 ROOT=$2
 INIT_SUPPLY=$3
+DB_NAME=$4
 privatePath="./cardano-private-testnet-setup" 
 
 cardanoNodePrefix="Cardano Node"
@@ -29,16 +30,20 @@ function showNetworkLog() {
 
 }
 
+function configDB() {
+  sleep 5
+  export PGPASSWORD="ctxlib"
+  echo "SELECT 'CREATE DATABASE ${DB_NAME}' WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = '${DB_NAME}')\gexec" | \
+    psql -d template1 -p 5432 -U ctxlib -h localhost 
+}
+
 function startOgmios() {
   sleep 5
   ogmios --port 1337 --host localhost \
     --node-socket private-testnet/node-bft1/node.sock \
     --node-config private-testnet/configuration.yaml \
     | (while read -r line; do echoWithPrefix "Ogmios" "$PURPLE" "$line";done)
-
 }
-
-
 
 if [ ! -d $privatePath ]
 then 
@@ -49,6 +54,4 @@ fi
 cd "$privatePath"
 printf "ROOT=$ROOT\nINIT_SUPPLY=$INIT_SUPPLY" > scripts/config.cfg
 
-runNetwork & showNetworkLog  & startOgmios
-
-#(./scripts/automate.sh | while read -r line; do echo "[Setup Cardano node] $line";done) & (echo "[CARDANO NODE] waiting 20 secs to begin node outputs"; sleep 20;echo "[CARDANO NODE] begin cardano node output"; tail -f logs/mainnet.log)
+runNetwork & showNetworkLog  & startOgmios #&& configDB
