@@ -54,4 +54,4 @@ fi
 cd "$privatePath"
 printf "ROOT=$ROOT\nINIT_SUPPLY=$INIT_SUPPLY" > scripts/config.cfg
 
-runNetwork & showNetworkLog  & startOgmios #&& configDB
+runNetwork & showNetworkLog  & startOgmios #&configDB
