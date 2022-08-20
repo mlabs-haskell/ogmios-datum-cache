@@ -1038,5 +1038,43 @@ Example (filter will save datums only if hash is `foobar` and (utxo with datum i
         }
     ]
 }
+```
+
+
+## Integration tests 
+
+First we need to start a `postres` database for ODC, a `cardano node` and a `ogmios`
+instance. All this could be done with : 
 
 ```
+nix develop
+make testnet
+```
+
+The first time we would need to create a database called `ocdtest`
+
+```
+nix develop
+export PGPASSWORD="ctxlib"
+echo "SELECT 'CREATE DATABASE odctest' WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'odctest')\gexec" | \
+  psql -d template1 -p 5432 -U ctxlib -h localhost 
+```
+
+After that we could start `ODC` in other terminal with the right parameters using:
+
+```
+nix develop
+make fast-run
+```
+
+We must wait for it to start and then we could do 
+
+```
+make perform-txt
+```
+
+to submit the alwaysSuccess script to the network, look and release some
+founds to the only user on the network.
+
+At this point we must have a workin ODC instance a datum stored in the database 
+and some transactions.

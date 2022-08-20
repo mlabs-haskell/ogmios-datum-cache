@@ -22,6 +22,10 @@ usage:
 	@echo "  lint                -- Check the sources with hlint"
 	@echo "  refactor            -- Automatically apply hlint refactors, with prompt"
 	@echo "  watch               -- Track files and run 'make build' on change"
+	@echo "  testnet             -- Start a private testnet, postres and ogmios"
+	@echo "  kill-testnet        -- Kill cardano node and ogmios process"
+	@echo "  clean-testnet       -- Wipes local testnet"
+	@echo "  fast-run            -- Open and ODC instance with the right parameters for `make testnet` setup "
 
 
 ## Project
@@ -107,6 +111,10 @@ clean-testnet : requires_nix_shell
 
 fast-run : requires_nix_shell
 	cabal run ogmios-datum-cache -- --db-port=5432 --db-user="ctxlib" --db-host="localhost" --db-name="odctest" --db-password="ctxlib" --server-port 5438 --server-api 'usr:pwd' --ogmios-address '127.0.0.1' --ogmios-port 1337 --from-origin --log-level=info
+
+perform-txt : 
+	./test-env/ogmios-datum-cache-private-network/makeTransaction.sh
+
 
 # Target to use as dependency to fail if not inside nix-shell
 requires_nix_shell:
