@@ -4,3 +4,4 @@ result*
 .envrc
 /test-env/ogmios-datum-cache-private-network/cardano-private-testnet-setup/
 /test-env/ogmios-datum-cache-private-network/protocol-parameters.json
+/test-env/ogmios-datum-cache-private-network/out
