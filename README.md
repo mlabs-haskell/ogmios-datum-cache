@@ -1088,3 +1088,8 @@ the cardano node process
 ```
 killall cardano-node
 ```
+
+## Available support channels info
+
+You can find help, more information and ongoing discussion about the project here:
+- [#ogmios-datum-cache](https://mlabs-corp.slack.com/archives/C03HVDBU9FT) - mlabs ODC slack channel.

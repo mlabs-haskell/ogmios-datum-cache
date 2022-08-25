@@ -104,7 +104,7 @@ insertDatumsStatement :: Statement ([DataHash], [ByteString]) ()
 insertDatumsStatement = Statement sql enc dec True
   where
     sql =
-      "INSERT INTO datums (hash, value) (SELECT h::text, v::bytea FROM unnest($1, $2) AS x(h, v)) ON CONFLICT DO NOTHING"
+      "INSERT INTO datums (hash, value) (SELECT h::text, v::bytea FROM unnest($1, $2) AS x(h, v)) ON CONFLICT(hash) DO UPDATE SET value=EXCLUDED.value"
 
     encArray elemEncoder =
       Encoders.param $
@@ -123,7 +123,7 @@ insertRawTransactionsStatement :: Statement [SomeRawTransaction] ()
 insertRawTransactionsStatement = Statement sql enc dec True
   where
     sql =
-      "INSERT INTO transactions (txId, txType, rawTx) (SELECT h::text, t::text, v::json FROM unnest($1, $2, $3) AS x(h, t, v)) ON CONFLICT DO NOTHING"
+      "INSERT INTO transactions (txId, txType, rawTx) (SELECT h::text, t::text, v::bytea FROM unnest($1, $2, $3::bytea[]) AS x(h, t, v)) ON CONFLICT(txId) DO UPDATE SET txType=EXCLUDED.txType, rawTx=EXCLUDED.rawTx"
 
     encArray elemEncoder =
       Encoders.param $
@@ -135,7 +135,7 @@ insertRawTransactionsStatement = Statement sql enc dec True
     enc :: Encoders.Params [SomeRawTransaction] =
       (fmap encId >$< encArray Encoders.text)
         <> (fmap encType >$< encArray Encoders.text)
-        <> (fmap getRawTx >$< encArray Encoders.json)
+        <> (fmap getRawTx >$< encArray Encoders.bytea)
     encType (AlonzoRawTransaction _) = "alonzo"
     encType (BabbageRawTransaction _) = "babbage"
     encId (AlonzoRawTransaction tx) = tx.txId
@@ -154,7 +154,7 @@ getRawTxStatement = Statement sql enc dec True
       Decoders.singleRow $ do
         txId <- Decoders.column $ Decoders.nonNullable Decoders.text
         ty <- Decoders.column $ Decoders.nonNullable Decoders.text
-        raw <- Decoders.column (Decoders.nonNullable Decoders.json)
+        raw <- Decoders.column (Decoders.nonNullable Decoders.bytea)
         case ty of
           "alonzo" ->
             pure $ AlonzoRawTransaction $ Alonzo.RawTransaction txId raw
@@ -173,7 +173,7 @@ initTables = do
         Session.sql
           "CREATE TABLE IF NOT EXISTS last_block \
           \ (onerow_id bool PRIMARY KEY DEFAULT TRUE, slot integer, hash text, CONSTRAINT onerow CHECK (onerow_id))"
-        Session.sql "CREATE TABLE IF NOT EXISTS transactions (txId text PRIMARY KEY, txType text, rawTx json);"
+        Session.sql "CREATE TABLE IF NOT EXISTS transactions (txId text PRIMARY KEY, txType text, rawTx bytea);"
         Session.sql
           "DELETE FROM transactions a USING ( \
           \  SELECT MIN(ctid) as ctid, txId FROM transactions \

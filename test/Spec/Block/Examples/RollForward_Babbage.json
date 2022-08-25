@@ -10,6 +10,7 @@
           "body": [
             {
               "id": "c248757d390181c517a5beadc9c3fe64bf821d3e889a963fc717003ec248757d",
+              "raw":"test",
               "inputSource": "inputs",
               "body": {
                 "inputs": [
