@@ -1,12 +1,15 @@
-module Spec.Parameters (spec, example) where
+module Spec.Parameters (spec, example, integrationTestParams) where
 
-import Control.Monad.Logger (LogLevel (LevelWarn))
+import Control.Monad.Logger (LogLevel (LevelInfo, LevelWarn))
 import Data.ByteString (ByteString)
 import Data.ByteString.Lazy.UTF8 (fromString)
 import Options.Applicative (ParserResult (Success), defaultPrefs, execParserPure)
 import Test.Hspec (Spec, describe, it, shouldBe)
 
-import Block.Types (BlockInfo (BlockInfo, blockId, blockSlot), StartingBlock (StartingBlock))
+import Block.Types (
+  BlockInfo (BlockInfo, blockId, blockSlot),
+  StartingBlock (Origin, StartingBlock),
+ )
 import Parameters (
   BlockFetcherConfig (
     BlockFetcherConfig,
@@ -68,7 +71,7 @@ example :: Config
 example =
   Config
     { cfgDbConnectionString =
-        "host=localhost port=5432 user=seabug dbname=ogmios-datum-cache"
+        "host=localhost port=5432 user=ctxlib dbname=odctest password=ctxlib"
     , cfgServerPort = 9999
     , cfgServerControlApiToken = "API_TOKEN"
     , cfgOgmiosAddress = "127.0.0.1"
@@ -101,6 +104,40 @@ example =
           , cfgFetcherQueueSize = 64
           }
     , cfgLogLevel = LevelWarn
+    , cfgOldOgmios = False
+    }
+
+integrationTestParams :: Config
+integrationTestParams =
+  Config
+    { cfgDbConnectionString =
+        "host=localhost port=5432 user=ctxlib dbname=odctest password=ctxlib"
+    , cfgServerPort = 9999
+    , cfgServerControlApiToken = "API_TOKEN"
+    , cfgOgmiosAddress = "127.0.0.1"
+    , cfgOgmiosPort = 1337
+    , cfgFetcher =
+        BlockFetcherConfig
+          { cfgFetcherBlock = Origin
+          , cfgFetcherFilterJson =
+              (Just . fromString)
+                "{\
+                \    \"all\": [\
+                \        {\
+                \            \"hash\": \"foobar\"\
+                \        },\
+                \        {\
+                \            \"any\": [\
+                \                { \"address\": \"addr_abc\" },\
+                \                { \"address\": \"addr_xyz\" }\
+                \            ]\
+                \        }\
+                \    ]\
+                \}"
+          , cfgFetcherUseLatest = True
+          , cfgFetcherQueueSize = 64
+          }
+    , cfgLogLevel = LevelInfo
     , cfgOldOgmios = False
     }
 

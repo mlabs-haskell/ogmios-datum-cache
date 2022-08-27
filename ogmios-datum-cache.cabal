@@ -157,11 +157,13 @@ test-suite ogmios-datum-cache-test
     Spec.Block.Byron
     Spec.Block.Parsers
     Spec.Parameters
+    Spec.Types
+    Spec.Shh.CardanoNode
 
   ghc-options:
     -Wall -Wcompat -Wincomplete-uni-patterns
     -Wincomplete-record-updates -Wredundant-constraints
-    -Wmissing-export-lists -Wmissing-deriving-strategies -Werror -O2
+    -Wmissing-export-lists -Wmissing-deriving-strategies -O2
     -Wmissing-import-lists -Wunused-packages
     -fplugin=RecordDotPreprocessor
 
@@ -170,6 +172,7 @@ test-suite ogmios-datum-cache-test
     , base
     , bytestring
     , containers
+    , cborg
     , exceptions
     , hspec
     , hspec-wai
@@ -179,6 +182,8 @@ test-suite ogmios-datum-cache-test
     , record-dot-preprocessor
     , record-hasfield
     , servant-server
+    , serialise
+    , shh
     , string-interpolate
     , text
     , utf8-string

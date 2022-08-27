@@ -43,7 +43,7 @@ build: requires_nix_shell project
 	cabal v2-build all $(GHC_FLAGS)
 
 test: requires_nix_shell project
-	cabal v2-test $(GHC_FLAGS) 
+	cabal v2-test --test-show-details=streaming $(GHC_FLAGS) 
 
 hoogle: requires_nix_shell
 	hoogle server --local

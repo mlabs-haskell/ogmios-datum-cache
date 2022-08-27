@@ -9,10 +9,13 @@ import App (
   appService,
   bootstrapEnvFromConfig,
  )
+import Codec.Serialise (Serialise (encode))
 import Spec.Api.Handlers qualified
 import Spec.Api.WebSocket.Types qualified
 import Spec.Block.Parsers qualified
 import Spec.Parameters qualified
+import Spec.Shh.CardanoNode
+import Spec.Types (PlutusData (Constr))
 
 main :: IO ()
 main = do
@@ -20,10 +23,17 @@ main = do
   let handleDbException err
         | ci = error $ "Test environment is not running: " <> show err
         | otherwise = return $ Left $ show @DbConnectionAcquireException err
-      cfg = Spec.Parameters.example
+      cfg = Spec.Parameters.integrationTestParams
+  writeFilem
   app <- (Right . appService <$> bootstrapEnvFromConfig cfg) `catch` handleDbException
+  let dat = Constr 1 []
+  print dat
+  print $ encode dat
   hspec $ do
-    Spec.Api.Handlers.spec app
-    Spec.Api.WebSocket.Types.spec
+    -- Those won't depend on environment
     Spec.Parameters.spec
     Spec.Block.Parsers.spec
+    Spec.Api.WebSocket.Types.spec
+
+    -- Depends on environment
+    Spec.Api.Handlers.spec app
