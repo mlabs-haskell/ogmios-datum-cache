@@ -158,12 +158,12 @@ test-suite ogmios-datum-cache-test
     Spec.Block.Parsers
     Spec.Parameters
     Spec.Types
-    Spec.Shh.CardanoNode
+    Spec.Integration.CardanoNode
 
   ghc-options:
     -Wall -Wcompat -Wincomplete-uni-patterns
     -Wincomplete-record-updates -Wredundant-constraints
-    -Wmissing-export-lists -Wmissing-deriving-strategies -O2
+    -Wmissing-export-lists -Wmissing-deriving-strategies -Werror -O2
     -Wmissing-import-lists -Wunused-packages
     -fplugin=RecordDotPreprocessor
 
@@ -183,7 +183,7 @@ test-suite ogmios-datum-cache-test
     , record-hasfield
     , servant-server
     , serialise
-    , shh
     , string-interpolate
     , text
+    , typed-process
     , utf8-string

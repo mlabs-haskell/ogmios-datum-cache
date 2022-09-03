@@ -13,8 +13,8 @@ import Codec.Serialise (Serialise (encode))
 import Spec.Api.Handlers qualified
 import Spec.Api.WebSocket.Types qualified
 import Spec.Block.Parsers qualified
+import Spec.Integration.CardanoNode (loockAndRelease)
 import Spec.Parameters qualified
-import Spec.Shh.CardanoNode
 import Spec.Types (PlutusData (Constr))
 
 main :: IO ()
@@ -24,7 +24,7 @@ main = do
         | ci = error $ "Test environment is not running: " <> show err
         | otherwise = return $ Left $ show @DbConnectionAcquireException err
       cfg = Spec.Parameters.integrationTestParams
-  writeFilem
+  loockAndRelease
   app <- (Right . appService <$> bootstrapEnvFromConfig cfg) `catch` handleDbException
   let dat = Constr 1 []
   print dat
