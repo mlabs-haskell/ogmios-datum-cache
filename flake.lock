@@ -10212,11 +10212,11 @@
         "wai-routes": "wai-routes"
       },
       "locked": {
-        "lastModified": 1659957120,
-        "narHash": "sha256-NahTL2tQM85THE1+TkBW6fBf7VUGGdghLadFjMBbu1w=",
+        "lastModified": 1663768780,
+        "narHash": "sha256-cz+Hdb0G9zjrx7q0PrjcVC2WDTdKav86pBgfGvTwOsY=",
         "owner": "mlabs-haskell",
         "repo": "ogmios",
-        "rev": "8e019275bd462b29a78dbe93f6669d464051c462",
+        "rev": "e698082863f18ed0e18fd8bf7ab84486156928d3",
         "type": "github"
       },
       "original": {

@@ -28,6 +28,9 @@
   services.ogmios.host = "0.0.0.0";
   services.postgresql.enable = true;
   services.ogmios-datum-cache.enable = true;
-  services.ogmios-datum-cache.fromTip = true;
+  # services.ogmios-datum-cache.fromOrigin = true;
   services.ogmios-datum-cache.host = "0.0.0.0";
+  services.ogmios-datum-cache.blockSlot = 44366242;
+  services.ogmios-datum-cache.blockHash = "d2a4249fe3d0607535daa26caf12a38da2233586bc51e79ed0b3a36170471bf5";
+
 }
