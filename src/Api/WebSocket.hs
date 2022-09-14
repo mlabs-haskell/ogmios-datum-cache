@@ -4,7 +4,9 @@ import Control.Monad (forever)
 import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Logger (logErrorNS)
 import Control.Monad.Reader.Has (ask)
+import Data.Aeson ((.=))
 import Data.Aeson qualified as Aeson
+import Data.Bifunctor (bimap)
 import Data.Map qualified as Map
 import Data.Text (Text)
 import Data.Text qualified as Text
@@ -77,16 +79,17 @@ getDatumsByHashes ::
   App WSResponse
 getDatumsByHashes hashes = do
   res <- Database.getDatumsByHashes hashes
-  pure $ case res of
-    Left err ->
-      Left $ mkGetDatumsByHashesFault $ Text.pack $ show err
-    Right datums ->
-      let encodedDatums :: Aeson.Value
-          encodedDatums =
-            if Map.null datums
-              then Aeson.toJSONList @(Map.Map DataHash (Either DatabaseError Data)) []
-              else Aeson.toJSONList @(Map.Map DataHash (Either DatabaseError Data)) [datums]
-       in Right $ mkGetDatumsByHashesResponse encodedDatums
+  pure $
+    bimap
+      (mkGetDatumsByHashesFault . Text.pack . show)
+      (mkGetDatumsByHashesResponse . encodeMap)
+      res
+  where
+    encodeMap :: Map.Map DataHash (Either DatabaseError Data) -> [Aeson.Value]
+    encodeMap datums = encodeOne <$> Map.toList datums
+
+    encodeOne :: (DataHash, Either DatabaseError Data) -> Aeson.Value
+    encodeOne (hash, datum) = Aeson.object ["hash" .= hash, "value" .= datum]
 
 getTxByHash ::
   Text ->

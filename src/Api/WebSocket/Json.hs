@@ -92,7 +92,7 @@ mkGetDatumByHashFault :: Text -> Maybe Aeson.Value -> JsonWspFault
 mkGetDatumByHashFault =
   JsonWspFault "GetDatumByHash" "client"
 
-mkGetDatumsByHashesResponse :: Aeson.Value -> Maybe Aeson.Value -> JsonWspResponse
+mkGetDatumsByHashesResponse :: [Aeson.Value] -> Maybe Aeson.Value -> JsonWspResponse
 mkGetDatumsByHashesResponse datumsWithValues =
   JsonWspResponse "GetDatumsByHashes" (object ["value" .= datumsWithValues])
 
