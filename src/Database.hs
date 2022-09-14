@@ -312,7 +312,14 @@ getDatumsByHashes hashes = runExceptT $ do
   res' <- liftIO (Session.run (getDatumsSession hashes) conn)
   case res' of
     Left _ -> throwE DatabaseErrorNotFound
-    Right datums -> (except . pure . toPlutusDataMany) datums
+    Right datums ->
+      let deserializedDatums = toPlutusDataMany datums
+          notFoundDatums =
+            [ (hash, Left DatabaseErrorNotFound)
+            | hash <- hashes
+            , hash `Map.notMember` deserializedDatums
+            ]
+       in (except . pure) $ deserializedDatums `Map.union` (Map.fromList notFoundDatums)
 
 saveDatums ::
   ( MonadIO m

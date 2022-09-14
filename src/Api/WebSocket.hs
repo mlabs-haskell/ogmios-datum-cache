@@ -5,6 +5,7 @@ import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Logger (logErrorNS)
 import Control.Monad.Reader.Has (ask)
 import Data.Aeson qualified as Aeson
+import Data.Map qualified as Map
 import Data.Text (Text)
 import Data.Text qualified as Text
 import Network.WebSockets qualified as WebSockets
@@ -47,6 +48,7 @@ import Database (
   DatabaseError (DatabaseErrorDecodeError, DatabaseErrorNotFound),
  )
 import Database qualified
+import PlutusData (Data)
 
 type WSResponse =
   Either
@@ -79,7 +81,12 @@ getDatumsByHashes hashes = do
     Left err ->
       Left $ mkGetDatumsByHashesFault $ Text.pack $ show err
     Right datums ->
-      Right $ mkGetDatumsByHashesResponse (Just $ Aeson.toJSON <$> [datums])
+      let encodedDatums :: Aeson.Value
+          encodedDatums =
+            if Map.null datums
+              then Aeson.toJSONList @(Map.Map DataHash (Either DatabaseError Data)) []
+              else Aeson.toJSONList @(Map.Map DataHash (Either DatabaseError Data)) [datums]
+       in Right $ mkGetDatumsByHashesResponse encodedDatums
 
 getTxByHash ::
   Text ->
