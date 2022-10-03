@@ -35,6 +35,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Add `GET /tx/<txId>` endpoint.
 - Add `GetTxByHash` WebSocket method.
 - Add presets for testing environments `test-env`.
+- Add NixOS module for ogmios-datum-cache service. See [nix/test-nixos-configuration.nix](nix/test-nixos-configuration.nix)
 
 ### Fixed
 - Improve stability of block fetching process.
