@@ -115,8 +115,7 @@
 
       nixosModules.ogmios-datum-cache = { pkgs, lib, ... }: {
         imports = [ ./nix/ogmios-datum-cache-nixos-module.nix ];
-        services.ogmios-datum-cache.package =
-          lib.mkDefault self.packages.${pkgs.system}.${hsPackageName};
+        nixpkgs.overlays = [ (_: _: { ogmios-datum-cache = self.packages.${pkgs.system}.${hsPackageName}; }) ];
       };
 
       nixosConfigurations.test = nixpkgs.lib.nixosSystem {
