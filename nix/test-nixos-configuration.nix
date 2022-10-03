@@ -2,6 +2,8 @@
 # nix run '.#vm'
 { config, modulesPath, pkgs, ... }:
 {
+  # Virtual Machine configuration
+
   imports = [ "${modulesPath}/virtualisation/qemu-vm.nix" ];
   virtualisation = {
     memorySize = 8192;
@@ -13,7 +15,9 @@
     ];
   };
 
-  # WARNING: root access with empty password for debugging via console and ssh
+  # Easy debugging via console and ssh
+  # WARNING: root access with empty password
+
   networking.firewall.enable = false;
   services.getty.autologinUser = "root";
   services.openssh.enable = true;
@@ -21,16 +25,25 @@
   users.extraUsers.root.password = "";
   users.mutableUsers = false;
 
-  # cardano-node, ogmios, ogmios-datum-cache configuration
-  services.cardano-node.enable = true;
-  services.cardano-node.systemdSocketActivation = true;
-  services.ogmios.enable = true;
-  services.ogmios.host = "0.0.0.0";
-  services.postgresql.enable = true;
-  services.ogmios-datum-cache.enable = true;
-  # services.ogmios-datum-cache.fromOrigin = true;
-  services.ogmios-datum-cache.host = "0.0.0.0";
-  services.ogmios-datum-cache.blockSlot = 44366242;
-  services.ogmios-datum-cache.blockHash = "d2a4249fe3d0607535daa26caf12a38da2233586bc51e79ed0b3a36170471bf5";
+  # Example configuration for ogmios-datum-cache
 
+  services.cardano-node = {
+    enable = true;
+    systemdSocketActivation = true;
+  };
+
+  services.ogmios = {
+    enable = true;
+    host = "0.0.0.0";
+  };
+
+  services.postgresql.enable = true;
+
+  services.ogmios-datum-cache = {
+    enable = true;
+    host = "0.0.0.0";
+    blockSlot = 44366242;
+    blockHash = "85366c607a9777b887733de621aa2008aec9db4f3e6a114fb90ec2909bc06f14";
+    blockFilter = builtins.toJSON { const = true; };
+  };
 }
