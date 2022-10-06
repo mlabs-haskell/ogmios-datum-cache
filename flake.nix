@@ -22,7 +22,12 @@
     cardano-node.url = "github:input-output-hk/cardano-node";
 
     # TODO: switch to main branch when merged
-    ogmios.url = "github:mlabs-haskell/ogmios/marton/nixos-module";
+    ogmios.url = "github:mlabs-haskell/ogmios/aciceri/nixos-module";
+
+    cardano-configurations = {
+      url = "github:input-output-hk/cardano-configurations";
+      flake = false;
+    };
   };
 
   outputs = inputs@{ self, nixpkgs, unstable_nixpkgs, ... }:
@@ -126,6 +131,9 @@
           inputs.self.nixosModules.ogmios-datum-cache
           ./nix/test-nixos-configuration.nix
         ];
+        extraArgs = {
+          inherit inputs;
+        };
       };
       hydraJobs.x86_64-linux = self.checks.x86_64-linux;
     };
