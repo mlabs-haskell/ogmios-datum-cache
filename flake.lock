@@ -2695,6 +2695,22 @@
         "type": "github"
       }
     },
+    "cardano-configurations": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1662514199,
+        "narHash": "sha256-Z71TP5nHA9ch4DRwftz8my5RwYOjH/xA/WlcJqUTtYY=",
+        "owner": "input-output-hk",
+        "repo": "cardano-configurations",
+        "rev": "182b16cb743867b0b24b7af92efbf427b2b09b52",
+        "type": "github"
+      },
+      "original": {
+        "owner": "input-output-hk",
+        "repo": "cardano-configurations",
+        "type": "github"
+      }
+    },
     "cardano-crypto": {
       "flake": false,
       "locked": {
@@ -3268,11 +3284,11 @@
         "utils": "utils_23"
       },
       "locked": {
-        "lastModified": 1664459991,
-        "narHash": "sha256-3AjH/MFZ5E0Qx2nld0Q1bEuy7QHSF0FIYZJkCtK/OFE=",
+        "lastModified": 1665049633,
+        "narHash": "sha256-JY89gQlC6hRf9XuMY7jSbK4dbG1jchRdqAQnzgmfNRc=",
         "owner": "input-output-hk",
         "repo": "cardano-node",
-        "rev": "40458eefa87c7c3abd8c6ba542d9e931d8b2ecb8",
+        "rev": "148238e15fc40dc9e67e0977babb1105efbe87db",
         "type": "github"
       },
       "original": {
@@ -17403,17 +17419,13 @@
       },
       "locked": {
         "lastModified": 1664829485,
-        "narHash": "sha256-soYIQS0ut7uY67l52UJa0lOEobpg/jAB4fmgvtCxhDk=",
-        "owner": "mlabs-haskell",
-        "repo": "ogmios",
-        "rev": "4763e9b0c879f3dc68c58c35490bea0a29660edf",
-        "type": "github"
+        "narHash": "sha256-pHnen+nN3nxysCfmILmL1TxA5lD+V+ORiTI+DwAJ5B8=",
+        "type": "git",
+        "url": "file:///home/ccr/mlabs/ogmios"
       },
       "original": {
-        "owner": "mlabs-haskell",
-        "ref": "marton/nixos-module",
-        "repo": "ogmios",
-        "type": "github"
+        "type": "git",
+        "url": "file:///home/ccr/mlabs/ogmios"
       }
     },
     "old-ghc-nix": {
@@ -19046,6 +19058,7 @@
     },
     "root": {
       "inputs": {
+        "cardano-configurations": "cardano-configurations",
         "cardano-node": "cardano-node",
         "flake-compat": "flake-compat_9",
         "nixpkgs": "nixpkgs_20",
