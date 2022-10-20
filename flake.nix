@@ -46,6 +46,11 @@
         perSystem (system: self.packages.${system}."${hsPackageName}");
       packages = perSystem (system: {
         "${hsPackageName}" = (hpkgsFor system)."${hsPackageName}";
+        dockerImage = (nixpkgsFor system).dockerTools.buildLayeredImage {
+          name = "ogmios-datum-cache";
+          tag = "latest";
+          contents = [ self.packages.${system}.${hsPackageName} ];
+        };
       });
       devShell = perSystem (system:
         let
