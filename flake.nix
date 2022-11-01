@@ -22,7 +22,7 @@
     cardano-node.url = "github:input-output-hk/cardano-node";
 
     # TODO: switch to main branch when merged
-    ogmios.url = "github:mlabs-haskell/ogmios/aciceri/nixos-module";
+    ogmios.url = "github:mlabs-haskell/ogmios/marton/nixos-module";
 
     cardano-configurations = {
       url = "github:input-output-hk/cardano-configurations";
