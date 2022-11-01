@@ -1,6 +1,6 @@
 # This is a NixOS configuration for running ogmios-datum-cache with ogmios and cardano-node. Run it like this:
 # nix run '.#vm'
-{ config, modulesPath, pkgs, ... }:
+{ config, modulesPath, pkgs, inputs, ... }:
 {
   # Virtual Machine configuration
 
@@ -30,6 +30,8 @@
   services.cardano-node = {
     enable = true;
     systemdSocketActivation = true;
+    nodeConfigFile = "${inputs.cardano-configurations}/network/preview/cardano-node/config.json";
+    topology = "${inputs.cardano-configurations}/network/preview/cardano-node/topology.json";
   };
 
   services.ogmios = {
@@ -42,8 +44,9 @@
   services.ogmios-datum-cache = {
     enable = true;
     host = "0.0.0.0";
-    blockSlot = 44366242;
-    blockHash = "85366c607a9777b887733de621aa2008aec9db4f3e6a114fb90ec2909bc06f14";
+    blockSlot = 3158571;
+    blockHash = "2daa84a316685456e8d04ee102b4a0d7fd238a87f1d52574f92a3ab183b9fab4";
     blockFilter = builtins.toJSON { const = true; };
+    useLatest = false;
   };
 }
