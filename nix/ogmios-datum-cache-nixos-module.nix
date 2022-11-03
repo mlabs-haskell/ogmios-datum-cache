@@ -1,8 +1,6 @@
 { config, lib, pkgs, ... }:
-let
-  cfg = config.services.ogmios-datum-cache;
-in
-with lib; {
+let cfg = config.services.ogmios-datum-cache;
+in with lib; {
   options.services.ogmios-datum-cache = with types; {
     enable = mkEnableOption "Ogmios datum cache";
 
@@ -48,7 +46,8 @@ with lib; {
     };
 
     configurePostgresql = mkOption {
-      description = "Whether to configure postgresql service, create user and databse.";
+      description =
+        "Whether to configure postgresql service, create user and databse.";
       type = types.bool;
       default = true;
     };
@@ -60,7 +59,8 @@ with lib; {
     };
 
     useLatest = mkOption {
-      description = "Wether block fetcher, if started automatically, should start from last block that was proccessed rather than from block defined with blockSlot and blockHash.";
+      description =
+        "Wether block fetcher, if started automatically, should start from last block that was proccessed rather than from block defined with blockSlot and blockHash.";
       type = bool;
       default = true;
     };
@@ -116,26 +116,30 @@ with lib; {
 
   config = mkIf cfg.enable {
     assertions = [{
-      assertion = cfg.fromOrigin || cfg.fromTip || (cfg.blockSlot != null && cfg.blockHash != null);
-      message = "Either fromOrigin or fromTip or both blockSlot and blockHash options need to be set.";
+      assertion = cfg.fromOrigin || cfg.fromTip
+        || (cfg.blockSlot != null && cfg.blockHash != null);
+      message =
+        "Either fromOrigin or fromTip or both blockSlot and blockHash options need to be set.";
     }];
 
-    services.ogmios-datum-cache.dbConnection = mkIf config.services.postgresql.enable (mkDefault
-      "host=/run/postgresql port=${toString config.services.postgresql.port} dbname=${cfg.dbName}");
+    services.ogmios-datum-cache.dbConnection =
+      mkIf config.services.postgresql.enable (mkDefault
+        "host=/run/postgresql port=${
+          toString config.services.postgresql.port
+        } dbname=${cfg.dbName}");
 
     users.users.ogmios-datum-cache = mkIf (cfg.user == "ogmios-datum-cache") {
       isSystemUser = true;
       group = cfg.group;
     };
-    users.groups.ogmios-datum-cache = mkIf (cfg.group == "ogmios-datum-cache") { };
+    users.groups.ogmios-datum-cache =
+      mkIf (cfg.group == "ogmios-datum-cache") { };
 
     services.postgresql = mkIf cfg.configurePostgresql {
       ensureDatabases = [ cfg.dbName ];
       ensureUsers = [{
         name = cfg.user;
-        ensurePermissions = {
-          "DATABASE '${cfg.dbName}'" = "ALL PRIVILEGES";
-        };
+        ensurePermissions = { "DATABASE '${cfg.dbName}'" = "ALL PRIVILEGES"; };
       }];
     };
 
@@ -146,7 +150,7 @@ with lib; {
       wantedBy = [ "multi-user.target" ];
 
       script = escapeShellArgs (concatLists [
-        [ ''${cfg.package}/bin/ogmios-datum-cache'' ]
+        [ "${cfg.package}/bin/ogmios-datum-cache" ]
         [ "--log-level" cfg.logLevel ]
         [ "--server-port" cfg.port ]
         [ "--ogmios-address" cfg.ogmiosAddress ]
@@ -157,7 +161,10 @@ with lib; {
         (optional cfg.fromTip "--from-tip")
         (optionals (cfg.blockHash != null) [ "--block-hash" cfg.blockHash ])
         (optionals (cfg.blockSlot != null) [ "--block-slot" cfg.blockSlot ])
-        (optionals (cfg.blockFilter != null) [ "--block-filter" cfg.blockFilter ])
+        (optionals (cfg.blockFilter != null) [
+          "--block-filter"
+          cfg.blockFilter
+        ])
         cfg.extraArgs
       ]);
 
@@ -192,7 +199,9 @@ with lib; {
         RemoveIPC = true;
         PrivateMounts = true;
         SystemCallArchitectures = "native";
-        SystemCallFilter = [ "~@cpu-emulation @debug @keyring @mount @obsolete @privileged @setuid @resources" ];
+        SystemCallFilter = [
+          "~@cpu-emulation @debug @keyring @mount @obsolete @privileged @setuid @resources"
+        ];
       };
     };
   };

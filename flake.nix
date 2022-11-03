@@ -23,9 +23,11 @@
     ogmios.url = "github:mlabs-haskell/ogmios/marton/nixos-module";
 
     # TODO: clean this up when cardano-node is fixed
-    empty-flake.url = "github:input-output-hk/empty-flake?rev=2040a05b67bf9a669ce17eca56beb14b4206a99a";
+    empty-flake.url =
+      "github:input-output-hk/empty-flake?rev=2040a05b67bf9a669ce17eca56beb14b4206a99a";
     cardano-node-workbench = {
-      url = "github:input-output-hk/cardano-node/ed9932c52aaa535b71f72a5b4cc0cecb3344a5a3";
+      url =
+        "github:input-output-hk/cardano-node/ed9932c52aaa535b71f72a5b4cc0cecb3344a5a3";
       inputs.membench.follows = "empty-flake";
     };
     cardano-node = {
@@ -132,7 +134,11 @@
 
       nixosModules.ogmios-datum-cache = { pkgs, lib, ... }: {
         imports = [ ./nix/ogmios-datum-cache-nixos-module.nix ];
-        nixpkgs.overlays = [ (_: _: { ogmios-datum-cache = self.packages.${pkgs.system}.${hsPackageName}; }) ];
+        nixpkgs.overlays = [
+          (_: _: {
+            ogmios-datum-cache = self.packages.${pkgs.system}.${hsPackageName};
+          })
+        ];
       };
 
       nixosConfigurations.test = nixpkgs.lib.nixosSystem {
@@ -143,9 +149,7 @@
           inputs.self.nixosModules.ogmios-datum-cache
           ./nix/test-nixos-configuration.nix
         ];
-        extraArgs = {
-          inherit inputs;
-        };
+        extraArgs = { inherit inputs; };
       };
       hydraJobs.x86_64-linux = self.checks.x86_64-linux;
     };
