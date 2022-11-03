@@ -36,13 +36,6 @@ with lib; {
       default = 9999;
     };
 
-    # FIXME: pass secret as file path or environment variable
-    controlApiToken = mkOption {
-      description = "Secret token, required for control API call. Format: user:password";
-      type = str;
-      default = "";
-    };
-
     dbConnection = mkOption {
       description = "libpq connection string.";
       type = str;
@@ -155,7 +148,6 @@ with lib; {
       script = escapeShellArgs (concatLists [
         [ ''${cfg.package}/bin/ogmios-datum-cache'' ]
         [ "--log-level" cfg.logLevel ]
-        [ "--server-api" cfg.controlApiToken ]
         [ "--server-port" cfg.port ]
         [ "--ogmios-address" cfg.ogmiosAddress ]
         [ "--ogmios-port" cfg.ogmiosPort ]
