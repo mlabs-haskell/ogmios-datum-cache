@@ -146,7 +146,7 @@
         modules = [
           inputs.cardano-node.nixosModules.cardano-node
           inputs.ogmios.nixosModules.ogmios
-          inputs.self.nixosModules.ogmios-datum-cache
+          self.nixosModules.ogmios-datum-cache
           ./nix/test-nixos-configuration.nix
         ];
         extraArgs = { inherit inputs; };
