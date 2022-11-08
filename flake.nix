@@ -19,22 +19,15 @@
       repo = "nixpkgs";
     };
 
-    # TODO: switch to main branch when merged
-    ogmios.url = "github:mlabs-haskell/ogmios/marton/nixos-module";
+    ogmios.url = "github:mlabs-haskell/ogmios/staging";
 
-    # TODO: clean this up when cardano-node is fixed
-    empty-flake.url =
-      "github:input-output-hk/empty-flake?rev=2040a05b67bf9a669ce17eca56beb14b4206a99a";
-    cardano-node-workbench = {
-      url =
-        "github:input-output-hk/cardano-node/ed9932c52aaa535b71f72a5b4cc0cecb3344a5a3";
-      inputs.membench.follows = "empty-flake";
-    };
+    # TODO: cleanup after cardano-node inputs are fixed
     cardano-node = {
-      url = "github:input-output-hk/cardano-node?ref=1.35.3";
-      inputs.cardano-node-workbench.follows = "cardano-node-workbench";
-      inputs.node-measured.follows = "cardano-node-workbench";
+      url = "github:input-output-hk/cardano-node/1.35.3";
+      inputs.cardano-node-workbench.follows = "blank";
+      inputs.node-measured.follows = "blank";
     };
+    blank.url = "github:divnix/blank";
 
     # TODO: remove when caradno-node is updated to include preview/preprod testnets
     cardano-configurations = {
