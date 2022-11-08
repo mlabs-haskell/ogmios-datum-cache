@@ -21,13 +21,7 @@
 
     ogmios.url = "github:mlabs-haskell/ogmios/staging";
 
-    # TODO: cleanup after cardano-node inputs are fixed
-    cardano-node = {
-      url = "github:input-output-hk/cardano-node/1.35.3";
-      inputs.cardano-node-workbench.follows = "blank";
-      inputs.node-measured.follows = "blank";
-    };
-    blank.url = "github:divnix/blank";
+    cardano-node.follows = "ogmios/cardano-node";
 
     # TODO: remove when caradno-node is updated to include preview/preprod testnets
     cardano-configurations = {
