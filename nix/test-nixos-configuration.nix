@@ -42,9 +42,9 @@
     enable = true;
     systemdSocketActivation = true;
     nodeConfigFile =
-      "${inputs.cardano-configurations}/network/preview/cardano-node/config.json";
+      "${inputs.cardano-configurations}/network/preprod/cardano-node/config.json";
     topology =
-      "${inputs.cardano-configurations}/network/preview/cardano-node/topology.json";
+      "${inputs.cardano-configurations}/network/preprod/cardano-node/topology.json";
   };
 
   services.ogmios = {
@@ -57,9 +57,9 @@
   services.ogmios-datum-cache = {
     enable = true;
     host = "0.0.0.0";
-    blockSlot = 3158571;
+    blockSlot = 12108437;
     blockHash =
-      "2daa84a316685456e8d04ee102b4a0d7fd238a87f1d52574f92a3ab183b9fab4";
+      "1ddb2f90a6541cac6bd5437c0cb859c678318b599c523798e640ebf83a49ab7c";
     blockFilter = builtins.toJSON { const = true; };
     useLatest = false;
   };
