@@ -108,6 +108,7 @@
             make lint
             touch $out
           '';
+          vm = self.nixosConfigurations.test.config.system.build.vm;
         });
 
       apps = perSystem (system: rec {
