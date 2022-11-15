@@ -64,11 +64,20 @@ instance FromJSON StartingBlock where
         <*> v .: "blockId"
   parseJSON invalid = prependFailure "parsing StartingBlock failed" $ unexpected invalid
 
+instance Ord StartingBlock where
+  compare Origin Origin = EQ
+  compare Origin _ = LT
+  compare _ Origin = GT
+  compare Tip Tip = EQ
+  compare Tip _ = GT
+  compare _ Tip = LT
+  compare (StartingBlock lBlock) (StartingBlock rBlock) = compare lBlock rBlock
+
 data BlockInfo = BlockInfo
   { blockSlot :: Int64
   , blockId :: Text
   }
-  deriving stock (Generic, Show, Eq)
+  deriving stock (Generic, Show, Eq, Ord)
   deriving anyclass (ToJSON, FromJSON)
 
 type OgmiosMirror = Int

@@ -1,6 +1,7 @@
 module App (DbConnectionAcquireException (..), bootstrapEnvFromConfig, appService) where
 
 import Control.Exception (Exception, try)
+import Control.Monad (guard)
 import Control.Monad.Catch (throwM)
 import Control.Monad.Except (ExceptT (ExceptT), MonadIO)
 import Control.Monad.Logger (LogLevel, LoggingT, filterLogger, runStdoutLoggingT)
@@ -9,8 +10,8 @@ import Data.Aeson (eitherDecode)
 import Data.ByteString.Base16 qualified as Base16
 import Data.ByteString.Base64 qualified as Base64
 import Data.Default (def)
-import Data.Maybe (fromMaybe)
 import Hasql.Connection qualified as Hasql
+import Safe.Foldable (maximumBound)
 import Servant.API.Generic (ToServantApi)
 import Servant.Server (
   Application,
@@ -80,9 +81,9 @@ bootstrapEnvFromConfig cfg = do
       Right x -> pure x
     latestBlock' <- fmap StartingBlock <$> getLastBlock dbConn
     let firstBlock =
-          if cfg.cfgFetcher.cfgFetcherUseLatest
-            then fromMaybe cfg.cfgFetcher.cfgFetcherBlock latestBlock'
-            else cfg.cfgFetcher.cfgFetcherBlock
+          maximumBound
+            cfg.cfgFetcher.cfgFetcherBlock
+            $ guard cfg.cfgFetcher.cfgFetcherUseLatest *> latestBlock'
     case firstBlock of
       StartingBlock firstBlock' -> do
         initLastBlock firstBlock'
