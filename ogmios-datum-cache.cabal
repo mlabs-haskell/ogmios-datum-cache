@@ -116,7 +116,7 @@ executable ogmios-datum-cache
   import:         common-language
   import:         common-configs
   ghc-options:
-    -Wall -Wcompat -Wincomplete-uni-patterns
+    -Wall -Wcompat -Wincomplete-uni-patterns -threaded
     -Wincomplete-record-updates -Wredundant-constraints
     -Wmissing-export-lists -Wmissing-deriving-strategies -Werror -O2
     -fplugin=RecordDotPreprocessor
