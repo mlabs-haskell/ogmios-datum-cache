@@ -157,6 +157,8 @@ test-suite ogmios-datum-cache-test
     Spec.Block.Byron
     Spec.Block.Parsers
     Spec.Parameters
+    Spec.Types
+    Spec.Integration.CardanoNode
 
   ghc-options:
     -Wall -Wcompat -Wincomplete-uni-patterns
@@ -170,6 +172,7 @@ test-suite ogmios-datum-cache-test
     , base
     , bytestring
     , containers
+    , cborg
     , exceptions
     , hspec
     , hspec-wai
@@ -179,6 +182,8 @@ test-suite ogmios-datum-cache-test
     , record-dot-preprocessor
     , record-hasfield
     , servant-server
+    , serialise
     , string-interpolate
     , text
+    , typed-process
     , utf8-string

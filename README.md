@@ -918,10 +918,58 @@ Example (filter will save datums only if hash is `foobar` and (utxo with datum i
         }
     ]
 }
-
 ```
 
-### Available support channels info
+
+## Integration tests 
+
+### Setup environment 
+First we need to start a `postres` database for ODC, a `cardano node` and a `ogmios`
+instance. All this could be done with : 
+
+```
+nix develop
+make testnet
+```
+
+The first time we would need to create a database called `ocdtest`
+
+```
+nix develop
+export PGPASSWORD="ctxlib"
+echo "SELECT 'CREATE DATABASE odctest' WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'odctest')\gexec" | \
+  psql -d template1 -p 5432 -U ctxlib -h localhost 
+```
+
+After that we could start `ODC` in other terminal with the right parameters using:
+
+```
+nix develop
+make fast-run
+```
+
+We must wait for it to start and then we could do (not working right now)
+
+```
+make perform-txt
+```
+
+to submit the alwaysSuccess script to the network, look and release some
+founds to the only user on the network.
+
+At this point we must have a workin ODC instance a datum stored in the database 
+and some transactions.
+
+### Stop the network
+
+I we decide to stop the network (ctr+c) sometimes we need to also kill 
+the cardano node process 
+
+```
+killall cardano-node
+```
+
+## Available support channels info
 
 You can find help, more information and ongoing discussion about the project here:
 - [#ogmios-datum-cache](https://mlabs-corp.slack.com/archives/C03HVDBU9FT) - mlabs ODC slack channel.
