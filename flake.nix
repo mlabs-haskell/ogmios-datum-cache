@@ -95,5 +95,6 @@
         });
 
       hydraJobs.x86_64-linux = self.checks.x86_64-linux;
+      herculesCI.ciSystems = [ "x86_64-linux" ];
     };
 }
