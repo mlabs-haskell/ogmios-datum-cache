@@ -1,5 +1,9 @@
 # ogmios-datum-cache
 
+# :rotating_light: DEPRECATION NOTICE :rotating_light:
+
+As of Mar 05 2023, this repository has been archived and will no longer receive updates and support. See [kupo](https://github.com/CardanoSolutions/kupo) for alternative indexer that supports everything ODC used to.
+
 ## Datum query
 
 ### Plutus `Data` in JSON
