@@ -18,9 +18,19 @@
       owner = "NixOS";
       repo = "nixpkgs";
     };
+
+    ogmios.url = "github:mlabs-haskell/ogmios/staging";
+
+    cardano-node.follows = "ogmios/cardano-node";
+
+    # TODO: remove when caradno-node is updated to include preview/preprod testnets
+    cardano-configurations = {
+      url = "github:input-output-hk/cardano-configurations";
+      flake = false;
+    };
   };
 
-  outputs = { self, nixpkgs, unstable_nixpkgs, ... }:
+  outputs = inputs@{ self, nixpkgs, unstable_nixpkgs, ... }:
     let
       supportedSystems =
         [ "x86_64-linux" "x86_64-darwin" "aarch64-linux" "aarch64-darwin" ];
@@ -92,8 +102,43 @@
             make lint
             touch $out
           '';
+          vm = self.nixosConfigurations.test.config.system.build.vm;
         });
 
+      apps = perSystem (system: rec {
+        default = ogmios-datum-cache;
+        ogmios-datum-cache = {
+          type = "app";
+          program = "${
+              self.packages.${system}.${hsPackageName}
+            }/bin/ogmios-datum-cache";
+        };
+        vm = {
+          type = "app";
+          program =
+            "${self.nixosConfigurations.test.config.system.build.vm}/bin/run-nixos-vm";
+        };
+      });
+
+      nixosModules.ogmios-datum-cache = { pkgs, lib, ... }: {
+        imports = [ ./nix/ogmios-datum-cache-nixos-module.nix ];
+        nixpkgs.overlays = [
+          (_: _: {
+            ogmios-datum-cache = self.packages.${pkgs.system}.${hsPackageName};
+          })
+        ];
+      };
+
+      nixosConfigurations.test = nixpkgs.lib.nixosSystem {
+        system = "x86_64-linux";
+        modules = [
+          inputs.cardano-node.nixosModules.cardano-node
+          inputs.ogmios.nixosModules.ogmios
+          self.nixosModules.ogmios-datum-cache
+          ./nix/test-nixos-configuration.nix
+        ];
+        extraArgs = { inherit inputs; };
+      };
       hydraJobs.x86_64-linux = self.checks.x86_64-linux;
       herculesCI.ciSystems = [ "x86_64-linux" ];
     };
